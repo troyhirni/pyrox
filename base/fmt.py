@@ -11,6 +11,8 @@ try:
 except:
 	from base import *
 
+import json
+
 
 JSON_ENCODE = DEF_ENCODE
 JSON_INDENT = DEF_INDENT

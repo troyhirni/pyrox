@@ -14,11 +14,11 @@ px.prompt(d)
 import time
 
 try:
-	_pq_input = raw_input
+	from .. import base
 except:
-	_pq_input = input
+	from . import base
 
-from .. import base
+from . import fmt
 
 
 DEF_PROMPT = '> '
@@ -34,7 +34,7 @@ class Prompt(object):
 		self.__o = o if o else self
 		self.__p = k.get('prompt', DEF_PROMPT)
 		self.__m = k.get('guide', DEF_GUIDE)
-		self.__f = k.get('format')
+		self.__f = k.get('format', None)
 	
 	@property
 	def dir(self):
@@ -47,16 +47,13 @@ class Prompt(object):
 	# INPUT
 	def input(self, p=None):
 		try:
-			return _pq_input(p if p else self.__p)
+			return base.pxinput(p if p else self.__p)
 		except EOFError:
 			time.sleep(1)
 	
 	# OUTPUT
 	def output(self, x):
-		if self.__f is 'json':
-			print(base.jstring(x))
-		else:
-			print (x)
+		print(self.__f(x) if self.__f else x)
 	
 	# PARSE (command line)
 	def parse(self, s):
@@ -67,12 +64,13 @@ class Prompt(object):
 		o = self.__o if self.__o else self
 		p = k.get('prompt', self.__p)
 		m = k.get('guide', self.__m)
+		r = None
 		if m:
 			print (m)
 		try:
 			while True:
-				r = None
 				s = self.input(p)
+				r = None
 				if s.strip():
 					line = self.parse(s)
 					args = line[1:]
@@ -88,6 +86,7 @@ class Prompt(object):
 					self.output (r) 
 		except KeyboardInterrupt:
 			print()
+			return r
 	
 	# TEXT
 	def text(self, **k):
