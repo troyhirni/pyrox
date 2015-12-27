@@ -21,12 +21,12 @@ class Formatting(object):
 	
 	@property
 	def args(self):
-		"""Parameter arguments."""
+		"""Formatting arguments."""
 		return self.__a
 	
 	@property
 	def kwargs(self):
-		"""Parameter keyword arguments."""
+		"""Formatting keyword arguments."""
 		return self.__k
 	
 	def __call__(self, data):
@@ -63,7 +63,7 @@ class JFormat(Formatting):
 #
 # JSON - COMPACT
 #
-class JFCompact(JFormat):
+class JCompact(JFormat):
 	"""Compact JSON format."""
 	
 	def __init__(self, **k):

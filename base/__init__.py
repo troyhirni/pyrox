@@ -7,8 +7,10 @@ the terms of the GNU Affero General Public License.
 
 import json
 
+DEF_ENCODE = 'utf-8'
+DEF_INDENT = 2
+JSON_INDENT = DEF_INDENT
 
-JSON_INDENT = 2
 
 
 # EVAL
