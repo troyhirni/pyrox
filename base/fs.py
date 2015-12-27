@@ -18,13 +18,20 @@ File and Dir are based on Path. The following apply to all:
    
  * File and Dir methods that access codecs expect keyword arguments
    for the codecs methods. By default, encoding is set to the value
-   of DEF_ENCODING (which is originally 'utf-8').
+   of FS_ENCODE (which is originally 'utf-8').
 """
 
-import os, shutil, codecs
+import os, shutil, codecs, glob
+
+try:
+	from ..base import *
+except:
+	from base import *
+
+from . import fmt
 
 
-DEF_ENCODING = 'utf-8'
+FS_ENCODE = DEF_ENCODE
 
 
 
@@ -69,18 +76,22 @@ class Path(object):
 		"""True if path is a mount point."""
 		return os.path.ismount(self.merge(path))
 	
-	def merge(self, path):
-		"""Expands path to an absolute based on self.path."""
-		if not path:
-			return self.path
-		p = './' if path == '.' else path
-		return os.path.relpath('./' if p=='.' else p, self.path)
-	
 	def touch(self, path=None, times=None):
 		"""Touch file at path. Arg times applies to os.utime()."""
 		p = self.merge(path)
 		with open(p, 'a'):
 			os.utime(p, times)	
+	
+	def merge(self, path):
+		"""Returns the given path relative to self.path."""
+		if not path:
+			return self.path
+		p = os.path.expanduser(path)
+		if os.path.isabs(p):
+			return os.path.normpath(p)
+		else:
+			p = os.path.join(self.path, p)
+			return os.path.abspath(os.path.normpath(p))
 	
 	
 	@classmethod
@@ -119,14 +130,12 @@ class Path(object):
 				if not OP.exists(OP.dirname(path)):
 					os.makedirs(OP.dirname(path))
 				if v == 'touch':
-					print(path)
 					with open(path, 'a'):
 						os.utime(path, None)
 			elif (v=='makedirs'):
 				os.makedirs(path)
 		
 		return path
-
 
 
 
@@ -139,21 +148,32 @@ class File(Path):
 		Path.__init__(self, path, **k)
 		if self.exists() and not self.isfile():
 			raise ValueError('not-a-file')
-	
-	def read(self, **k):
-		"""Read this file. Any kwargs apply to codecs.open()."""
-		k.setdefault('encoding', DEF_ENCODING)
-		with codecs.open(self.path, **k) as fp:
-			return fp.read()
 
 	def head(self, lines=12, **k):
 		"""Top lines of file. Any kwargs apply to codecs.open()."""
 		a = []
-		k.setdefault('encoding', DEF_ENCODING)
+		k.setdefault('mode', 'r')
+		k.setdefault('encoding', FS_ENCODE)
 		with codecs.open(self.path, **k) as fp:
 			for i in range(0, lines):
 				a.append(fp.readline())
 		return ''.join(a)
+	
+	def read(self, **k):
+		"""Read this file. Any kwargs apply to codecs.open()."""
+		k.setdefault('mode', 'r')
+		k.setdefault('encoding', FS_ENCODE)
+		with codecs.open(self.path, **k) as fp:
+			return fp.read()
+	
+	def write(self, data, **k):
+		"""Read this file. Any kwargs apply to codecs.open()."""
+		k.setdefault('mode', 'w+')
+		k.setdefault('encoding', FS_ENCODE)
+		with codecs.open(self.path, **k) as fp:
+			if not isinstance(data, basestring):
+				data = fmt.JFormat().format(data)
+			fp.write(data)
 
 
 
@@ -180,29 +200,61 @@ class Dir(Path):
 		if not os.path.isdir(p):
 			raise Exception ('not-a-directory')
 		self.path = p
+
+	def cp(self, src, dst, **k):
+		"""
+		Copy src to dst; Kwargs passed to copytree if src is directory.
+		"""
+		src = self.merge(src)
+		if self.exists(dst):
+			raise Exception('fs-path-exists', dst)
+		if os.path.isdir(src):
+			return shutil.copytree(src, self.merge(dst), **k)
+		else:
+			return shutil.copyfile(src, self.merge(dst))
 	
 	def ls(self, path=None):
 		"""List directory at path."""
 		return os.listdir(self.merge(path))
-
-	def cp(self, src, dst):
-		"""Copy src to dst."""
-		src = self.merge(src)
-		if os.path.isdir(src):
-			return shutil.copy(src, self.merge(dst))
-		else:
-			return shutil.copyfile(src, self.merge(dst))
 	
-	def head(self, path, **k):
-		"""
-		Returns head for existing file at the given path. Keywords apply
-		to codecs.open().
-		"""
-		return File(self.merge(path)).head(**k)
+	def mkdir(self, path, *a):
+		"""Create a directory described by path."""
+		os.makedirs(self.merge(path), *a)
+
+	def mv(self, src, dst):
+		"""Move src to dst."""
+		src = self.merge(src)
+		return shutil.move(src, self.merge(dst))
+	
+	def rm(self, glob=None):
+		"""Remove files matching glob pattern."""
+		g = self.glob(self.merge(glob))
+		for px in g:
+			if os.path.isdir(px):
+				shutil.rmtree(px)
+			else:
+				os.remove(px)
+	
+	# SEARCHING
+	def glob(self, path):
+		return glob.glob(self.merge(path))
+	
+	def find(self, glob, path=None):
+		p = self.merge(path)
+		r = []
+		for d, dd, ff in os.walk(p):
+			r.extend(self.glob(os.path.join(d, glob)))
+		return r
+	
+	# FILES
+	def head(self, path, lines=12, **k):
+		"""Return head for existing file at the given path."""
+		return File(self.merge(path)).head(lines, **k)
 	
 	def read(self, path, **k):
 		"""Return contents of file at path. Kwargs for codecs.open()."""
 		return File(self.merge(path)).read(**k)
-
-
-
+	
+	def file(self, path, **k):
+		"""Return a File object to the given path."""
+		return File(self.merge(path), **k)

@@ -5,7 +5,14 @@ the terms of the GNU Affero General Public License.
 """
 
 
+try:
+	basestring
+except:
+	basestring = unicode = str
+
+
 import json
+
 
 DEF_ENCODE = 'utf-8'
 DEF_INDENT = 2

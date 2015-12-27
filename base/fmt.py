@@ -6,7 +6,11 @@ the terms of the GNU Affero General Public License.
 JSON format objects with specialized conversion settings.
 """
 
-from ..base import *
+try:
+	from ..base import *
+except:
+	from base import *
+
 
 JSON_ENCODE = DEF_ENCODE
 JSON_INDENT = DEF_INDENT
