@@ -187,11 +187,11 @@ class File(Path):
 		the File.read() method.)
 		"""
 		k.setdefault('mode', 'w+')
-		k.setdefault('encoding', FS_ENCODE)
 		if 'b' in k['mode']:
 			with open(self.path, **k) as fp:
 				return fp.write(data)
 		else:
+			k.setdefault('encoding', FS_ENCODE)
 			with codecs.open(self.path, **k) as fp:
 				if not isinstance(data, basestring):
 					data = fmt.JFormat().format(data)
