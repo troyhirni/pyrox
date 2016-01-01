@@ -14,9 +14,9 @@ px.prompt(d)
 import time
 
 try:
-	from .. import base
+	from ..base import *
 except:
-	from . import base
+	from base import *
 
 from . import fmt
 
@@ -47,7 +47,7 @@ class Prompt(object):
 	# INPUT
 	def input(self, p=None):
 		try:
-			return base.pxinput(p if p else self.__p)
+			return textinput(p if p else self.__p)
 		except EOFError:
 			time.sleep(1)
 	

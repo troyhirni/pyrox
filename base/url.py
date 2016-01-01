@@ -6,13 +6,11 @@ the terms of the GNU Affero General Public License.
 Parse URLs; Retrieve and work with URL content.
 """
 
-
-import encodings.aliases#, io
-
-
-# default values; common functions/classes;
-from ..base import *
-
+try:
+	from ..base import *
+except:
+	from base import *
+	
 
 # compensate for renamed symbols in python 3
 class MM2(object):
@@ -58,29 +56,27 @@ def parse(url):
 	return UParse.parse(url)
 
 
-def open(url, *a):
+def open(url, *a, **k):
 	"""
 	Returns a UResponse object for the given url.	Arguments are the 
 	same as for urllib's urlopen() function.
 	"""
-	return UResponse(url, *a)
+	return UResponse(url, *a, **k)
 
 
 
 
-
-
-
-
+#
+# URL - DOWNLOAD
+#
 
 class UResponse(object):
 	"""Response object for the url.open() function."""
 	
 	PMessage = None
 	
-	def __init__(self, *a):
-		self.__file = urlreq.urlopen(*a)
-		#self.__reader = io.BufferedReader(self.__file)
+	def __init__(self, *a, **k):
+		self.__file = urlreq.urlopen(*a, **k)
 	
 	def geturl(self):
 		"""The actual URL of the resource retrieved."""
@@ -137,15 +133,27 @@ class UResponse(object):
 			self.__charset = c.replace('-','_').lower() if c else None
 			return self.__charset
 	
-	# private
+	#
+	# REM: Next step might be to know the encoding used to find the 
+	#      charset. That means returning from __htmlfindcharset with
+	#      the p.result dict, just adding the encoding used to find
+	#      the charset tag.
+	#
+	# AND: Can I examine the bytes directly to determine whether the
+	#      initial characters have leading zeros? That could weed out
+	#      utf-16 or utf-32, right? ...and, if so, probably many more.
+	#
+	# Mostly, I need to look for the BOM first thing.
+	#
+	
 	def __htmlfindcharset(self):
 		bb = self.content
 		for e in ENCODINGS:
 			try:
-				top = bb.decode(e)
+				txt = bb.decode(e)
 				try:
 					p = HTMLCharsetParser()
-					p.feed(top)
+					p.feed(txt)
 				except HTMLParseStop:
 					return p.result.get('charset')
 			except Exception as ex:
@@ -188,7 +196,9 @@ class HTMLParseStop (Exception):
 
 
 
-
+#
+# URL - PARSING
+#
 
 class UParse(object):
 	"""
@@ -241,41 +251,3 @@ class UParse(object):
 		if x:
 			return (x[0],None) if len(x)==1 else tuple(x)
 		return (None,None)
-
-
-
-
-#
-# ENCODINGS
-#  - These are the available encodings as taken from python 
-#    documentation.
-#  - These may be moved to a JSON config file in the future.
-#
-ENCODINGS = [
-	'ascii', 'big5', 'big5hkscs', 'cp037', 'cp424', 'cp437', 'cp500', 
-	'cp720', 'cp737', 'cp775', 'cp850', 'cp852', 'cp855', 'cp856', 
-	'cp857', 'cp858', 'cp860', 'cp861', 'cp862', 'cp863', 'cp864', 
-	'cp865', 'cp866', 'cp869', 'cp874', 'cp875', 'cp932', 'cp949', 
-	'cp950', 'cp1006', 'cp1026', 'cp1140', 'cp1250', 'cp1251', 
-	'cp1252', 'cp1253', 'cp1254', 'cp1255', 'cp1256', 'cp1257', 
-	'cp1258', 'euc_jp', 'euc_jis_2004', 'euc_jisx0213', 'euc_kr', 
-	'gb2312', 'gbk', 'gb18030', 'hz', 'iso2022_jp', 'iso2022_jp_1', 
-	'iso2022_jp_2', 'iso2022_jp_2004', 'iso2022_jp_3', 
-	'iso2022_jp_ext', 'iso2022_kr', 'latin_1', 'iso8859_2', 
-	'iso8859_3', 'iso8859_4', 'iso8859_5', 'iso8859_6', 'iso8859_7', 
-	'iso8859_8', 'iso8859_9', 'iso8859_10', 'iso8859_13', 
-	'iso8859_14', 'iso8859_15', 'iso8859_16', 'johab', 'koi8_r', 
-	'koi8_u', 'mac_cyrillic', 'mac_greek', 'mac_iceland', 
-	'mac_latin2', 'mac_roman', 'mac_turkish', 'ptcp154', 'shift_jis', 
-	'shift_jis_2004', 'shift_jisx0213', 'utf_32', 'utf_32_be', 
-	'utf_32_le', 'utf_16', 'utf_16_be', 'utf_16_le', 'utf_7', 'utf_8', 
-	'utf_8_sig'
-]
-
-# Extend encodings with all aliases for more potential matches.
-ENCODINGS_ALIASES = []
-ENCODINGS_ALIASES.extend(ENCODINGS)
-ENCODINGS_ALIASES.extend(encodings.aliases.aliases)
-
-
-

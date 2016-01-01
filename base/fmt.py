@@ -18,9 +18,9 @@ JSON_ENCODE = DEF_ENCODE
 JSON_INDENT = DEF_INDENT
 
 
-
-class Formatting(object):
-	"""Base formatting class. Does nothing to format."""
+class FormatBase(object):
+	"""Abstract base formatting class."""
+	
 	def __init__(self, *a, **k):
 		self.__a = a
 		self.__k = k
@@ -35,31 +35,42 @@ class Formatting(object):
 		"""Formatting keyword arguments."""
 		return self.__k
 	
-	def __call__(self, data):
+	def __call__(self, *a, **k):
 		"""Formats and returns data."""
-		return self.format(data)
-
-	def format(self, data):
-		"""Place-holder. Returns string value of given data."""
-		return str(data)
+		return self.format(*a, **k)
 	
-	def output(self, data):
+	def output(self, *a, **k):
 		"""Format and print data."""
 		print (self.format(data))
 
 
 #
+# PYTHON FORMAT
+#
+class Format(FormatBase):
+	"""Format with the built-in string.format() method."""
+	
+	def __init__(self, formatString):
+		"""
+		Pass a format string for the built-in string.format() method.
+		"""
+		FormatBase.__init__(self, formatString)
+	
+	def format(self, *a, **k):
+		return self.args[0].format(*a, **k)
+
+
+#
 # JSON - FOR DISPLAY
 #
-class JFormat(Formatting):
+class JFormat(FormatBase):
 	"""JSON in display format."""
 	
 	def __init__(self, **k):
 		"""Kwargs are passed directly to json.dump(s) functions."""
 		k.setdefault('cls', JSONDisplay)
 		k.setdefault('indent', JSON_INDENT)
-		#k.setdefault('encoding', JSON_ENCODE) #damn python3
-		Formatting.__init__(self, **k)
+		FormatBase.__init__(self, **k)
 	
 	def format(self, data):
 		"""Format data as json strings in a pretty format."""
