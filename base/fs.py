@@ -189,7 +189,7 @@ class File(Path):
 		k.setdefault('mode', 'w+')
 		if 'b' in k['mode']:
 			with open(self.path, **k) as fp:
-				return fp.write(data)
+				fp.write(data)
 		else:
 			k.setdefault('encoding', FS_ENCODE)
 			with codecs.open(self.path, **k) as fp:
@@ -272,7 +272,7 @@ class Dir(Path):
 		return File(self.merge(path)).head(lines, **k)
 	
 	def read(self, path, **k):
-		"""Return contents of file at path. Kwargs for codecs.open()."""
+		"""Return contents of file at path. Kwargs for File.read()."""
 		return File(self.merge(path)).read(**k)
 	
 	def file(self, path, **k):
