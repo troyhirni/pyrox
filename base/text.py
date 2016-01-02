@@ -103,7 +103,7 @@ class Encoded(object):
 	The decode() method works by first looking for a BOM and then, if
 	that fails, looking for a hint in the text itself. 
 	
-	NOTE THE FOLLOWING:
+	NOTES:
 	 * The testbom() method WILL NOT WORK unless your bytestring
 	   actually has a BOM at the head of it. This is pretty useful for
 	   downloaded files, but most file system files neither start with
@@ -113,7 +113,7 @@ class Encoded(object):
      an encoding in the text file. Eg, <!SOMETAG charset=utf-8>. If
      no such specification exists, testspec() is useless.
    * Calling bomremove() wipes out your ability to use testbom(), 
-     so detect first, remove bom later!
+     so detect first, remove BOM later!
    * Modern HTML files usually specify an encoding, but HTML coders
      sometimes fail to get it right. I've seen plenty of charset
      attributes that don't match any real encoding name :)
@@ -133,7 +133,7 @@ class Encoded(object):
 	@classmethod
 	def pythonize(cls, e):
 		"""Replace '-' with '_' to match python encoding specifiers."""
-		e.lower().replace('-', '_')
+		return e.lower().replace('-', '_')
 	
 	def bomremove(self):
 		"""

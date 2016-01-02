@@ -10,7 +10,9 @@ try:
 	from ..base import *
 except:
 	from base import *
-	
+
+from . import text
+
 
 # compensate for renamed symbols in python 3
 class MM2(object):
@@ -128,73 +130,11 @@ class UResponse(object):
 			return self.__charset
 		except:
 			c = self.param('charset')
-			if not c: 
-				c = self.__htmlfindcharset()
-			self.__charset = c.replace('-','_').lower() if c else None
+			if not c:
+				bb = text.Encoded(self.content)
+				self.__charset = bb.detect()
 			return self.__charset
 	
-	#
-	# REM: Next step might be to know the encoding used to find the 
-	#      charset. That means returning from __htmlfindcharset with
-	#      the p.result dict, just adding the encoding used to find
-	#      the charset tag.
-	#
-	# AND: Can I examine the bytes directly to determine whether the
-	#      initial characters have leading zeros? That could weed out
-	#      utf-16 or utf-32, right? ...and, if so, probably many more.
-	#
-	# Mostly, I need to look for the BOM first thing.
-	#
-	
-	def __htmlfindcharset(self):
-		bb = self.content
-		for e in ENCODINGS:
-			try:
-				txt = bb.decode(e)
-				try:
-					p = HTMLCharsetParser()
-					p.feed(txt)
-				except HTMLParseStop:
-					return p.result.get('charset')
-			except Exception as ex:
-				pass
-
-
-# Utility - to determine character sets in HTML files.
-class HTMLCharsetParser(HTMLParser):
-	"""
-	Scan for content type.
-	 - Parse to the meta tag that defines "content-type" or "charset"
-	 - Set self.result to the charset
-	 - Raise HTMLParseStop exception
-	"""
-	def handle_starttag(self, tag, attrs):
-		"""Look for meta http-equiv content type."""
-		if (tag.lower() == 'meta'):
-			n = attrs[0][0].lower() # content-type or charset
-			e = attrs[0][1].lower() # value
-			if (n=='http-equiv') and (e=='content-type'):
-				x = attrs[1][1].split(';')
-				contype = x[0]
-				charset = x[1].split('=')[1].strip() if len(x)>1 else None
-				self.result = {'contents':contype, 'charset':charset}
-				raise HTMLParseStop()
-			elif (n=='charset'):
-				self.result = {'charset':attrs[0][1]}
-				raise HTMLParseStop()
-	
-	def handle_endtag(self, tag):
-		"""Don't look past the html head section."""
-		if tag == 'head':
-			raise HTMLParseStop({})
-
-
-class HTMLParseStop (Exception):
-	"""This exception is raised to stop HTML parsing."""
-	pass
-
-
-
 
 #
 # URL - PARSING
