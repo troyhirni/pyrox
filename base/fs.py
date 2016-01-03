@@ -58,7 +58,7 @@ class Path(object):
 	
 	@path.setter
 	def path(self, path):
-		self.__p = self.expand(path)
+		self.setpath(path)
 	
 	def exists(self, path=None):
 		p = self.merge(path)
@@ -66,6 +66,9 @@ class Path(object):
 	
 	def getpath(self):
 		return self.__p
+	
+	def setpath(self, path):
+		self.__p = path
 	
 	def isfile(self, path=None):
 		return os.path.isfile(self.merge(path))
@@ -141,97 +144,6 @@ class Path(object):
 				os.makedirs(path)
 		
 		return path
-		
-
-
-
-class File(Path):
-	"""Represents a file."""
-	
-	def __init__(self, path, **k):
-		"""Pass path to file. Keywords apply as to Path.expand()."""
-		Path.__init__(self, k.get('file', path), **k)
-		if self.exists() and not self.isfile():
-			raise ValueError('not-a-file')
-	
-	# HEAD
-	def head(self, lines=12, **k):
-		"""Top lines of file. Any kwargs apply to codecs.open()."""
-		a = []
-		k.setdefault('mode', 'r')
-		k.setdefault('encoding', FS_ENCODE)
-		with self.open(**k) as fp:
-			for i in range(0, lines):
-				a.append(fp.readline())
-		return ''.join(a)
-	
-	# OPEN
-	def open(self, **k):
-		"""
-		Open file at self.path with codecs.open(), or with the built-in
-		open method if mode includes a 'b'. All kwargs are passed for 
-		option, either so use only those that are appropriate to the 
-		required mode.
-		
-		Returns the open file pointer.
-		
-		NOTE: To read binary data, mode="rb"; Text, mode="r". To write 
-		      binary data, use mode="wb"; For unicode text, mode="w".
-		      Note also that with mode="w", codecs automatically write
-		      the BOM where appropriate.
-		"""
-		k.setdefault('mode', 'rw+')
-		if 'b' in k['mode']:
-			return open(self.path, **k)
-		else:
-			k.setdefault('encoding', FS_ENCODE)
-			return codecs.open(self.path, **k)
-	
-	# READ
-	def read(self, **k):
-		"""Open and read file at self.path. Default mode is 'r'."""
-		k.setdefault('mode', 'r')
-		with self.open(**k) as fp:
-			return fp.read()
-	
-	# WRITE
-	def write(self, data, **k):
-		"""Open and write data to file at self.path."""
-		k.setdefault('mode', 'w')
-		with self.open(**k) as fp:
-			if not isinstance(data, basestring):
-				data = fmt.JFormat().format(data)
-			fp.write(data)
-	
-	# TOUCH
-	def touch(self, times=None):
-		"""Touch this file."""
-		with open(self.path, 'a'):
-			os.utime(self.path, times)	
-
-
-
-
-class Zip(File):
-	"""Zip file."""
-	
-	def __init__(self, path, **k):
-		"""Pass path to file. Keywords apply as to Path.expand()."""
-		Path.__init__(self, k.get('zip', path), **k)
-		with zipfile.ZipFile(self.path, 'w') as z:
-			pass
-	
-	def namelist(self):
-		with zipfile.ZipFile(self.path, 'r') as z:
-			return z.namelist()
-	
-	def read(self, zpath):
-		with zipfile.ZipFile(self.path, 'r') as z:
-			return z.read(zpath)
-	
-	def write(self, zpath, data):
-		with zipfile.ZipFile(self.path, 'a') as z:
-			z.writestr(zpath, data)
 
 
 
@@ -357,3 +269,99 @@ class Dir(Path):
 		else:
 			return rlist
 
+
+
+
+class ImmutablePath(Path):
+	def setpath(self, path):
+		raise ValueError('fs-immutable-path')
+
+
+
+class File(ImmutablePath):
+	"""Represents a file."""
+	
+	def __init__(self, path, **k):
+		"""Pass path to file. Keywords apply as to Path.expand()."""
+		Path.__init__(self, k.get('file', path), **k)
+		if self.exists() and not self.isfile():
+			raise ValueError('not-a-file')
+	
+	# HEAD
+	def head(self, lines=12, **k):
+		"""Top lines of file. Any kwargs apply to codecs.open()."""
+		a = []
+		k.setdefault('mode', 'r')
+		k.setdefault('encoding', FS_ENCODE)
+		with self.open(**k) as fp:
+			for i in range(0, lines):
+				a.append(fp.readline())
+		return ''.join(a)
+	
+	# OPEN
+	def open(self, **k):
+		"""
+		Open file at self.path with codecs.open(), or with the built-in
+		open method if mode includes a 'b'. All kwargs are passed for 
+		option, either so use only those that are appropriate to the 
+		required mode.
+		
+		Returns the open file pointer.
+		
+		NOTE: To read binary data, mode="rb"; Text, mode="r". To write 
+		      binary data, use mode="wb"; For unicode text, mode="w".
+		      Note also that with mode="w", codecs automatically write
+		      the BOM where appropriate.
+		"""
+		k.setdefault('mode', 'rw+')
+		if 'b' in k['mode']:
+			return open(self.path, **k)
+		else:
+			k.setdefault('encoding', FS_ENCODE)
+			return codecs.open(self.path, **k)
+	
+	# READ
+	def read(self, **k):
+		"""Open and read file at self.path. Default mode is 'r'."""
+		k.setdefault('mode', 'r')
+		with self.open(**k) as fp:
+			return fp.read()
+	
+	# WRITE
+	def write(self, data, **k):
+		"""Open and write data to file at self.path."""
+		k.setdefault('mode', 'w')
+		with self.open(**k) as fp:
+			if not isinstance(data, basestring):
+				data = fmt.JFormat().format(data)
+			fp.write(data)
+	
+	# TOUCH
+	def touch(self, times=None):
+		"""Touch this file."""
+		with open(self.path, 'a'):
+			os.utime(self.path, times)	
+
+
+
+
+class Zip(File):
+	"""Zip file."""
+	
+	def __init__(self, path, **k):
+		"""Pass path to file. Keywords apply as to Path.expand()."""
+		Path.__init__(self, k.get('zip', path), **k)
+		with zipfile.ZipFile(self.path, 'w') as z:
+			pass
+	
+	def namelist(self):
+		with zipfile.ZipFile(self.path, 'r') as z:
+			return z.namelist()
+	
+	def read(self, zpath):
+		with zipfile.ZipFile(self.path, 'r') as z:
+			return z.read(zpath)
+	
+	def write(self, zpath, data):
+		with zipfile.ZipFile(self.path, 'a') as z:
+			z.writestr(zpath, data)
