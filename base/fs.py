@@ -308,10 +308,23 @@ class File(ImmutablePath):
 		
 		Returns the open file pointer.
 		
-		NOTE: To read binary data, mode="rb"; Text, mode="r". To write 
-		      binary data, use mode="wb"; For unicode text, mode="w".
-		      Note also that with mode="w", codecs automatically write
-		      the BOM where appropriate.
+		IMPORTANT: 
+		 * To read binary data: theFile.read(mode="rb")
+		 * To read unicode text: theFile.read(encoding="<encoding>")
+		 * To write binary data: theFile.write(theBytes, mode="wb")
+		 * To write unicode text: theFile.write(s, encoding="<encoding>")
+		
+		With mode "r" or "w", codecs automatically read/write the BOM
+		where appropriate (assuming you specify the right encoding). 
+		However, if you have bytes to save as encoded text, you can 
+		do this so as to save BOM and bytes as encoded:
+		  >>> theFile.write(theBytes, mode="wb")
+		
+		This insures that byte string (already encoded) are written 
+		"as-is", including the BOM if any.
+		
+		 can be read by:
+		  >>> s = theFile.read(encoding="<encoding>")
 		"""
 		k.setdefault('mode', 'rw+')
 		if 'b' in k['mode']:
@@ -332,8 +345,6 @@ class File(ImmutablePath):
 		"""Open and write data to file at self.path."""
 		k.setdefault('mode', 'w')
 		with self.open(**k) as fp:
-			if not isinstance(data, basestring):
-				data = fmt.JFormat().format(data)
 			fp.write(data)
 	
 	# TOUCH
