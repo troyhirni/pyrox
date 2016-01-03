@@ -78,6 +78,23 @@ class Text(object):
 		"""
 		self.__enc = k.get('encoding')
 		if isinstance(x, unicode):
+			if not self.__enc:
+				self.__enc = DEF_ENCODE
+			self.__text = x
+		elif not self.__enc:
+			ee = Encoded(x)
+			de = ee.detect()
+			ee.bomremove()
+			self.__enc = de or DEF_ENCODE
+			k['encoding'] = self.__enc
+			self.__text = ee.bytes.decode(**k)
+		else:
+			self.__text = x.decode(**k)
+
+		
+		"""
+		self.__enc = k.get('encoding')
+		if isinstance(x, unicode):
 			self.__text = x
 		elif not self.__enc:
 			ee = Encoded(x)
@@ -86,7 +103,7 @@ class Text(object):
 			self.__text = ee.bytes.decode(**k)
 		else:
 			self.__text = x.decode(**k)
-
+		"""
 
 
 
