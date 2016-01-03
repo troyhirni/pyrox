@@ -153,50 +153,57 @@ class File(Path):
 		Path.__init__(self, k.get('file', path), **k)
 		if self.exists() and not self.isfile():
 			raise ValueError('not-a-file')
-
+	
+	# HEAD
 	def head(self, lines=12, **k):
 		"""Top lines of file. Any kwargs apply to codecs.open()."""
 		a = []
 		k.setdefault('mode', 'r')
 		k.setdefault('encoding', FS_ENCODE)
-		with codecs.open(self.path, **k) as fp:
+		with self.open(**k) as fp:
 			for i in range(0, lines):
 				a.append(fp.readline())
 		return ''.join(a)
 	
+	# OPEN
+	def open(self, **k):
+		"""
+		Open file at self.path with codecs.open(), or with the built-in
+		open method if mode includes a 'b'. All kwargs are passed for 
+		option, either so use only those that are appropriate to the 
+		required mode.
+		
+		Returns the open file pointer.
+		
+		NOTE: To read binary data, mode="rb"; Text, mode="r". To write 
+		      binary data, use mode="wb"; For unicode text, mode="w".
+		      Note also that with mode="w", codecs automatically write
+		      the BOM where appropriate.
+		"""
+		k.setdefault('mode', 'rw+')
+		if 'b' in k['mode']:
+			return open(self.path, **k)
+		else:
+			k.setdefault('encoding', FS_ENCODE)
+			return codecs.open(self.path, **k)
+	
+	# READ
 	def read(self, **k):
-		"""
-		Read this file. If mode is set and includes 'b', opens and reads
-		file bytes using the builtin open() function. Otherwise, the 
-		codecs.open() function is used. All kwargs are given for either
-		option, so pass only those that are appropriate to the mode.
-		"""
+		"""Open and read file at self.path. Default mode is 'r'."""
 		k.setdefault('mode', 'r')
-		if 'b' in k['mode']:
-			with open(self.path, **k) as fp:
-				return fp.read()
-		else:
-			k.setdefault('encoding', FS_ENCODE)
-			with codecs.open(self.path, **k) as fp:
-				return fp.read()
+		with self.open(**k) as fp:
+			return fp.read()
 	
+	# WRITE
 	def write(self, data, **k):
-		"""
-		Write data to this file. Any kwargs apply to codecs.open() or 
-		the builtin open() method, depending on mode. (See the help for
-		the File.read() method.)
-		"""
-		k.setdefault('mode', 'w+')
-		if 'b' in k['mode']:
-			with open(self.path, **k) as fp:
-				fp.write(data)
-		else:
-			k.setdefault('encoding', FS_ENCODE)
-			with codecs.open(self.path, **k) as fp:
-				if not isinstance(data, basestring):
-					data = fmt.JFormat().format(data)
-				fp.write(data)
+		"""Open and write data to file at self.path."""
+		k.setdefault('mode', 'w')
+		with self.open(**k) as fp:
+			if not isinstance(data, basestring):
+				data = fmt.JFormat().format(data)
+			fp.write(data)
 	
+	# TOUCH
 	def touch(self, times=None):
 		"""Touch this file."""
 		with open(self.path, 'a'):
@@ -272,7 +279,7 @@ class Dir(Path):
 		return File(self.merge(path)).head(lines, **k)
 	
 	def read(self, path, **k):
-		"""Return contents of file at path. Kwargs for File.read()."""
+		"""Return contents of file at path."""
 		return File(self.merge(path)).read(**k)
 	
 	def file(self, path, **k):
