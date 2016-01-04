@@ -23,8 +23,6 @@ DEF_INDENT = 2
 #
 # ENCODINGS
 #  - Available encodings, as taken from python documentation.
-#  - This is here because it's needed by both url and by a new
-#    module that's under construction.
 #
 ENCODINGS = [
 	'ascii', 'big5', 'big5hkscs', 'cp037', 'cp424', 'cp437', 'cp500', 

@@ -20,6 +20,16 @@ except:
 
 
 
+
+def text(text, encoding=DEF_ENCODE, **k):
+	"""
+	Returns a Text object given unicode or bytes and a valid encoding.
+	If bytes are given, encoding defaults to DEF_ENCODE (UTF-8).
+	"""
+	return Text(text, encoding, **k)
+
+
+
 #
 # TEXT
 #
@@ -30,14 +40,15 @@ class Text(object):
 	encoded bytes.
 	"""
 	
-	def __init__(self, text, **k):
+	def __init__(self, text, encoding=None, **k):
 		"""
 		Pass text as unicode or byte string. Optional kwargs are applied
-		when decoding. Keyword 'encoding' applies to the bytes property.
+		when encoding/decoding. Keyword 'encoding' applies to the bytes 
+		property result.
 		
 		See set() help for details.
 		"""
-		self.set(text, **k)
+		self.set(text, encoding, **k)
 	
 	
 	@property
@@ -56,12 +67,12 @@ class Text(object):
 		return self.text.encode(self.encoding)
 	
 	# ENCODE
-	def encode(self, **k):
+	def encode(self, encoding=None, **k):
 		"""Encodes this text as bytes, applying any kwargs."""
-		return self.text.encode(**k)
+		return self.text.encode(encoding)
 	
 	# SET
-	def set(self, x, **k):
+	def set(self, x, encoding=None, **k):
 		"""
 		Pass a unicode string or bytes. Optionally, specify encoding by 
 		keyword and it will be used to decode bytes (if bytes were 
@@ -69,28 +80,32 @@ class Text(object):
 		bytes property.
 		
 		If you pass a byte string but don't specify an encoding, a weak
-		attempt is made to detect the encoding. Failing that, default
-		base.DEF_ENCODE (default: 'utf-8') is assumed.
+		attempt is made to detect the encoding. If that fails, an
+		exception is raised.
 		
 		CAUTION: Always specify the encoding for bytes if you know it. 
 		         Encode.detect() is not comprehensive and will often 
 		         return None. See help for Encode for details.
 		"""
-		self.__enc = k.get('encoding')
 		if isinstance(x, unicode):
-			if not self.__enc:
-				self.__enc = DEF_ENCODE
+			# It's unicode text, so just store the encoding (for use by
+			# the bytes property) and store the unicode text.
+			self.__enc = encoding or DEF_ENCODE
 			self.__text = x
-		elif not self.__enc:
-			ee = Encoded(x)
-			de = ee.detect()
-			ee.bomremove()
-			self.__enc = de or DEF_ENCODE
-			k['encoding'] = self.__enc
-			self.__text = ee.bytes.decode(**k)
 		else:
-			self.__text = x.decode(**k)
-
+			if encoding:
+				# Bytes and encoding were given, so decode to text.
+				self.__enc = encoding or DEF_ENCODE
+				self.__text = x.decode(self.__enc, **k)
+			else:
+				# No encoding was specified, so try to detect.
+				ee = Encoded(x)
+				de = ee.detect()
+				if not de:
+					raise Exception('text-encoding-needed')
+				self.__enc = de
+				self.__text = ee.bytes.decode(self.__enc, **k)
+	
 
 
 #
@@ -135,8 +150,18 @@ class Encoded(object):
 	
 	@classmethod
 	def pythonize(cls, e):
-		"""Replace '-' with '_' to match python encoding specifiers."""
-		return e.lower().replace('-', '_')
+		"""
+		Replace '-' with '_' to match python encoding specifiers. 
+		If not in ENCODINGS_ALIASES, remove '-' and try that.
+		If that fails, return the original.
+		"""
+		p = e.lower().replace('-', '_')
+		if p in ENCODINGS_ALIASES:
+			return p
+		p = p.replace('_', '')
+		if p in ENCODINGS_ALIASES:
+			return p
+		return e
 	
 	def bomremove(self):
 		"""
@@ -213,7 +238,7 @@ class Encoded(object):
 	def testbom(self):
 		"""
 		Detect encoding based on byte order mark. Works only for UTF-32,
-		UTF-16, UTF-8, and UTF-7.
+		UTF-16, UTF-8, gb18030, and UTF-7.
 		"""
 		
 		# try the u32 encodings
@@ -222,22 +247,27 @@ class Encoded(object):
 		elif self.__bb.startswith(codecs.BOM_UTF32_BE):
 			return 'utf_32_be'
 		
-		# try utf8 #but not (not yet, at least) utf7
-		elif self.__bb.startswith(codecs.BOM_UTF8):
-			return 'utf_8_sig' #_sig? check this!
-		
-		# REM: I'm witholding utf-7 because I'm not sure it's correct.
-		#elif self.__bb.startswith('\x2b\x2f\x76'):
-		#	return 'utf_7'
-		
 		# try the u16 encodings
 		elif self.__bb.startswith(codecs.BOM_UTF16_LE):
 			return 'utf_16_le'
 		elif self.__bb.startswith(codecs.BOM_UTF16_BE):
 			return 'utf_16_be'
 		
+		# utf-8
+		elif self.__bb.startswith(codecs.BOM_UTF8):
+			return 'utf_8_sig' #_sig? check this!
+		
+		# gb-18030
+		elif self.__bb.startswith("\x84\x31\x95\x33"):
+			return 'gb18030'
+		
+		# utf-7
+		elif self.__bb.startswith('\x2b\x2f\x76'):
+			b45 = self.__bb[3:5]
+			if b45[0] in ["\x38","\x39","\x2b","\x2f"] or b45=="\x38\x2d":
+				return 'utf-7'
+		
 		return None
-	
 	
 	# TEST SPECIFICATION
 	def testspec(self):
@@ -249,9 +279,6 @@ class Encoded(object):
 		
 		Whitespace, assignment operators, and literal delimiters
 		are optional.
-		
-		NOTE: This could really use some improvement. I need to learn to
-		      regex :-/
 		"""
 		# dump multi-byte zero-padding of ascii characters
 		bb = self.__bb.replace("\0", "")
