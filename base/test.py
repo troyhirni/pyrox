@@ -11,7 +11,7 @@ try:
 except:
 	from base import *
 
-import codecs, sys
+import codecs, sys, unicodedata as ucd
 
 try:
 	from html.parser import HTMLParser
@@ -91,20 +91,6 @@ class Text(object):
 		else:
 			self.__text = x.decode(**k)
 
-		
-		"""
-		self.__enc = k.get('encoding')
-		if isinstance(x, unicode):
-			self.__text = x
-		elif not self.__enc:
-			ee = Encoded(x)
-			self.__enc = ee.detect() or DEF_ENCODE
-			ee.bomremove()
-			self.__text = ee.bytes.decode(**k)
-		else:
-			self.__text = x.decode(**k)
-		"""
-
 
 
 #
@@ -133,7 +119,7 @@ class Encoded(object):
      so detect first, remove BOM later!
    * Modern HTML files usually specify an encoding, but HTML coders
      sometimes fail to get it right. I've seen plenty of charset
-     attributes that don't match any real encoding name :)
+     attributes that don't match any real encoding name.
   
   Apart from all that, this seems like at least a good start. If you
   know me, be kind enough to make comments and suggestions! Thanks.
@@ -222,7 +208,6 @@ class Encoded(object):
 			except UnicodeError:
 				pass
 		return r
-	
 	
 	# TEST BOM
 	def testbom(self):

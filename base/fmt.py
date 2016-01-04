@@ -41,7 +41,7 @@ class FormatBase(object):
 	
 	def output(self, *a, **k):
 		"""Format and print data."""
-		print (self.format(data))
+		print (self.format(*a, **k))
 
 
 #
