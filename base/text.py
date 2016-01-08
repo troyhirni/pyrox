@@ -12,7 +12,6 @@ except:
 	from base import *
 
 import codecs, sys, unicodedata as ucd
-import udata
 
 try:
 	from html.parser import HTMLParser
@@ -258,13 +257,13 @@ class Encoded(object):
 			return 'utf_8_sig' #_sig? check this!
 		
 		# gb-18030
-		elif self.__bb.startswith("\x84\x31\x95\x33"):
+		elif self.__bb[:4] == [0x84, 0x31, 0x95, 0x33]:
 			return 'gb18030'
 		
 		# utf-7
-		elif self.__bb.startswith('\x2b\x2f\x76'):
+		elif self.__bb[:3] == [0x2b, 0x2f, 0x76]:
 			b45 = self.__bb[3:5]
-			if b45[0] in ["\x38","\x39","\x2b","\x2f"] or b45=="\x38\x2d":
+			if (b45[0] in [0x38,0x39,0x2b,0x2f]) or (b45==[0x38,0x2d]):
 				return 'utf-7'
 		
 		return None
@@ -364,18 +363,21 @@ class HTMLParseStop (Exception):
 
 
 
+"""
 #
 # OTHER - DEVELOPMENT/TESTING/EXPERIMENTING
 #	
 	
 # NON-CHAR COUNT
+from . import udata
 def noncharct(self, unicodeText):
-	"""
-	Return count of Noncharacter_Code_Point characters in text.
-	WARNING: This can take a long time for larger text files.
-	"""
+	#
+	#Return count of Noncharacter_Code_Point characters in text.
+	#WARNING: This can take a long time for larger text files.
+	#
 	ct = 0
 	for c in unicodeText:
 		if udata.hasproperty(c, 'Noncharacter_Code_Point'):
 			ct += 1
 	return ct
+"""

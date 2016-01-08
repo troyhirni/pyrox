@@ -115,14 +115,20 @@ class JSONDisplay(json.JSONEncoder):
 # SPECIALTY
 #
 class Grid (FormatBase):
+	"""Format list of lists into a grid."""
 	
 	def __init__(self, sep=' ', **k):
+		"""
+		Arg sep defaults to a single space; Optional 'cellformat' kwarg
+		specifies a callable to apply to each cell (default: str).
+		"""
 		self.__sep = sep
 		self.__fmt = k.get('cellformat') or str
 		FormatBase.__init__(self)
 	
-	"""Format list of lists (grid) into a grid."""
+	
 	def formatstring(self, grid):
+		"""Generate a format string for the given grid."""
 		glen = len(grid[0])
 		cmax = [0 for x in range(glen)]
 		for row in grid:
@@ -133,6 +139,7 @@ class Grid (FormatBase):
 		
 		fstr = map(lambda x: "{:<%s}" % x, [cmax[x] for x in range(0, glen)])
 		return self.__sep.join(fstr)
+	
 	
 	def formatgrid(self, grid, fmt):
 		"""Duplicate grid, but with each item formatted by fmt."""

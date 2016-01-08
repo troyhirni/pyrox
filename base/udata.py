@@ -11,6 +11,11 @@ Access to more information from the unicode character database.
 
 import struct
 
+try:
+	from ..base import *
+except:
+	from base import *
+
 
 
 def hasproperty(c, propname):

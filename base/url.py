@@ -126,13 +126,21 @@ class UResponse(object):
 	
 	@property
 	def charset(self):
+		"""
+		Returns the specified charset as detected from BOM, in HTTP 
+		headers, or a content specification (eg, meta tag).
+		"""
 		try:
 			return self.__charset
 		except:
-			c = self.param('charset')
+			e = text.Encoded(self.content)
+			c = e.testbom()
+			if not c:
+				c = self.param('charset')
 			if not c:
 				bb = text.Encoded(self.content)
-				self.__charset = bb.detect()
+				c = bb.detect()
+			self.__charset = e.pythonize(c)
 			return self.__charset
 	
 

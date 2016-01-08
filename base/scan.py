@@ -6,8 +6,6 @@ the terms of the GNU Affero General Public License.
 SCAN TEXT/BYTES
 
 
-
-
 """
 
 
@@ -175,11 +173,10 @@ class Scanner(object):
 		if r:
 			self.move(r[0])
 			return r[1]
-			
-	
-	
-	
-	
+
+
+
+
 class ScanText (Scanner):
 	
 	@property
@@ -190,7 +187,6 @@ class ScanText (Scanner):
 	@property
 	def encoding(self):
 		return self.__data.encoding
-	
 	
 	def passcat(self, cats):
 		"""
