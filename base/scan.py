@@ -1,5 +1,5 @@
 """
-Copyright 2014-2015 Troy Hirni
+Copyright 2014-2016 Troy Hirni
 This file is part of the pyro project, distributed under
 the terms of the GNU Affero General Public License.
 
@@ -14,12 +14,11 @@ SCAN TEXT/BYTES
 import unicodedata as ucd 
 
 try:
-	from pyrox.base import *
-	#from ..base import *
+	from ..base import *
 except:
 	from base import *
 
-import udb #from . 
+from . import udata
 
 
 
@@ -149,6 +148,8 @@ class Scanner(object):
 			* the number of bytes ahead the first match is found
 		  * the value matched
 		)
+		
+		DOES NOT MOVE! The current position is not changed.
 		"""
 		start = pos = self.pos
 		
@@ -191,28 +192,21 @@ class ScanText (Scanner):
 		return self.__data.encoding
 	
 	
-	# how about self.skip.cat('Ll')? skip would be an object that
-	# has a reference to pos... something like this...
-	def skipcat(self, cats):
+	def passcat(self, cats):
 		"""
 		Pass a list of (or space-separated string listing) UCD category 
 		codes. Skips forward to the next character that does not match 
 		any given 'cats'.
 		"""
-		p = self.pos
 		cats = cats if isinstance(cats, list) else cats.split()
 		if cats:
-			#x = self.cur
 			while self.data.cat(self.pos) in cats:
 				self.next()
-				#x = self.next()
-		return self.pos - p
 	
-	def skipwhite(self):
-		p = self.pos
-		while self.cur in udb.PropList.whitespace():
+	def passwhite(self):
+		"""Move to the next character with no 'White_Space' property."""
+		while udata.hasproperty(self.cur, 'White_Space'):
 			self.next()
-		return self.pos - p
 
 
 

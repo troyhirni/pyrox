@@ -1,5 +1,5 @@
 """
-Copyright 2014-2015 Troy Hirni
+Copyright 2014-2016 Troy Hirni
 This file is part of the pyrox project, distributed under
 the terms of the GNU Affero General Public License.
 
@@ -12,6 +12,7 @@ except:
 	from base import *
 
 import codecs, sys, unicodedata as ucd
+import udata
 
 try:
 	from html.parser import HTMLParser
@@ -105,7 +106,6 @@ class Text(object):
 					raise Exception('text-encoding-needed')
 				self.__enc = de
 				self.__text = ee.bytes.decode(self.__enc, **k)
-	
 
 
 #
@@ -360,3 +360,22 @@ class HTMLCharsetParser(HTMLParser):
 class HTMLParseStop (Exception):
 	"""Raise this to stop HTML parsing."""
 	pass
+
+
+
+
+#
+# OTHER - DEVELOPMENT/TESTING/EXPERIMENTING
+#	
+	
+# NON-CHAR COUNT
+def noncharct(self, unicodeText):
+	"""
+	Return count of Noncharacter_Code_Point characters in text.
+	WARNING: This can take a long time for larger text files.
+	"""
+	ct = 0
+	for c in unicodeText:
+		if udata.hasproperty(c, 'Noncharacter_Code_Point'):
+			ct += 1
+	return ct

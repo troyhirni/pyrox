@@ -3,25 +3,32 @@ Copyright 2015-2016 Troy Hirni
 This file is part of the pyrox project, distributed under
 the terms of the GNU Affero General Public License.
 
-UDB - Extended Unicode Data
+UData - Unicode Data
 
-This is early development, but I think I've settled on using [lists 
-of integers and ranges] with a generator to find results for various
-functions that need to scan for matches. Currently available are 
-functions to to detect whether a given char has a given property.
+Access to more information from the unicode character database.
 """
 
-import struct, 
-from unicodedata import *
+
+import struct
 
 
 
-def hasproperty(cls, c, propname):
+def hasproperty(c, propname):
 	"""Return True if character c has the given property."""
 	for item in propgen(propname):
-		item==ord(c):
+		if item == c:
+			return True
 	return False
 
+
+def propgen(propname):
+	"""Return generator of unichr having the given property."""
+	for item in PROPLIST[propname]:
+		if isinstance(item, int):
+			yield safechr(item)
+		else:
+			for x in range(*item):
+				yield safechr(x)
 
 
 def propnames():
@@ -31,30 +38,12 @@ def propnames():
 	return kk
 
 
-def propgen(propname):
-	"""Return generator of unichr having the given property."""
-	for item in PROPLIST[propname]:
-		if isinstance(item, int):
-			yield uunichr(item)
-		else:
-			for x in range(*item):
-				yield uunichr(x)
 
-
-def proplist(propname):
-	"""Return a list of unichr having the given property."""
-	return list(propgen(propname))
-
-
-def propstring(propname):
-	"""Return a string of unichr having the given property."""
-	return u''.join(proplist(propname))
-
-
-def uunichr(i):
+# UTILITY
+def safechr(i):
 	"""
-	A workaround to prevent ValueError when testing codepoints over 
-	0x10000 on narrow builds.
+	A workaround to prevent ValueError on narrow builds when creating
+	characters with a codepoint over 0x10000.
 	"""
 	try:
 		return unichr(i)
