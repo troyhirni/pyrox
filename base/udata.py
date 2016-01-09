@@ -20,10 +20,15 @@ except:
 
 def hasproperty(c, propname):
   """Return True if character c has the given property."""
-  for item in propgen(propname):
-    if item == c:
-      return True
-  return False
+	x = ord(c)
+	for item in PROPLIST[propname]:
+		if isinstance(item, int):
+			if x == item:
+				return True
+		else:
+			if (x >= item[0]) and (x <= item[1]):
+				return True
+	return False
 
 
 def propgen(propname):
