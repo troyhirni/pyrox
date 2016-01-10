@@ -154,6 +154,8 @@ class Encoded(object):
     If not in ENCODINGS_ALIASES, remove '-' and try that.
     If that fails, return the original.
     """
+    if not e:
+      return None
     p = e.lower().replace('-', '_')
     if p in ENCODINGS_ALIASES:
       return p
