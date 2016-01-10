@@ -11,7 +11,7 @@ try:
 except:
   from base import *
 
-import codecs, sys, unicodedata as ucd
+import codecs, encodings.aliases
 
 try:
   from html.parser import HTMLParser
@@ -107,6 +107,7 @@ class Text(object):
         self.__text = ee.bytes.decode(self.__enc, **k)
 
 
+
 #
 # ENCODED
 #
@@ -129,8 +130,6 @@ class Encoded(object):
    * The testspec() function totally relies on text files to specify
      an encoding in the text file. Eg, <!SOMETAG charset=utf-8>. If
      no such specification exists, testspec() is useless.
-   * Calling bomremove() wipes out your ability to use testbom(), 
-     so detect first, remove BOM later!
    * Modern HTML files usually specify an encoding, but HTML coders
      sometimes fail to get it right. I've seen plenty of charset
      attributes that don't match any real encoding name.
@@ -167,8 +166,11 @@ class Encoded(object):
   def bomremove(self):
     """
     Return the bytes after any byte order marks. 
-    BE AWARE: After calling this there's no way to testbom(), so
+    CAUTION:  After calling this there's no way to testbom(), so
               be sure to get your encoding first.
+    BE AWARE: This isn't something you'd normally do unless you 
+              are playing with bytes. It's not intended for 'normal'
+              use.
     """
     if self.__bb[:4] in [codecs.BOM_UTF32_BE, codecs.BOM_UTF32_LE]:
       self.__bb = self.__bb[4:]
@@ -241,21 +243,25 @@ class Encoded(object):
     Detect encoding based on byte order mark. Works only for UTF-32,
     UTF-16, UTF-8, gb18030, and UTF-7.
     """
+
+    b32 = len(codecs.BOM_UTF32_LE)
+    b16 = len(codecs.BOM_UTF16_LE)
+    b8 = len(codecs.BOM_UTF8)
     
     # try the u32 encodings
-    if self.__bb.startswith(codecs.BOM_UTF32_LE):
+    if self.__bb[:b32] == codecs.BOM_UTF32_LE:
       return 'utf_32_le'
-    elif self.__bb.startswith(codecs.BOM_UTF32_BE):
+    elif self.__bb[:b32] == codecs.BOM_UTF32_BE:
       return 'utf_32_be'
     
     # try the u16 encodings
-    elif self.__bb.startswith(codecs.BOM_UTF16_LE):
+    elif self.__bb[:b16] == codecs.BOM_UTF16_LE:
       return 'utf_16_le'
-    elif self.__bb.startswith(codecs.BOM_UTF16_BE):
+    elif self.__bb[:b16] == codecs.BOM_UTF16_BE:
       return 'utf_16_be'
     
     # utf-8
-    elif self.__bb.startswith(codecs.BOM_UTF8):
+    elif self.__bb[:b8] == codecs.BOM_UTF8:
       return 'utf_8_sig' #_sig? check this!
     
     # gb-18030
@@ -265,7 +271,7 @@ class Encoded(object):
     # utf-7
     elif self.__bb[:3] == [0x2b, 0x2f, 0x76]:
       b45 = self.__bb[3:5]
-      if (b45[0] in [0x38,0x39,0x2b,0x2f]) or (b45==[0x38,0x2d]):
+      if (b45[0] in [0x38,0x39,0x2b,0x2f]): #or (b45==[0x38,0x2d]):
         return 'utf-7'
     
     return None
@@ -365,21 +371,36 @@ class HTMLParseStop (Exception):
 
 
 
-"""
 #
-# OTHER - DEVELOPMENT/TESTING/EXPERIMENTING
-# 
-  
-# NON-CHAR COUNT
-from . import udata
-def noncharct(self, unicodeText):
-  #
-  #Return count of Noncharacter_Code_Point characters in text.
-  #WARNING: This can take a long time for larger text files.
-  #
-  ct = 0
-  for c in unicodeText:
-    if udata.hasproperty(c, 'Noncharacter_Code_Point'):
-      ct += 1
-  return ct
-"""
+# ENCODINGS
+#  - Available encodings, as taken from python documentation.
+#
+ENCODINGS = [
+  'ascii', 'big5', 'big5hkscs', 'cp037', 'cp424', 'cp437', 'cp500', 
+  'cp720', 'cp737', 'cp775', 'cp850', 'cp852', 'cp855', 'cp856', 
+  'cp857', 'cp858', 'cp860', 'cp861', 'cp862', 'cp863', 'cp864', 
+  'cp865', 'cp866', 'cp869', 'cp874', 'cp875', 'cp932', 'cp949', 
+  'cp950', 'cp1006', 'cp1026', 'cp1140', 'cp1250', 'cp1251', 
+  'cp1252', 'cp1253', 'cp1254', 'cp1255', 'cp1256', 'cp1257', 
+  'cp1258', 'euc_jp', 'euc_jis_2004', 'euc_jisx0213', 'euc_kr', 
+  'gb2312', 'gbk', 'gb18030', 'hz', 'iso2022_jp', 'iso2022_jp_1', 
+  'iso2022_jp_2', 'iso2022_jp_2004', 'iso2022_jp_3', 
+  'iso2022_jp_ext', 'iso2022_kr', 'latin_1', 'iso8859_2', 
+  'iso8859_3', 'iso8859_4', 'iso8859_5', 'iso8859_6', 'iso8859_7', 
+  'iso8859_8', 'iso8859_9', 'iso8859_10', 'iso8859_13', 
+  'iso8859_14', 'iso8859_15', 'iso8859_16', 'johab', 'koi8_r', 
+  'koi8_u', 'mac_cyrillic', 'mac_greek', 'mac_iceland', 
+  'mac_latin2', 'mac_roman', 'mac_turkish', 'ptcp154', 'shift_jis', 
+  'shift_jis_2004', 'shift_jisx0213', 'utf_32', 'utf_32_be', 
+  'utf_32_le', 'utf_16', 'utf_16_be', 'utf_16_le', 'utf_7', 'utf_8', 
+  'utf_8_sig'
+]
+
+# Extend encodings with all aliases for more potential matches from
+# downloaded HTML meta tags.
+ENCODINGS_ALIASES = []
+ENCODINGS_ALIASES.extend(ENCODINGS)
+ENCODINGS_ALIASES.extend(encodings.aliases.aliases)
+
+
+
