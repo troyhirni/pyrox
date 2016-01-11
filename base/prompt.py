@@ -6,15 +6,14 @@ the terms of the GNU Affero General Public License.
 Prompt - Interact with python objects as though in a shell.
 """
 
+import time
+
 try:
 	from ..base import *
 except:
 	from base import *
 
 from . import fmt
-
-
-import time
 
 
 DEF_PROMPT = '> '
