@@ -14,7 +14,6 @@ import struct
 try:
 	basestring
 	textinput = raw_input
-	
 
 except:
 	from imp import reload

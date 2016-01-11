@@ -6,12 +6,12 @@ the terms of the GNU Affero General Public License.
 Text (and support for Encoded bytes). 
 """
 
-import codecs, encodings.aliases
-
 try:
 	from ..base import *
 except:
 	from base import *
+
+import codecs, encodings.aliases
 
 try:
 	from html.parser import HTMLParser
@@ -23,19 +23,10 @@ except:
 
 def text(text, encoding=DEF_ENCODE, **k):
 	"""
-	Returns a Text object given a unicode string or a byte string and
-	its valid encoding (for decoding). If None is passed specifically,
-	then a valid encoding must be detected or an exception is raised.
-	
-	CAUTION:
-	If bytes are given without an encoding, encoding defaults to 
-	DEF_ENCODE (UTF-8). This is a convenience for easy creation of new
-	text objects in code. If you're working with bytes from the wild,
-	use Text() in your code so as to make it clear you want to avoid
-	missing encoding-related errors.
+	Returns a Text object given unicode or bytes and a valid encoding.
+	If bytes are given, encoding defaults to DEF_ENCODE (UTF-8).
 	"""
 	return Text(text, encoding, **k)
-
 
 
 
@@ -58,6 +49,7 @@ class Text(object):
 		See set() help for details.
 		"""
 		self.set(text, encoding, **k)
+	
 	
 	@property
 	def encoding (self):
@@ -113,32 +105,6 @@ class Text(object):
 					raise Exception('text-encoding-needed')
 				self.__enc = de
 				self.__text = ee.bytes.decode(self.__enc, **k)
-				
-	
-	#
-	# EXPERIMENTAL!!
-	# - I'm not sure whether these are consistent with the way I want
-	#   the Text class to be used. At the first sign of trouble (or 
-	#   even just confusion) I'll remove the offending methods.
-	#
-	
-	def __call__(self, c=''):
-		"""
-		Utility. Return the given string as bytes encoded in this 
-		object's endoding.
-		
-		EXPERIMENTAL! May be removed at any time. 
-		"""
-		return c.encode(self.__encoding))
-		
-	def __getitem__(self, key):
-		"""EXPERIMENTAL! May be removed at any time."""
-		return self.__text[key]
-	
-	def __len__(self):
-		"""EXPERIMENTAL! May be removed at any time."""
-		return len(self.__text)
-
 
 
 
@@ -153,8 +119,7 @@ class Encoded(object):
 	~~~ PROBLEMS WITH THE decode() METHOD? READ THE FOLLOWING ~~~
 	
 	The decode() method works by first looking for a BOM and then, if
-	that fails, looking for a specification in the text itself (in the
-	form of encoding=<enc>, coding=<enc>, or charset=<enc>). 
+	that fails, looking for a hint in the text itself. 
 	
 	NOTES:
 	 * The testbom() method WILL NOT WORK unless your bytestring
@@ -236,7 +201,7 @@ class Encoded(object):
 			e2 = None
 		
 		# Last ditch effort - look for html-style specification in
-		# any encoding. This takes a (relatively) long time.
+		# any encoding.
 		e3 = self.testhtml()
 		if e3 and e3 in ENCODINGS_ALIASES:
 			return e3
@@ -250,13 +215,11 @@ class Encoded(object):
 	def testlist (self, encodings=None):
 		"""
 		Attempts to decode then reencode byte string argument for each
-		known encoding; Returns a list of encodings that succeed in this.
-		Set the encodings argument as a list to limit encodings tested; 
-		Default is base.ENCODINGS, which lists all documented encodings.
+		known encoding; Returns a list of successful matches. Set the
+		encodings argument as a list to limit encodings tested; Default
+		is base.ENCODINGS, which lists all documented encodings.
 		
 		Use this when searching manually for encodings that might work.
-		It's definitely NOT a valid way to *automatically* detect an 
-		encoding for actual use.
 		
 		HINT:
 		Variety helps narrow the list, so pass the entire byte string.
@@ -273,11 +236,6 @@ class Encoded(object):
 			except UnicodeError:
 				pass
 		return r
-	
-	#
-	# Below is the (current) extent of Encode's ability to detect
-	# encoding.
-	#
 	
 	# TEST BOM
 	def testbom(self):

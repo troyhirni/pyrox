@@ -4,7 +4,7 @@ This file is part of the pyrox project, distributed under
 the terms of the GNU Affero General Public License.
 """
 
-from .base import fs, text, url
+from .base import fs, url, text
 from .base import prompt as prompt_
 
 #

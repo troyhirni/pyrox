@@ -5,11 +5,11 @@ Affero General Public License.
 
 PDQ - Python Data Query
 
-Helpful utility for mining data imported from text files.
-
 The rows, select, update, delete and each methods accept keyword
 'where' - a callable that returns True for matching records.
 """
+
+from . import text
 
 try:
 	from ..base import *
