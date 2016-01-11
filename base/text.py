@@ -127,16 +127,16 @@ class Text(object):
 		Utility. Return the given string as bytes encoded in this 
 		object's endoding.
 		
-		EXPERIMENTAL! May be removed at any time. 
+		EXPERIMENTAL. May be removed! 
 		"""
-		return c.encode(self.__encoding))
+		return c.encode(self.__encoding)
 		
 	def __getitem__(self, key):
-		"""EXPERIMENTAL! May be removed at any time."""
+		"""EXPERIMENTAL."""
 		return self.__text[key]
 	
 	def __len__(self):
-		"""EXPERIMENTAL! May be removed at any time."""
+		"""EXPERIMENTAL."""
 		return len(self.__text)
 
 
