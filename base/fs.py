@@ -34,8 +34,6 @@ try:
 except:
 	from base import *
 
-from . import fmt
-
 
 FS_ENCODE = DEF_ENCODE
 
