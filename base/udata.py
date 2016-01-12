@@ -172,7 +172,7 @@ BRACKETPAIRS = [
 
 
 # Blocks
-BLOCKS = BLOCKS = [
+BLOCKS = [
 	[[0x0000, 0x007F], 'Basic Latin'], [[0x0080, 0x00FF], 'Latin-1 Supplement'], [[0x0100, 0x017F], 'Latin Extended-A'], [[0x0180, 0x024F], 'Latin Extended-B'], 
 	[[0x0250, 0x02AF], 'IPA Extensions'], [[0x02B0, 0x02FF], 'Spacing Modifier Letters'], [[0x0300, 0x036F], 'Combining Diacritical Marks'], 
 	[[0x0370, 0x03FF], 'Greek and Coptic'], [[0x0400, 0x04FF], 'Cyrillic'], [[0x0500, 0x052F], 'Cyrillic Supplement'], [[0x0530, 0x058F], 'Armenian'], 
