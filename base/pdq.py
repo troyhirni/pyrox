@@ -53,6 +53,7 @@ class Query(object):
 	
 	@data.setter
 	def data(self, d):
+		if d == self: raise ValueError('pdq-data-invalid')
 		self.__undo = self.__data
 		self.__data = d
 	
