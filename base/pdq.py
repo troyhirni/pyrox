@@ -30,17 +30,31 @@ class Query(object):
 			self.encoding = k['encoding']
 			data = data.decode(self.encoding) 
 		
-		self.data = data
+		self.__data = data
+		self.__undo = data
 		
 	
 	def __getitem__(self, key):
 		return self.data[key]
 	
+	
 	@property
 	def len(self):
 		"""Return self.data length."""
 		return len(self.data)
-		
+	
+	@property
+	def data(self):
+		return self.__data
+	
+	@data.setter
+	def data(self, d):
+		self.__undo = self.__data
+		self.__data = d
+	
+	
+	# UTILITY METHODS
+	
 	def head(self, *a):
 		"""Return, from the given offset, the given number of lines."""
 		x,y = (a[0],sum(a[0:2])) if len(a)>1 else (0, a[0] if a else 9)
@@ -76,6 +90,24 @@ class Query(object):
 			if (not where) or where(x):
 				yield x
 	
+	#
+	# QUERY METHODS - Always return a Query object.
+	#
+	
+	def undo(self):
+		"""
+		Limited undo; works like the old-fashioned undo - undo twice to
+		redo.
+		"""
+		u = self.__data
+		self.__data = self.__undo
+		self.__undo = u
+		return self
+	
+	def splitlines(self, *a, **k):
+		self.data = self.data.splitlines(*a, **k)
+		return self
+	
 	def select(self, fn=None, *a, **k):
 		"""Returns a new Query with a copy of matching records."""
 		result = []
@@ -83,20 +115,25 @@ class Query(object):
 			result.append(fn(row) if fn else row[:])
 		return Query(result)
 	
-	def sort(self, fn=None):
+	def sort(self, fn=None, **k):
 		"""Sort self.data, by the results of fn if given."""
+		fn = k.get('desc', k.get('asc', fn))
 		if fn:
 			order = []
 			for row in self.rows():
 				order.append([fn(row), row.v])
-			order.sort()
+			reverse(order).sort() if k.get('desc') else order.sort()
 			self.data = map(lambda o: o[1], order)
 		else:
-			self.data.sort()
+			if k.get('desc'):
+				self.data = reverse(d)
+			else:
+				self.data = self.data[:].sort()
 		return self
 	
 	def update(self, fn, *a, **k):
 		"""Update matching self.data rows to fn result; Return self."""
+		self.__undo = self.select(self.data).data
 		result = []
 		for row in self.rows(*a, **k):
 			result.append(fn(row))
