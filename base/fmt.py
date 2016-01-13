@@ -44,6 +44,20 @@ class FormatBase(object):
 		print (self.format(*a, **k))
 
 
+
+class NoFormat(FormatBase):
+	"""Return/Print as-is."""
+	
+	def __call__(self, *a, **k):
+		"""Formats and returns data."""
+		return a[0] if a else ''
+	
+	def output(self, *a, **k):
+		"""Format and print data."""
+		print a[0] if a else ''
+
+
+
 #
 # PYTHON FORMAT
 #
