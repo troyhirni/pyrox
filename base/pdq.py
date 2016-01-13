@@ -44,6 +44,10 @@ class Query(object):
 		return len(self.data)
 	
 	@property
+	def type(self):
+		return type(self.__data)
+	
+	@property
 	def data(self):
 		return self.__data
 	
@@ -112,7 +116,7 @@ class Query(object):
 		"""Returns a new Query with a copy of matching records."""
 		result = []
 		for row in self.rows(*a, **k):
-			result.append(fn(row) if fn else row[:])
+			result.append(fn(row) if fn else row.v[:])
 		return Query(result)
 	
 	def sort(self, fn=None, **k):
@@ -133,7 +137,7 @@ class Query(object):
 	
 	def update(self, fn, *a, **k):
 		"""Update matching self.data rows to fn result; Return self."""
-		self.__undo = self.select(self.data).data
+		self.__undo = self.select().data
 		result = []
 		for row in self.rows(*a, **k):
 			result.append(fn(row))
@@ -163,8 +167,10 @@ class Query(object):
 
 class QRow(object):
 	"""
-	The 'r' value used in the fn, where, and order lambdas, above. Method
-	and variable names are small to accomodate use tight spaces :)
+	The 'r' value used in the fn, where, and order lambdas, above. 
+	Method and variable names are small to accomodate use tight spaces.
+	For self-documentation in code, some variable names are available 
+	as properties.
 	"""
 	def __init__(self, query, key, value, *a, **k):
 		self.q = query
@@ -179,7 +185,36 @@ class QRow(object):
 	def __str__(self):
 		return str(self.q[self.i])
 	
+	@property
+	def key(self):
+		"""
+		Return self.i - the row key; eg., an ingeger offset, dict key, 
+		etc...
+		"""
+		return self.i
+	
+	@property
+	def value(self):
+		"""Return self.v, the full row value."""
+		return self.v
+	
 	def ii(self, *keys):
 		"""Keys to select. eg, q.select(lambda r: r.ii(0,2))"""
 		return [self[k] for k in keys]
 
+	def cp(self):
+		"""copy"""
+		try:
+			return self.v[:]
+		except:
+			return self.v
+	
+	def sp(self, *a, **k):
+		"""split"""
+		return self.v.split(*a, **k)
+	
+	def spm(self, max=None, chars=None):
+		"""split, but with arg order reversed."""
+		return self.v.split(chars, max)
+	
+	
