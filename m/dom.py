@@ -4,6 +4,11 @@ This file is part of the pyrox project, distributed under
 the terms of the GNU Affero General Public License.
 
 DOM - Under Construction
+
+REFERENCES:
+http://www.w3schools.com/XML/dom_nodetype.asp
+
+
 """
 
 
@@ -19,8 +24,9 @@ from xml.dom import Node as TPythonNode
 #
 class Node(TPythonNode):
 	
-	def __init__(self, parent):
-		self.__id = id(self)
+	def __init__(self, document, parent):
+		self.__document = document
+		self.__nodeid = id(self)
 		self.__parent = parent 
 		self.__children = []
 		
@@ -41,6 +47,11 @@ class Node(TPythonNode):
 			return self.__children[self.__children.index(n)+1]
 		except IndexError:
 			return None
+	
+	@property
+	def ownerDocument(self):
+		"""Returns the root element (document object) for a node."""
+		return self.__document
 	
 	@property
 	def nodeType(self):
@@ -94,7 +105,7 @@ class Node(TPythonNode):
 		
 		The list is slice [:] of the 
 		"""
-		return tupel(*self.__children)
+		return tupel(*self.__children) if self.__children else tupel()
 	
 	@property
 	def firstChild(self):
@@ -173,33 +184,45 @@ class Node(TPythonNode):
 	def cloneNode(self, deep):
 		pass
 
+	def isDefaultNamespace(self, URI):
+		"""Returns whether the specified namespaceURI is the default"""
+		pass
 
+	def isEqualNode(self):
+		"""Tests whether two nodes are equal"""
+		pass
+
+	def lookupNamespaceURI(self):
+		"""Returns the namespace URI associated with a given prefix"""
+		pass
+
+	def lookupPrefix(self):
+		"""Returns the prefix associated with a given namespace URI"""
+		pass
+
+	def getFeature(self, feature, version):
+		"""
+		Returns a DOM object which implements the specialized APIs of 
+		the specified feature and version
+		"""
+		pass
+		
+	def getUserData(self, key):
+		"""
+		Returns the object associated to a key on a this node. The 
+		object must first have been set to this node by calling 
+		setUserData with the same key
+		"""
+		pass
 
 
 
 # -------------------------------------------------------------------
 #
 # ELEMENT
+#
 # -------------------------------------------------------------------
-"""
-attributes	Returns a NamedNodeMap of attributes for the element
-baseURI	Returns the absolute base URI of the element
-childNodes	Returns a NodeList of child nodes for the element
-firstChild	Returns the first child of the element
-lastChild	Returns the last child of the element
-localName	Returns the local part of the name of the element
-namespaceURI	Returns the namespace URI of the element
-nextSibling	Returns the node immediately following the element
-nodeName	Returns the name of the node, depending on its type
-nodeType	Returns the type of the node
-ownerDocument	Returns the root element (document object) for an element
-parentNode	Returns the parent node of the element
-prefix	Sets or returns the namespace prefix of the element
-previousSibling	Returns the node immediately before the element
-schemaTypeInfo	Returns the type information associated with the element
-tagName	Returns the name of the element
-textContent	Sets or returns the text content of the element and its descendants
-"""
+
 class Element(Node):
 	"""
 	The DOM Document object.
@@ -211,8 +234,8 @@ class Element(Node):
 	Reference: http://www.w3schools.com/XML/dom_element.asp
 	"""
 	
-	def __init__(self, parent, attrs=None):
-		Node.__init__(ELEMENT_NODE, parent, attrs)
+	def __init__(self, document, parent, attrs=None):
+		Node.__init__(self, document, parent, attrs)
 		self.__attrs = attrs or []
 	
 	@property
@@ -226,12 +249,14 @@ class Element(Node):
 	@property
 	def textContent(self):
 		t = []
-	
-	def _textcontent(self):
 		for x in self.childNodes():
 			if x.nodeType == Node.TEXT_NODE:
 				t.append(x)
-		return self.__attrs
+			else:
+				txt = x.textContent
+				if txt:
+					t.append('')
+		return t
 	
 	@property
 	def tagName(self):
@@ -240,40 +265,71 @@ class Element(Node):
 	def baseURI(self):
 		"""Returns the absolute base URI of the element"""
 		pass
-
-	def childNodes(self):
-		"""Returns a NodeList of child nodes for the element"""
-		pass
-
-	def firstChild(self):
-		"""Returns the first child of the element"""
-		pass
-
-	def lastChild(self):
-		"""Returns the last child of the element"""
-		pass
-
+	
 	def localName(self):
 		"""Returns the local part of the name of the element"""
 		pass
-
+	
 	def namespaceURI(self):
 		"""Returns the namespace URI of the element"""
 		pass
-
-	def nextSibling(self):
-		"""Returns the node immediately following the element"""
-		pass
-
+	
 	def nodeName(self):
 		"""Returns the name of the node, depending on its type"""
+		pass
+
+	def schemaTypeInfo(self):
+		"""Returns the type information associated with the element"""
 		pass
 
 
 
 # -------------------------------------------------------------------
 #
+# NAMED NODE MAP
+#
+# -------------------------------------------------------------------
+class NamedNodeMap(Node):
+	
+	def __init__(self, attrs=None):
+		self.__ns = {}
+		self.__items = {}
+	
+	def getNamedItem(self, name):
+		"""Returns the node with the specific name"""
+		return self.get(name)
+	
+	def getNamedItemNS(self, name):
+		"""Returns the node with the specific name and namespace"""
+		
+	def item(self, i):
+		"""Returns the node at the specified index"""
+		pass
+	
+	def removeNamedItem(self, name):
+		"""Removes the node with the specific name"""
+		pass
+	
+	def removeNamedItemNS(self, name, ns):
+		"""Removes the node with the specific name and namespace"""
+		pass
+	
+	def setNamedItem(self, name):
+		"""Sets the specified node (by name)"""
+		pass
+	
+	def setNamedItemNS(self, name, ns):
+		"""Sets the specified node (by name and namespace)"""
+		pass
+	
+
+
+
+
+# -------------------------------------------------------------------
+#
 # DOCUMENT
+#
 # -------------------------------------------------------------------
 class Document(Node):
 	"""
@@ -287,7 +343,7 @@ class Document(Node):
 	def __init__(self):
 		Node.__init__(self, None)
 	
-	def adoptNode(sourcenode):
+	def adoptNode(self, sourcenode):
 		raise NotImplemented()
 	
 	@property
@@ -306,7 +362,85 @@ class Document(Node):
 	def documentURI(self):
 		raise NotImplementedError()
 	
-	# MORE TO COME
+	def createAttribute(self, name):
+		"""
+		Creates an attribute node with the specified name, and returns 
+		the new Attr object
+		"""
+		pass
 	
-
-
+	def createAttributeNS(self, uri, name):
+		"""
+		Creates an attribute node with the specified name and namespace,
+		and returns the new Attr object
+		"""
+		pass
+	
+	def createCDATASection(self, content):
+		"""Creates a CDATA section node"""
+		pass
+	
+	def createComment(self, comment):
+		"""Creates a comment node"""
+		pass
+	
+	def createDocumentFragment(self):
+		"""Creates an empty DocumentFragment object, and returns it"""
+		pass
+	
+	def createElement(self):
+		"""Creates an element node"""
+		pass
+	
+	def createElementNS(self):
+		"""Creates an element node with a specified namespace"""
+		pass
+	
+	def createEntityReference(self, name):
+		"""Creates an EntityReference object, and returns it"""
+		pass
+	
+	def createProcessingInstruction(self, target, data):
+		"""Creates a ProcessingInstruction object, and returns it"""
+		pass
+	
+	def createTextNode(self):
+		"""Creates a text node"""
+		pass
+	
+	def getElementById(self, id):
+		"""
+		Returns the element that has an ID attribute with the given 
+		value. If no such element exists, it returns null
+		"""
+		pass
+	
+	def getElementsByTagName(self):
+		"""Returns a NodeList of all elements with a specified name"""
+		pass
+	
+	def getElementsByTagNameNS(self):
+		"""
+		Returns a NodeList of all elements with a specified name and 
+		namespace
+		"""
+		pass
+	
+	def importNode(self, nodetoimport, deep):
+		"""
+		Imports a node from another document to this document. This 
+		method creates a new copy of the source node. If the deep 
+		parameter is set to true, it imports all children of the 
+		specified node. If set to false, it imports only the node 
+		itself. This method returns the imported node
+		"""
+		pass
+	
+	def normalizeDocument(self):
+		pass
+		 
+	def renameNode(self):
+		"""Renames an element or attribute node"""
+		pass
+	
+	
