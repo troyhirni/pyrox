@@ -22,13 +22,12 @@ class Query(object):
 		"""
 		Argument 'data' can be text, bytes, or a python list. If you 
 		know the encoding of your text, pass it as encoding=<enc>.
-		Otherwise, bytes are treated as bytes and may not look and
-		work quite right - especially in python 3.
 		"""
 		self.Row =  k.get('Row', QRow)
 		if 'encoding' in k:
 			self.encoding = k['encoding']
-			data = data.decode(self.encoding) 
+			data = data.decode(self.encoding)
+			 
 		
 		self.__data = data
 		self.__undo = data
@@ -133,7 +132,9 @@ class Query(object):
 			if k.get('desc'):
 				self.data = reverse(d)
 			else:
-				self.data = self.data[:].sort()
+				sdata = self.data[:]
+				sdata.sort()
+				self.data = sdata
 		return self
 	
 	def update(self, fn, *a, **k):
@@ -189,7 +190,7 @@ class QRow(object):
 	@property
 	def key(self):
 		"""
-		Return self.i - the row key; eg., an ingeger offset, dict key, 
+		Return self.i - the row key; eg., an integer offset, dict key, 
 		etc...
 		"""
 		return self.i
@@ -199,23 +200,42 @@ class QRow(object):
 		"""Return self.v, the full row value."""
 		return self.v
 	
-	def ii(self, *keys):
-		"""Keys to select. eg, q.select(lambda r: r.ii(0,2))"""
-		return [self[k] for k in keys]
-
+	@property
+	def type(self):
+		"""Return self.v, the full row value."""
+		return type(self.v)
+	
+	def ii(self, *a):
+		"""Return given columns as a list."""
+		return [self.v[c] for c in a]
+	
+	def split(self, *a):
+		"""
+		Split the entire row. Arguments are different from python's
+		''.split - if first arg is int, it's used as the 2nd argument
+		and None is the first split argument. If there are two args, 
+		they're passed as (sep, max) to python's split method.
+		"""
+		aa = [None, a[0]] if isinstance(a[0], int) else a
+		return self.v.split(*aa)
+	
+	def join(self, char):
+		"""Join list items by given char and return."""
+		return char.join(self.v)
+	
+	def extend(self, *a):
+		"""
+		If two args are given, the second (list) extends the first.
+		If one arg is given, it must be a list to extend self.v (only 
+		appropriate if self.v is a list). Return the result.
+		"""
+		x.extend(y)
+		return x
+	
 	def cp(self):
-		"""copy"""
+		"""Return a copy of this row."""
 		try:
 			return self.v[:]
 		except:
 			return self.v
-	
-	def sp(self, *a, **k):
-		"""split"""
-		return self.v.split(*a, **k)
-	
-	def spm(self, max=None, chars=None):
-		"""split, but with arg order reversed."""
-		return self.v.split(chars, max)
-	
-	
+
