@@ -29,7 +29,7 @@ def scan(x, **k):
 	Whether scanning bytes or unicode text, Scanner method arguments
 	must be passed as the corresponding type.
 	"""
-	ub = isinstance(x, unicode):
+	ub = isinstance(x, unicode)
 	if ub or ('encoding' in k):
 		if not ub:
 			x = x.decode(k['encoding'])
@@ -38,10 +38,16 @@ def scan(x, **k):
 
 
 def scantext(x, **k):
+	"""
+	Returns a ScanText if at all possible, else raises an exception.
+	"""
 	if not isinstance(x, unicode):
-		x = x.decode(k.get('encoding']))
+		e = {}
+		if 'encoding' in k:
+			e['encoding'] = k['encoding']
+		x = x.decode(**e)
 	return ScanText(TextRef(x, **k))
-	
+
 
 
 
