@@ -29,13 +29,19 @@ def scan(x, **k):
 	Whether scanning bytes or unicode text, Scanner method arguments
 	must be passed as the corresponding type.
 	"""
-	ub = isinstance(x, unicode)
+	ub = isinstance(x, unicode):
 	if ub or ('encoding' in k):
 		if not ub:
 			x = x.decode(k['encoding'])
 		return ScanText(TextRef(x, **k))
 	return Scanner(DataRef(x))
 
+
+def scantext(x, **k):
+	if not isinstance(x, unicode):
+		x = x.decode(k.get('encoding']))
+	return ScanText(TextRef(x, **k))
+	
 
 
 
@@ -140,14 +146,8 @@ class Scanner(object):
 	def find(self, *a):
 		"""
 		Search forward for the first match to any the given arguments. 
-		Return None if no match is found. Otherwise, returns a tupel 
-		containing
-		(
-			* the number of bytes ahead the first match is found
-		  * the value matched
-		)
-		
-		DOES NOT MOVE! The current position is not changed.
+		Return -1 if no match is found. Otherwise, returns distance to
+		the found item.
 		"""
 		start = pos = self.pos
 		
@@ -157,7 +157,7 @@ class Scanner(object):
 			try:
 				for x in tests:
 					if self.data.match(x, pos):
-						return (pos-start, x)
+						return pos-start
 			except IndexError:
 				tests.remove(x)
 			pos += 1
@@ -171,13 +171,19 @@ class Scanner(object):
 		"""
 		r = self.find(*a)
 		if r:
-			self.move(r[0])
-			return r[1]
-
+			self.move(r)
+		return r >= 0
 
 
 
 class ScanText (Scanner):
+	
+	#def __init__(self, dataref, pos=0, **k):
+	#	ScanText.__init__(self, dataref, pos, **k)
+	
+	@property
+	def proplist(self):
+		return udata.PropList
 	
 	@property
 	def cat (self):
@@ -201,7 +207,8 @@ class ScanText (Scanner):
 	
 	def passwhite(self):
 		"""Move to the next character with no 'White_Space' property."""
-		while udata.hasproperty(self.cur, 'White_Space'):
+		ws = self.proplist('White_Space')
+		while ws.match(self.cur):
 			self.next()
 
 
