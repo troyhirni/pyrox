@@ -28,10 +28,11 @@ def bracket(c):
 	"""
 	i = ord(c)
 	x = bisect.bisect_left(BRACKETPAIRS, [i])
-	BP = BRACKETPAIRS[x]
-	return (BP[2], unichr(BP[1])) if (BP and BP[0]==i) else None
-
-
+	try:
+		BP = BRACKETPAIRS[x]
+		return (BP[2], unichr(BP[1])) if (BP and BP[0]==i) else None
+	except IndexError:
+		return None
 
 
 #
@@ -70,7 +71,6 @@ def safechr(i):
 		return unichr(i)
 	except ValueError:
 		return struct.pack('i', i).decode('utf-32') 
-
 
 
 
@@ -322,16 +322,14 @@ class PropList(object):
 		"""
 		# loop through each proplist this object was created to represent
 		x = ord(c)
+		iint = isinstance # 6% faster
 		for listid in self.__items:
 			proplist = self.__ITEMS[listid]
-			for item in proplist:
-				if isinstance(item, int):
-					if x == item:
-						return True
-				else:
-					if (x >= item[0]) and (x <= item[1]):
-						return True
+			for i in proplist:
+				if ((x==i) if iint(i,int) else x>=i[0] and x<=i[1]): # +1%
+					return True
 		return False
+	
 	
 	def propgen(self):
 		"""
@@ -349,5 +347,69 @@ class PropList(object):
 				else:
 					for x in range(*item):
 						yield safechr(x)
+
+
+
+
+if __name__ == '__main__':
+	
+	
+	import time, sys
+	
+	# a long string of dfferent unicode characters
+	crange = ''.join(map(unichr, range(0x0000, 0xFFFF)))
+	bHelp = False
+	
+	if len(sys.argv) > 1:
+		args = sys.argv[1:]
+		flag = args[0] if args else ''
+		
+		# KEYS
+		if flag in ['-h', '--help']:
+			bHelp = True
+		
+		# KEYS
+		if flag in ['-k', '--keys']:
+			print PropList.keylist()
+		
+		# BLOCK
+		elif flag in ['-b', '--block']:
+			t1 = time.clock()
+			for c in crange:
+				block(c) 
+			t2 = time.clock() - t1
+			print t2
+		
+		# BRACKET PAIR
+		elif flag in ['-bp', '--bracket']:
+			tt = 0.0
+			t1 = time.clock()
+			for c in crange:
+				bracket(c) 
+			t2 = time.clock() - t1
+			print t2
+		
+		# PROP-LIST MATCH
+		elif args:
+			pl = PropList(*args)
+			tt = 0.0
+			t1 = time.clock()
+			for c in crange:
+				pl.match(c) 
+			t2 = time.clock() - t1
+			print t2
+		
+		else:
+			bHelp = True
+	
+	
+	# PRINT HELP
+	if bHelp:
+		print "\nHELP: Performance Testing."
+		print "Calls a function for each char in (0x0000, 0xFFFF)"
+		print " * Pass a list of properties to test PropList.match()"
+		print " * Use flag -k for a list of PropList keys"
+		print " * Use flag -b or -bp to test block() or bracket()"
+		print "python -m pyrox.base.udata -b\n"
 
 
