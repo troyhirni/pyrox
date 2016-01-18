@@ -26,12 +26,11 @@ class Query(object):
 		self.Row =  k.get('Row', QRow)
 		if 'encoding' in k:
 			self.encoding = k['encoding']
-			data = data.decode(self.encoding)
-			 
-		
-		self.__data = data
-		self.__undo = data
-		
+			self.__data = data.decode(self.encoding)
+		else:
+			self.__data = data
+		self.__undo = self.__data
+	
 	
 	def __getitem__(self, key):
 		return self.data[key]

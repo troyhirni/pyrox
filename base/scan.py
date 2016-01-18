@@ -216,6 +216,68 @@ class ScanText (Scanner):
 		ws = self.proplist('White_Space')
 		while ws.match(self.cur):
 			self.next()
+	
+	
+	def slice(self, length=None, **k):
+		"""
+		Return a ScanSlice from the current position to a point to be
+		determined by given arguments. If length is given, that's the
+		exact amount. 
+		
+		If a seek kwarg is given, seek forward for the next occurance,
+		and return a slice of that length.
+		
+		If seek fails and prop and/or cat kwargs are given, seek through
+		any following characters matching any property or category they
+		specify and return a slice length.
+		
+		Otherwise, returns None.
+		"""
+		if length:
+			s = ScanSlice(self.data, self.pos, length)
+			self.move(length)
+			return s
+		
+		# try find
+		if 'seek' in k:
+			length = self.find(k['seek'])
+			if length > 0:
+				s = ScanSlice(self.data, self.pos, length)
+				self.move(length)
+				return s
+				
+		# last resort:
+		prop = self.proplist(k['prop']) if 'prop' in k else ''
+		cats = k['cat'] if 'cat' in k else ''
+		pos = self.pos
+		c = self.cur
+		while ucd.category(c) or prop.match(c):
+			c = self.next()
+			length += 1
+		
+		if length:
+			return ScanSlice(self.data, pos, length) #NOTE: saved pos
 
 
+
+
+
+class ScanSlice (object):
+	def __init__(self, ref, startpos, length):
+		self.__ref = ref
+		self.__pos = startpos
+		self.__len = length
+		self.__end = self.__pos + self.__len
+	
+	
+	def __str__(self):
+		return self.__ref[self.__pos:self.__end]
+	
+	def __unicode__(self):
+		return self.__ref[self.__pos:self.__end]
+	
+	def __getitem__(self, i):
+		if key >= self.__len:
+			raise IndexError()
+		return self.__ref.data[self.__pos+i]
 

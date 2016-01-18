@@ -267,6 +267,11 @@ class PropList(object):
 	__KEYS = ['ASCII_Hex_Digit', 'Bidi_Control', 'Dash', 'Deprecated', 'Diacritic', 'Extender', 'Hex_Digit', 'Hyphen', 'IDS_Binary_Operator', 'IDS_Trinary_Operator', 'Ideographic', 'Join_Control', 'Logical_Order_Exception', 'Noncharacter_Code_Point', 'Other_Alphabetic', 'Other_Default_Ignorable_Code_Point', 'Other_Grapheme_Extend', 'Other_ID_Continue', 'Other_ID_Start', 'Other_Lowercase', 'Other_Math', 'Other_Uppercase', 'Pattern_Syntax', 'Pattern_White_Space', 'Quotation_Mark', 'Radical', 'STerm', 'Soft_Dotted', 'Terminal_Punctuation', 'Unified_Ideograph', 'Variation_Selector', 'White_Space']
 	
 	@classmethod
+	def __item(cls, key):
+		"""Private, to protect __ITEMS from manipulation."""
+		return cls.__ITEMS[bisect.bisect_left(cls.__KEYS, key)]
+	
+	@classmethod
 	def keylist(cls):
 		"""Returns a copy of __KEYS."""
 		return cls.__KEYS[:]
@@ -276,10 +281,21 @@ class PropList(object):
 		"""Find index of given key."""
 		return bisect.bisect_left(cls.__KEYS, key)
 	
+	"""
 	@classmethod
-	def __item(cls, key):
-		"""Private, to protect __ITEMS from manipulation."""
-		return __ITEMS[bisect.bisect_left(cls.__KEYS, key)]
+	def properties(cls, s):
+		#Return a list of all the properties found in string s.
+		rr = {}
+		iint = isinstance
+		for c in s: #for each character in string...
+			x = ord(c)
+			for i,L in enumerate(cls.__ITEMS): # individual property sublists
+				for o in L: # o = int or set items in rangelist L
+					if ((x==o) if iint(x,int) else x>=o[0] and x<=o[1]):
+						rr[cls.__KEYS[i]] = i
+						break
+		return rr
+	"""	
 	
 	def __init__(self, *a, **k):
 		"""

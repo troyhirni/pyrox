@@ -305,7 +305,8 @@ class File(ImmutablePath):
 		option, either so use only those that are appropriate to the 
 		required mode.
 		
-		Returns the open file pointer.
+		Returns the open file pointer. You'll need to close it when you
+		are done with it.
 		
 		IMPORTANT: 
 		 * To read binary data: theFile.read(mode="rb")
@@ -329,7 +330,7 @@ class File(ImmutablePath):
 		else:
 			k.setdefault('encoding', FS_ENCODE)
 			return codecs.open(self.path, **k)
-	
+		
 	# READ
 	def read(self, **k):
 		"""Open and read file at self.path. Default mode is 'r'."""
