@@ -17,7 +17,7 @@ File, Zip, and Dir are based on Path. The following apply to all:
 	 current path.
 	 
  * Creating a File or Dir object requires that the specified path
-	 or directory actually exist. See the Path.expand() keyword 
+	 or directory actually exist. See the base.expandpath() keyword 
 	 description to figure out how to make this work for you.
 	 
  * File and Dir methods that access codecs expect keyword arguments
@@ -43,7 +43,7 @@ class Path(object):
 	"""Represents file system paths."""
 	
 	def __init__(self, p=None, **k):
-		self.__p = self.expand(k.get('path', p), **k)
+		self.__p = expandpath(k.get('path', p), **k)
 	
 	def __str__(self):
 		return self.path
@@ -99,50 +99,6 @@ class Path(object):
 		else:
 			p = os.path.join(self.path, p)
 			return os.path.abspath(os.path.normpath(p))
-	
-	
-	@classmethod
-	def expand(cls, path=None, **k):
-		"""
-		Returns an absolute path.
-		
-		Keyword 'affirm' lets you assign (or restrict) actions to be
-		taken if the given path does not exist. 
-		 * checkpath - default; raise if parent path does not exist.
-		 * checkdir - raise if full given path does not exist.
-		 * makepath - create parent path as directory if none exists.
-		 * makedirs - create full path as directory if none exists.
-		 * touch - create a file at the given path if none exists.
-		
-		To ignore all validation, pass affirm=None.
-		"""
-		OP = os.path
-		if path in [None, '.']:
-			path = os.getcwd()
-		
-		if not OP.isabs(path): # absolute
-			path = OP.expanduser(path)
-			if OP.exists(OP.dirname(path)): # cwd
-				path = OP.abspath(path)
-			else:
-				path = OP.abspath(OP.normpath(path))
-		
-		v = k.get('affirm', "checkpath")
-		if (v=='checkpath') and (not OP.exists(OP.dirname(path))):
-			raise Exception('no-such-path', {'path' : path})
-		if v and (not OP.exists(path)):
-			if (v=='checkdir'):
-				raise Exception('no-such-dir', {'path' : path})
-			elif v in ['makepath', 'touch']:
-				if not OP.exists(OP.dirname(path)):
-					os.makedirs(OP.dirname(path))
-				if v == 'touch':
-					with open(path, 'a'):
-						os.utime(path, None)
-			elif (v=='makedirs'):
-				os.makedirs(path)
-		
-		return path
 
 
 
@@ -158,7 +114,7 @@ class Dir(Path):
 	
 	def __init__(self, path=None, **k):
 		"""
-		Pass path to a directory. Keywords apply as to Path.expand().
+		Pass path to a directory. Keywords apply as to base.expandpath().
 		"""
 		Path.__init__(self, k.get('dir', path), **k)
 		if self.exists() and not self.isdir():
@@ -281,7 +237,7 @@ class File(ImmutablePath):
 	"""Represents a file."""
 	
 	def __init__(self, path, **k):
-		"""Pass path to file. Keywords apply as to Path.expand()."""
+		"""Pass path to file. Keywords apply as to base.expandpath()."""
 		Path.__init__(self, k.get('file', path), **k)
 		if self.exists() and not self.isfile():
 			raise ValueError('not-a-file')
@@ -358,7 +314,7 @@ class Zip(File):
 	"""Zip file."""
 	
 	def __init__(self, path, **k):
-		"""Pass path to file. Keywords apply as to Path.expand()."""
+		"""Pass path to file. Keywords apply as to base.expandpath()."""
 		Path.__init__(self, k.get('zip', path), **k)
 		with zipfile.ZipFile(self.path, 'w') as z:
 			pass
