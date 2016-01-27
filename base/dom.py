@@ -146,35 +146,6 @@ class Parse(HTMLParser):
 
 
 
-
-
-class Document(Node):
-	def __init__(self, root, decl):
-		self.__root = root
-		self.__decl = decl
-	
-	def __getitem__(self, key):
-		return self.__root[key]
-	
-	def __len__(self):
-		return len(self.__doc)
-	
-	@property
-	def nodeType(self):
-		return TPythonNode.DOCUMENT_NODE
-	
-	@property
-	def nodeName(self):
-		return "#document"
-	
-	@property
-	def documentElement(self):
-		return self.__root
-
-
-
-
-
 # ---------------------------------------------------------------
 #
 # DOCUMENT TREE
@@ -241,6 +212,36 @@ class Node(object):
 	
 	def hasChildNodes(self):
 		return False
+
+
+
+
+
+
+
+
+class Document(Node):
+	def __init__(self, root, decl):
+		self.__root = root
+		self.__decl = decl
+	
+	def __getitem__(self, key):
+		return self.__root[key]
+	
+	def __len__(self):
+		return len(self.__doc)
+	
+	@property
+	def nodeType(self):
+		return TPythonNode.DOCUMENT_NODE
+	
+	@property
+	def nodeName(self):
+		return "#document"
+	
+	@property
+	def documentElement(self):
+		return self.__root
 
 
 
