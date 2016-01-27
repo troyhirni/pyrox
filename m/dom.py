@@ -12,26 +12,142 @@ We're here for the data.
 """
 
 try:
-	from ..base import *
+	from html.parser import HTMLParser
+except:
+	from HTMLParser import HTMLParser
+
+try:
+	from pyrox.base import *
 except:
 	from base import *
 
 from xml.dom import Node as TPythonNode
 
 
+
 DOMString = unicode
 
 
 
-# -------------------------------------------------------------------
+
+def parse(html):
+	p = Parse(unicode(html))
+	return Document(p.doc, p.decl) 
+
+
+
 #
-# NODE
-#  - CHECK: use parentNode or ownerElement? What's the difference?
 #
-# -------------------------------------------------------------------
+#
+# PARSER
+#
+#
+#
+
+class Parse(HTMLParser):
+	
+	def __init__(self, htmlstr=None):
+		"""Pass a unicode html string."""
+		if not isinstance(htmlstr, unicode):
+			raise Exception("html-no-encoding")
+		
+		HTMLParser.__init__(self)
+		self.doc = []
+		self.decl = []
+		
+		if htmlstr:
+			self.feed(htmlstr)
+	
+	@property
+	def last(self):
+		return self.doc[-1]
+	
+	
+	#
+	#
+	#
+	# CALLBACKS
+	#
+	#
+	#
+	def handle_starttag(self, tag, attrs):
+		self.doc.append(Element(tag, attrs))
+	
+	
+	
+	def handle_endtag(self, tag):
+		r = []
+		try:
+			# pop to the last doc.node matching 'tag'
+			while self.last.nodeName != tag:
+				r.append(self.doc.pop())
+		except IndexError:
+			# unmatched end tag. ignore.
+			self.doc.extend(r)
+			return 
+		
+		# No node gets content until there's an end tag - then, the
+		# currently ending node gets everything inside itself as
+		# though each un-ended tag had been closed directly before its 
+		# following tag.
+		r.reverse()
+		
+		#
+		# YOU ARE HERE!
+		#  - .content no longer works - time to put appendChild() in!
+		#
+		for n in r:
+			# set the parent for each content node
+			#n._setparent(self.last)
+			
+			# append each item as a child to the matching parent
+			self.last.appendChild(n)
+		
+	
+	def handle_startendtag(self, tag, attrs):
+		self.handle_starttag(tag, attrs)
+	
+	def handle_comment(self, data):
+		self.doc.append(Comment(data))
+	
+	def handle_data(self, data):
+		self.doc.append(Text(data))
+
+	def handle_pi(self, data):
+		target, data = data.split(None,1)
+		self.doc.append(ProcessingInstruction(target, data))
+	
+	def handle_decl(self, decl):
+		self.decl.append(decl.split(None, 1))
+	
+	def unknown_decl(self, data):
+		self.decl.append(data.split(None, 1))
+
+
+
+# ---------------------------------------------------------------
+#
+# DOCUMENT TREE
+# Node.__init__
+#
+# ---------------------------------------------------------------
+
 class Node(object):
-	def __init__(self, parent):
+	def __init__(self, parent=None):
 		self.__parent = parent
+		#self.__document = parent.document if parent else None
+	
+	def _setparent(self, par):
+		if self.__parent and (self.__parent != par):
+			self.__parent.remove(self)
+		self.__parent = par
+	
+	def __repr__(self):
+		return "<%s>" % (self.nodeName)
+	
+	@property
+	def nodeValue(self):
+		return None
 	
 	@property
 	def parentNode(self):
@@ -76,25 +192,327 @@ class Node(object):
 		return False
 	
 	def appendChild(self, newChild):
-		pass
+		raise NotImplemented()
 	
 	def insertBefore(self, newChild, refChild):
-		pass
+		raise NotImplemented()
 	
 	def removeChild(self, oldChild):
-		return None
+		raise NotImplemented()
 	
 	def normalize(self):
-		pass
+		raise NotImplemented()
+
+
+
+
+
+
+
+class Element(Node):
+	
+	def __init__(self, tag=None, attrs=None, d=[]):
+		Node.__init__(self)
+		self.__attributes = NamedNodeMap(self) # i'm the parent
+		self.__children = NodeList()
+		
+		nn = tag.split(":")
+		self.__nodename = tag
+		self.__localname = nn[-1]
+		self.__prefix = ":".join(nn[:-1])
+		
+		if attrs:
+			for item in attrs:
+				if (len(item)>1) and (item[1]!=None):
+					self.__attributes[item[0]] = DOMString(item[1])
+				else:
+					self.__attributes[item[0]] = None
+	
+	
+	def __getitem__(self, item):
+		return self.__children[item]
+	
+	@property
+	def nodeType(self):
+		return TPythonNode.ELEMENT_NODE
+	
+	@property
+	def nodeName(self):
+		return self.__nodename
+	
+	@property
+	def attributes(self):
+		return self.__attributes
+	
+	@property
+	def childNodes(self):
+		"""
+		A list of nodes contained within this node. This is a read-only
+		attribute.
+		"""
+		return tuple(self.__children) if self.__children else tuple()
+	
+	@property
+	def firstChild(self):
+		try:
+			return self.__children[0]
+		except IndexError:
+			return None
+	
+	@property
+	def lastChild(self):
+		try:
+			return self.__children[-1]
+		except IndexError:
+			return None
+	
+	@property
+	def previousSibling(self):
+		return self.parent._prevchild()
+	
+	@property
+	def nextSibling(self):
+		return self.parent._nextchild()
+	
+	@property
+	def localName(self):
+		return self.__localname
+	
+	@property
+	def prefix(self):
+		return self.__prefix
+	
+	def hasAttributes(self):
+		return True if len(self.attributes) else False
+	
+	def hasChildNodes(self):
+		return True if len(self.__children) else False
+	
+	def appendChild(self, newChild):
+		if newChild.parentNode and (newChild in newChild.parentNode):
+			newChild.parentNode.removeChild(newChild)
+		newChild._setparent(self)
+		self.__children.append(newChild)
+	
+	def insertBefore(self, newChild, refChild):
+		i = self.__children.index(refChild)
+		self.__children.insert(newChild, i)
+	
+	def removeChild(self, oldChild):
+		self.__children.remove(oldChild)
+		return oldChild
+	
+	def normalize(self):
+		txt = []
+		for n in self.children:
+			if n.nodeType == NodeType.TEXT:
+				txt.append(n.text)
+				self.removeChild(t)
+			elif txt:
+				newText = Text(self, u''.join(txt))
+				self.__children.insertBefore(newText, n)
+				txt = []
+		
+		if txt:
+			newText = Text(self, u''.join(txt))
+			self.__children.appendChild(newText)
+	
+	def _prevchild(self, n):
+		try:
+			return self.__children[self.__children.index(n)-1]
+		except IndexError:
+			return None
+	
+	def _nextchild(self, n):
+		try:
+			return self.__children[self.__children.index(n)+1]
+		except IndexError:
+			return None
+
+
+
+
+
+
+
+
+class Document(Node):
+	def __init__(self, doc, decl):
+		self.__doc = doc or []
+		self.decl = decl or []
+	
+	def __getitem__(self, key):
+		return self.__doc[key]
+	
+	def __len__(self):
+		return len(self.__doc)
+	
+	@property
+	def nodeType(self):
+		return TPythonNode.DOCUMENT_NODE
+	
+	@property
+	def nodeName(self):
+		return "#document"
+
+
+
+
 
 
 
 # -------------------------------------------------------------------
+#
+#
+#
+# CHARACTER DATA, TEXT, COMMENT
+#
+#
+#
+# -------------------------------------------------------------------
+
+class CharacterData(Node):
+	def __init__(self, data):
+		Node.__init__(self)
+		self.__data = data
+	
+	def __str__(self):
+		return self.__data
+	
+	def __repr__(self):
+		return "<%s:[%s]>" % (self.nodeName, len(self.__data))
+	
+	@property
+	def nodeType(self):
+		return TPythonNode.DOCUMENT_NODE
+	
+	@property
+	def nodeName(self):
+		return NotImplementedError()
+	
+	@property
+	def nodeValue(self):
+		return self.__data
+	
+	@property
+	def length(self):
+		return len(self.__data)
+	
+	@property
+	def data(self):
+		return self.__data
+	
+	def substringData(self, offset, count):
+		return self.__data[offset:offset+count]
+	
+	def appendData(self, data):
+		self.__data = ''.join([self.__data, data])
+	
+	def insertData(self, offset, data):
+		self.__data = ''.join(
+			[self.__data[:offset], data, self.__data[offset:]]
+		)
+	
+	def deleteData(self, offset, count):
+		self.__data = ''.join(
+			[self.__data[:offset], self.__data[offset+count:]]
+		)
+	
+	def replaceData(self, offset, count, data):
+		self.__data = ''.join(
+			[self.__data[:offset], data, self.__data[offset+count:]]
+		)
+
+
+
+
+
+
+
+class Comment (CharacterData):
+	
+	@property
+	def nodeType(self):
+		return TPythonNode.COMMENT_NODE
+	
+	@property
+	def nodeName(self):
+		return "#comment"
+	
+
+
+
+
+
+
+class Text (CharacterData):
+	
+	@property
+	def nodeType(self):
+		return TPythonNode.TEXT_NODE
+	
+	@property
+	def nodeName(self):
+		return "#text"
+	
+	def splitText(self, offset):
+		raise NotImplementedError() # TODO
+
+
+
+
+
+
+
+class CDATASection (CharacterData):
+	
+	@property
+	def nodeType(self):
+		return TPythonNode.CDATA_SECTION_NODE
+	
+	@property
+	def nodeName(self):
+		return "#cdata-section"
+
+
+
+
+
+
+
+class ProcessingInstruction (Node):
+	def __init__(target, data):
+		Node.__init__(self)
+		self.target = target
+		self.data = data
+	
+	@property
+	def nodeType(self):
+		return TPythonNode.PROCESSING_INSTRUCTION_NODE
+	
+	@property
+	def nodeName(self):
+		return self.target
+	
+	@property
+	def nodeValue(self):
+		return self.data
+
+
+
+
+
+
+
+# -------------------------------------------------------------------
+#
 #
 # NODE LIST
 #
+#
 # -------------------------------------------------------------------
 class NodeList(list):
+	
 	@property
 	def length(self):
 		return self.len()
@@ -106,7 +524,9 @@ class NodeList(list):
 
 # -------------------------------------------------------------------
 #
+#
 # NAMED NODE MAP
+#
 #
 # -------------------------------------------------------------------
 class NamedNodeMap(dict):
@@ -151,13 +571,14 @@ class NamedNodeMap(dict):
 
 # -------------------------------------------------------------------
 #
+#
 # ATTR - Attribute Node
+#
 #
 # -------------------------------------------------------------------
 class Attr(Node):
-	"""
-	A DOM Attribute.
-	"""
+	"""A DOM Attribute."""
+	
 	def __init__(self, name, value, parent=None):
 		Node.__init__(self, parent)
 		self.__name = name
@@ -187,289 +608,4 @@ class Attr(Node):
 	
 	@property
 	def specified(self):
-		"""
-		I hope this is the correct way to calculate whether an attribute
-		is "specified".	I'm not too sure how to interpret this:
-		https://www.w3.org/TR/2000/REC-DOM-Level-2-Core-20001113/core.html#ID-862529273
-		"""
 		return (self.ownerElement == None) or (self.__value != None)
-
-
-
-# -------------------------------------------------------------------
-#
-# ELEMENT
-#
-# -------------------------------------------------------------------
-
-class Element(Node):
-	"""
-	Reference: http://www.w3schools.com/XML/dom_element.asp
-	"""
-	
-	def __init__(self, name, attrs=None, parent=None):
-		Node.__init__(self, parent)
-		self.__document = parent.document if parent else None
-		self.__attributes = NamedNodeMap(self) # i'm the parent
-		self.__children = []
-		
-		nn = name.split(":")
-		self.__nodename = name
-		self.__localname = nn[-1]
-		self.__prefix = ":".join(nn[:-1])
-		#self.__namespaceuri = None # TODO - maybe someday;
-		
-		if attrs:
-			for item in attrs:
-				v = DOMString(item[1]) if len(item)>1 else None
-				self.__attributes[item[0]] = item[1] if len(item)>1 else None
-	
-	
-	@property
-	def nodeType(self):
-		return TPythonNode.ELEMENT_NODE
-	
-	@property
-	def nodeName(self):
-		return self.nodename
-	
-	@property
-	def attributes(self):
-		return self.__attributes
-	
-	@property
-	def childNodes(self):
-		"""
-		A list of nodes contained within this node. This is a read-only
-		attribute.
-		"""
-		return tuple(*self.__children) if self.__children else tuple()
-	
-	@property
-	def previousSibling(self):
-		"""
-		The node that immediately follows this one with the same parent.
-		If this is the last child of the parent, this attribute will be 
-		None. This is a read-only attribute.
-		"""
-		return self.parent._prevchild()
-	
-	@property
-	def nextSibling(self):
-		"""
-		The node that immediately follows this one with the same parent.
-		If this is the last child of the parent, this attribute will be 
-		None. This is a read-only attribute.
-		"""
-		return self.parent._nextchild()
-	
-	@property
-	def childNodes(self):
-		"""
-		A list of nodes contained within this node. This is a read-only
-		attribute.
-		
-		The list is slice [:] of the 
-		"""
-		return tupel(*self.__children) if self.__children else tupel()
-	
-	@property
-	def firstChild(self):
-		try:
-			return self.__children[0]
-		except IndexError:
-			return None
-	
-	@property
-	def lastChild(self):
-		try:
-			return self.__children[-1]
-		except IndexError:
-			return None
-	
-	@property
-	def localName(self):
-		return self.__localname
-	
-	@property
-	def prefix(self):
-		return self.__prefix
-	
-	@property
-	def namespaceURI(self):
-		return None #self.__namespaceuri
-	
-	@property
-	def nodeName(self):
-		return self.__nodename
-	
-	def hasAttributes(self):
-		return True if len(self.attributes) else False
-	
-	def hasChildNodes(self):
-		return True if len(self.childNodes) else False
-	
-	def appendChild(self, newChild):
-		newChild.parentNode.removeChild(newChild)
-		self.__children.append(newChild)
-	
-	def insertBefore(self, newChild, refChild):
-		i = self.__children.index(refChild)
-		self.__children.insert(newChild, i)
-	
-	def removeChild(self, oldChild):
-		i = self.__children.remove(oldChild)
-		return oldChild
-	
-	def normalize(self):
-		txt = []
-		for n in self.children:
-			if n.nodeType == NodeType.TEXT:
-				txt.append(n.text)
-				self.removeChild(t)
-			elif txt:
-				newText = xText(self, u''.join(txt))
-				self.__children.insertBefore(newText, n)
-				txt = []
-		
-		if txt:
-			newText = xText(self, u''.join(txt))
-			self.__children.appendChild(newText)
-	
-	def _prevchild(self, n):
-		try:
-			return self.__children[self.__children.index(n)-1]
-		except IndexError:
-			return None
-	
-	def _nextchild(self, n):
-		try:
-			return self.__children[self.__children.index(n)+1]
-		except IndexError:
-			return None
-
-
-
-# -------------------------------------------------------------------
-#
-# DOCUMENT
-#
-# -------------------------------------------------------------------
-
-class Document(Node):
-	"""
-	The DOM Document object.
-	 - Holds root node
-	 * Raise NotImplemented if method is intentionally not implemented.
-	 * Raise NotImplememtedError() if a method is on the to-do list.
-	
-	Reference: http://www.w3schools.com/XML/dom_document.asp
-	"""
-	def __init__(self):
-		Node.__init__(self, None)
-	
-	def adoptNode(self, sourcenode):
-		raise NotImplemented()
-	
-	@property
-	def nodeType(self):
-		return TPythonNode.DOCUMENT_NODE
-	
-	@property
-	def nodeName(self):
-		return "#document"
-	
-	@property
-	def doctype(self):
-		raise NotImplementedError()
-	
-	@property
-	def documentElement(self):
-		raise NotImplementedError()
-	
-	@property
-	def documentURI(self):
-		raise NotImplementedError()
-	
-	def createAttribute(self, name):
-		"""
-		Creates an attribute node with the specified name, and returns 
-		the new Attr object
-		"""
-		pass
-	
-	def createAttributeNS(self, uri, name):
-		"""
-		Creates an attribute node with the specified name and namespace,
-		and returns the new Attr object
-		"""
-		pass
-	
-	def createCDATASection(self, content):
-		"""Creates a CDATA section node"""
-		pass
-	
-	def createComment(self, comment):
-		"""Creates a comment node"""
-		pass
-	
-	def createDocumentFragment(self):
-		"""Creates an empty DocumentFragment object, and returns it"""
-		pass
-	
-	def createElement(self):
-		"""Creates an element node"""
-		pass
-	
-	def createElementNS(self):
-		"""Creates an element node with a specified namespace"""
-		pass
-	
-	def createEntityReference(self, name):
-		"""Creates an EntityReference object, and returns it"""
-		pass
-	
-	def createProcessingInstruction(self, target, data):
-		"""Creates a ProcessingInstruction object, and returns it"""
-		pass
-	
-	def createTextNode(self):
-		"""Creates a text node"""
-		pass
-	
-	def getElementById(self, id):
-		"""
-		Returns the element that has an ID attribute with the given 
-		value. If no such element exists, it returns null
-		"""
-		pass
-	
-	def getElementsByTagName(self):
-		"""Returns a NodeList of all elements with a specified name"""
-		pass
-	
-	def getElementsByTagNameNS(self):
-		"""
-		Returns a NodeList of all elements with a specified name and 
-		namespace
-		"""
-		pass
-	
-	def importNode(self, nodetoimport, deep):
-		"""
-		Imports a node from another document to this document. This 
-		method creates a new copy of the source node. If the deep 
-		parameter is set to true, it imports all children of the 
-		specified node. If set to false, it imports only the node 
-		itself. This method returns the imported node
-		"""
-		pass
-	
-	def normalizeDocument(self):
-		pass
-		 
-	def renameNode(self):
-		"""Renames an element or attribute node"""
-		pass
-	
-	
