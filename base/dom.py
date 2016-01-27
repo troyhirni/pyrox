@@ -228,7 +228,7 @@ class Document(Node):
 		return self.__root[key]
 	
 	def __len__(self):
-		return len(self.__doc)
+		return len(self.__root)
 	
 	@property
 	def nodeType(self):
