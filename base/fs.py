@@ -280,7 +280,7 @@ class File(ImmutablePath):
 		"as-is", including the BOM if any, and can be read by:
 			>>> s = theFile.read(encoding="<encoding>")
 		"""
-		k.setdefault('mode', 'rw+')
+		k.setdefault('mode', 'r')
 		if 'b' in k['mode']:
 			return open(self.path, **k)
 		else:
