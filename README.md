@@ -16,10 +16,11 @@ Package Goals:
 **DEPENDENCE**
 
     base
+      |____ database
       |____ fmt
       |____ fs
       |____ pdq
       |____ prompt   
-      |____ text ___ url
-      |____ udata __ scan
+      |____ text _____ url
+      |____ udata ____ scan
     
