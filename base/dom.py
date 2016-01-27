@@ -3,7 +3,7 @@ Copyright 2016 Troy Hirni
 This file is part of the pyrox project, distributed under
 the terms of the GNU Affero General Public License.
 
-DOM - UNDER CONSTRUCTION
+DOM   **   UNDER CONSTRUCTION   **   STILL A LONG WAY TO GO.
 
 Will provide an XML/HTML parser with partial DOM implementation.
 The main goal here is to safely gather data from unknown sources
@@ -47,81 +47,131 @@ def parse(html):
 class Parse(HTMLParser):
 	
 	def __init__(self, htmlstr=None):
-		"""Pass a unicode html string."""
-		if not isinstance(htmlstr, unicode):
-			raise Exception("html-no-encoding")
-		
 		HTMLParser.__init__(self)
-		self.doc = []
-		self.decl = []
 		
+		self.doc = None
+		self._decl = [] # DocType plus other declarations
+		self._head = [] # before first element; (spaces, comments, etc.)
+		
+		# these are None until the first element is reached
+		self._root = None
+		self._acum = None # accumulate nodes inside unclosed elements
+		
+		# after root closes, elem becomes tail
+		self._tail = []
+		
+		# if string was provided, parse it
 		if htmlstr:
 			self.feed(htmlstr)
 	
-	@property
-	def last(self):
-		return self.doc[-1]
 	
 	
-	#
-	#
-	#
-	# CALLBACKS
-	#
-	#
-	#
 	def handle_starttag(self, tag, attrs):
-		self.doc.append(Element(tag, attrs))
-	
-	
-	
-	def handle_endtag(self, tag):
-		r = []
 		try:
-			# pop to the last doc.node matching 'tag'
-			while self.last.nodeName != tag:
-				r.append(self.doc.pop())
-		except IndexError:
-			# unmatched end tag. ignore.
-			self.doc.extend(r)
-			return 
-		
-		# No node gets content until there's an end tag - then, the
-		# currently ending node gets everything inside itself as
-		# though each un-ended tag had been closed directly before its 
-		# following tag.
-		r.reverse()
-		
-		#
-		# YOU ARE HERE!
-		#  - .content no longer works - time to put appendChild() in!
-		#
-		for n in r:
-			# set the parent for each content node
-			#n._setparent(self.last)
-			
-			# append each item as a child to the matching parent
-			self.last.appendChild(n)
-		
+			# Append unclosed nodes to a list. They become children of an
+			# element once that element is closed (or parsing ends).
+			self._acum.append(Element(tag, attrs))
+		except:
+			self._root = Element(tag, attrs)
+			self._acum = [self._root]
+			self.doc = Document(self._root, self._decl)
+	
+	
 	
 	def handle_startendtag(self, tag, attrs):
 		self.handle_starttag(tag, attrs)
 	
+	
+	
+	def handle_endtag(self, tag):
+		
+		# search backward through _acum list
+		r = []
+		try:
+			# pop to the last doc.node matching 'tag'
+			current = self._acum[-1]
+			while (current.nodeName != tag) or (current._closed):
+				r.append(self._acum.pop())
+				current = self._acum[-1]
+			r.reverse()
+		except IndexError:
+			# unmatched end tag. ignore.
+			r.reverse()
+			self._acum.extend(r)
+			return 
+		
+		# now there's a list of nodes to add to the closing tag
+		for n in r:
+			self._acum[-1].appendChild(n)
+		
+		# mark the closing tag as closed
+		self._acum[-1]._closed = 1
+		
+		
+	#
+	# Callbacks that add nodes either to the head (at the beginning
+	# of the doc before the first element) or to the current element.
+	#
+	def _addnode(self, node):
+		try:
+			# elem is the most recently opened element
+			self._acum.append(node)
+		except:
+			# ..before the first element, append nodes to head.
+			self._head.append(node)
+	
 	def handle_comment(self, data):
-		self.doc.append(Comment(data))
+		self._addnode(Comment(data))
 	
 	def handle_data(self, data):
-		self.doc.append(Text(data))
+		self._addnode(Text(data))
 
 	def handle_pi(self, data):
 		target, data = data.split(None,1)
-		self.doc.append(ProcessingInstruction(target, data))
-	
-	def handle_decl(self, decl):
-		self.decl.append(decl.split(None, 1))
+		self._addnode(ProcessingInstruction(target, data))
 	
 	def unknown_decl(self, data):
-		self.decl.append(data.split(None, 1))
+		if data.find("CDATA[") == 0:
+			self._addnode(CDATASection(data[6:]))
+		else:
+			self._addnode(Comment("UNKNOWN DECL: %s" % data))
+	
+	#
+	# DocType
+	#
+	def handle_decl(self, decl):
+		self.decl.append(decl.split(None, 1))
+
+
+
+
+
+
+
+class Document(Node):
+	def __init__(self, root, decl):
+		self.__root = root
+		self.__decl = decl
+	
+	def __getitem__(self, key):
+		return self.__root[key]
+	
+	def __len__(self):
+		return len(self.__doc)
+	
+	@property
+	def nodeType(self):
+		return TPythonNode.DOCUMENT_NODE
+	
+	@property
+	def nodeName(self):
+		return "#document"
+	
+	@property
+	def documentElement(self):
+		return self.__root
+
+
 
 
 
@@ -134,6 +184,7 @@ class Parse(HTMLParser):
 
 class Node(object):
 	def __init__(self, parent=None):
+		self._closed = None
 		self.__parent = parent
 		#self.__document = parent.document if parent else None
 	
@@ -190,18 +241,6 @@ class Node(object):
 	
 	def hasChildNodes(self):
 		return False
-	
-	def appendChild(self, newChild):
-		raise NotImplemented()
-	
-	def insertBefore(self, newChild, refChild):
-		raise NotImplemented()
-	
-	def removeChild(self, oldChild):
-		raise NotImplemented()
-	
-	def normalize(self):
-		raise NotImplemented()
 
 
 
@@ -328,32 +367,6 @@ class Element(Node):
 			return self.__children[self.__children.index(n)+1]
 		except IndexError:
 			return None
-
-
-
-
-
-
-
-
-class Document(Node):
-	def __init__(self, doc, decl):
-		self.__doc = doc or []
-		self.decl = decl or []
-	
-	def __getitem__(self, key):
-		return self.__doc[key]
-	
-	def __len__(self):
-		return len(self.__doc)
-	
-	@property
-	def nodeType(self):
-		return TPythonNode.DOCUMENT_NODE
-	
-	@property
-	def nodeName(self):
-		return "#document"
 
 
 
