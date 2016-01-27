@@ -31,8 +31,7 @@ DOMString = unicode
 
 
 def parse(html):
-	p = Parse(unicode(html))
-	return Document(p.doc, p.decl) 
+	return Parse(unicode(html)).doc
 
 
 
@@ -140,7 +139,7 @@ class Parse(HTMLParser):
 	# DocType
 	#
 	def handle_decl(self, decl):
-		self.decl.append(decl.split(None, 1))
+		self._decl.append(decl.split(None, 1))
 
 
 
@@ -268,6 +267,9 @@ class Element(Node):
 				else:
 					self.__attributes[item[0]] = None
 	
+	
+	def __len__(self):
+		return len(self.__children)
 	
 	def __getitem__(self, item):
 		return self.__children[item]
