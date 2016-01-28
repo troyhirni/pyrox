@@ -7,9 +7,9 @@ Factory
 """
 
 try:
-	from .. import base
+	from ..base import *
 except:
-	import base
+	from base import *
 
 #
 # FACTORY
