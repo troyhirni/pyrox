@@ -220,7 +220,7 @@ class Node(object):
 
 
 class Document(Node):
-	def __init__(self, root, decl):
+	def __init__(self, root=None, decl=None):
 		self.__root = root
 		self.__decl = decl
 	
@@ -241,6 +241,14 @@ class Document(Node):
 	@property
 	def documentElement(self):
 		return self.__root
+	
+	@property
+	def doctype(self):
+		for decl in self.__decl:
+			if decl and decl[0].upper() == 'DOCTYPE' and len(decl)>1:
+				return decl[1]
+		return None
+	
 
 
 
