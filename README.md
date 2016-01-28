@@ -36,6 +36,8 @@ Package Goals:
     base
       |____ database
       |____ dom
+      |____ factory
+      |____ fmt
       |____ fs
       |____ pdq
       |____ prompt   
