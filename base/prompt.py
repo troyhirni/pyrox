@@ -7,11 +7,11 @@ Prompt - Commind-line Interface
 """
 
 try:
-	from pyrox.base import *
+	from ..base import *
 except:
 	from base import *
 
-from pyrox.base import scan
+from . import scan
 
 import time
 
@@ -43,6 +43,7 @@ class Prompt(object):
 	
 	@property
 	def target(self):
+		"""Target object to which commands apply."""
 		return self.__target
 	
 	@property
