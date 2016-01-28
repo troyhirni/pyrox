@@ -3,7 +3,7 @@ Copyright 2016 Troy Hirni
 This file is part of the pyrox project, distributed under
 the terms of the GNU Affero General Public License.
 
-DOM   **   UNDER CONSTRUCTION   **   STILL A LONG WAY TO GO.
+DOM   **   UNDER CONSTRUCTION   **   STILL QUITE A WAY TO GO
 
 Will provide an XML/HTML parser with partial DOM implementation.
 The main goal here is to safely gather data from unknown sources
@@ -29,65 +29,43 @@ DOMString = unicode
 
 
 
-
 def parse(html):
 	return Parse(unicode(html)).doc
 
 
-
-#
-#
-#
-# PARSER
-#
-#
-#
 
 class Parse(HTMLParser):
 	
 	def __init__(self, htmlstr=None):
 		HTMLParser.__init__(self)
 		
-		self.doc = None
-		self._decl = [] # DocType plus other declarations
-		self._head = [] # before first element; (spaces, comments, etc.)
+		self.decl = [] # DocType plus other declarations
+		self.root = Element()
+		self.doc = Document(self.root)
 		
-		# these are None until the first element is reached
-		self._root = None
-		self._acum = None # accumulate nodes inside unclosed elements
-		
-		# after root closes, elem becomes tail
-		self._tail = []
+		# accumulate nodes inside unclosed elements
+		self._acum = []
 		
 		# if string was provided, parse it
 		if htmlstr:
 			self.feed(htmlstr)
-	
+		
+		for n in self._acum:
+			self.root.appendChild(n)
 	
 	
 	def handle_starttag(self, tag, attrs):
-		try:
-			# Append unclosed nodes to a list. They become children of an
-			# element once that element is closed (or parsing ends).
-			self._acum.append(Element(tag, attrs))
-		except:
-			self._root = Element(tag, attrs)
-			self._acum = [self._root]
-			self.doc = Document(self._root, self._decl)
-	
-	
+		# Append unclosed nodes to a list. They become children of an
+		# element once that element is closed (or parsing ends).
+		self._acum.append(Element(tag, attrs))
 	
 	def handle_startendtag(self, tag, attrs):
 		self.handle_starttag(tag, attrs)
 	
-	
-	
 	def handle_endtag(self, tag):
-		
-		# search backward through _acum list
 		r = []
 		try:
-			# pop to the last doc.node matching 'tag'
+			# pop to the last unclised _acum node matching 'tag'
 			current = self._acum[-1]
 			while (current.nodeName != tag) or (current._closed):
 				r.append(self._acum.pop())
@@ -106,51 +84,29 @@ class Parse(HTMLParser):
 		# mark the closing tag as closed
 		self._acum[-1]._closed = 1
 		
-		
-	#
-	# Callbacks that add nodes either to the head (at the beginning
-	# of the doc before the first element) or to the current element.
-	#
-	def _addnode(self, node):
-		try:
-			# elem is the most recently opened element
-			self._acum.append(node)
-		except:
-			# ..before the first element, append nodes to head.
-			self._head.append(node)
 	
 	def handle_comment(self, data):
-		self._addnode(Comment(data))
+		self._acum.append(Comment(data))
 	
 	def handle_data(self, data):
-		self._addnode(Text(data))
+		self._acum.append(Text(data))
 
 	def handle_pi(self, data):
 		target, data = data.split(None,1)
-		self._addnode(ProcessingInstruction(target, data))
+		self._acum.append(ProcessingInstruction(target, data))
 	
 	def unknown_decl(self, data):
 		if data.find("CDATA[") == 0:
-			self._addnode(CDATASection(data[6:]))
+			self._acum.append(CDATASection(data[6:]))
 		else:
-			self._addnode(Comment("UNKNOWN DECL: %s" % data))
+			self._acum.append(Comment("UNKNOWN DECL: %s" % data))
 	
-	#
-	# DocType
-	#
 	def handle_decl(self, decl):
-		self._decl.append(decl.split(None, 1))
+		self.decl.append(decl.split(None, 1))
 
 
 
 
-
-# ---------------------------------------------------------------
-#
-# DOCUMENT TREE
-# Node.__init__
-#
-# ---------------------------------------------------------------
 
 class Node(object):
 	def __init__(self, parent=None):
@@ -172,13 +128,6 @@ class Node(object):
 	
 	@property
 	def parentNode(self):
-		"""
-		The parent of the current node, or None for the document node. 
-		The value is always a Node object or None. For Element nodes, 
-		this will be the parent element, except for the root element, in 
-		which case it will be the Document object. For Attr nodes, this 
-		is always None. This is a read-only attribute.
-		"""
 		return self.__parent
 	
 	@property
@@ -254,11 +203,9 @@ class Document(Node):
 
 
 
-
-
 class Element(Node):
 	
-	def __init__(self, tag=None, attrs=None, d=[]):
+	def __init__(self, tag='', attrs=()):
 		Node.__init__(self)
 		self.__attributes = NamedNodeMap(self) # i'm the parent
 		self.__children = NodeList()
@@ -268,12 +215,11 @@ class Element(Node):
 		self.__localname = nn[-1]
 		self.__prefix = ":".join(nn[:-1])
 		
-		if attrs:
-			for item in attrs:
-				if (len(item)>1) and (item[1]!=None):
-					self.__attributes[item[0]] = DOMString(item[1])
-				else:
-					self.__attributes[item[0]] = None
+		for item in attrs:
+			if (len(item)>1) and (item[1]!=None):
+				self.__attributes[item[0]] = DOMString(item[1])
+			else:
+				self.__attributes[item[0]] = None
 	
 	
 	def __len__(self):
@@ -296,10 +242,6 @@ class Element(Node):
 	
 	@property
 	def childNodes(self):
-		"""
-		A list of nodes contained within this node. This is a read-only
-		attribute.
-		"""
 		return tuple(self.__children) if self.__children else tuple()
 	
 	@property
@@ -383,18 +325,6 @@ class Element(Node):
 
 
 
-
-
-# -------------------------------------------------------------------
-#
-#
-#
-# CHARACTER DATA, TEXT, COMMENT
-#
-#
-#
-# -------------------------------------------------------------------
-
 class CharacterData(Node):
 	def __init__(self, data):
 		Node.__init__(self)
@@ -451,8 +381,6 @@ class CharacterData(Node):
 
 
 
-
-
 class Comment (CharacterData):
 	
 	@property
@@ -463,8 +391,6 @@ class Comment (CharacterData):
 	def nodeName(self):
 		return "#comment"
 	
-
-
 
 
 
@@ -486,8 +412,6 @@ class Text (CharacterData):
 
 
 
-
-
 class CDATASection (CharacterData):
 	
 	@property
@@ -497,8 +421,6 @@ class CDATASection (CharacterData):
 	@property
 	def nodeName(self):
 		return "#cdata-section"
-
-
 
 
 
@@ -526,15 +448,6 @@ class ProcessingInstruction (Node):
 
 
 
-
-
-# -------------------------------------------------------------------
-#
-#
-# NODE LIST
-#
-#
-# -------------------------------------------------------------------
 class NodeList(list):
 	
 	@property
@@ -546,13 +459,8 @@ class NodeList(list):
 
 
 
-# -------------------------------------------------------------------
-#
-#
-# NAMED NODE MAP
-#
-#
-# -------------------------------------------------------------------
+
+
 class NamedNodeMap(dict):
 	"""
 	Implements DOM NamedNodeMap; based on python dict.
@@ -593,13 +501,8 @@ class NamedNodeMap(dict):
 
 
 
-# -------------------------------------------------------------------
-#
-#
-# ATTR - Attribute Node
-#
-#
-# -------------------------------------------------------------------
+
+
 class Attr(Node):
 	"""A DOM Attribute."""
 	
