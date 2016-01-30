@@ -8,9 +8,7 @@ BASE - Defintions needed by many modules in this package. Expect
        the end, it will consist of most basic needs.
 """
 
-
-import os, codecs, json
-
+import os, codecs, json, weakref
 
 
 try:
@@ -24,11 +22,9 @@ except:
 	textinput = input
 
 
-
 DEF_INDENT = 2
 DEF_ENCODE = 'utf_8'
 FS_ENCODE = DEF_ENCODE
-
 
 
 
@@ -428,7 +424,8 @@ def typestr(x):
 
 def isproxy(x):
 	"""True if x is a proxy, else False."""
-	return issubclass(type(x), weakref.ProxyType)
+	T = type(x)
+	return issubclass(T, (weakref.ProxyType, weakref.CallableProxyType))
 
 def proxify(o):
 	"""Return o if it's a proxy, else proxy to o."""
