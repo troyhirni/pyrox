@@ -18,9 +18,15 @@ if __name__ == '__main__':
 	args = sys.argv[2:]
 	
 	if not cmd or (cmd in ['-h', '--help']):
-		print ("\nUSAGE: python %s package.module.class" % (app))
+		print ("\nUSAGE: python %s [[package.]module.]class" % (app))
 	else:
-		from base import prompt, factory
-		obj = factory.Factory(cmd).create(*args)
+		import base
+		from base import prompt
+		try:
+			obj = base.Factory(cmd).create(*args)
+		except TypeError:
+			pe = cmd.split('.')
+			obj = __import__(cmd, globals(), locals(), pe[:-1])
+			print obj
 		prompt.prompt(obj)
 	
