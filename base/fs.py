@@ -1,5 +1,5 @@
 """
-Copyright 2015-2016 Troy Hirni
+Copyright 2014-2016 Troy Hirni
 This file is part of the pyrox project, distributed under
 the terms of the GNU Affero General Public License.
 
@@ -9,7 +9,7 @@ WARNING: Dir methods that accept a 'pattern' argument perform their
 				 operations on all matching files and directories. Be very 
 				 careful with this. There's neither confirmation nor "undo"!
 
-File, Zip, and Dir are based on Path. The following apply to all:
+All classes are based on base.Path:
 
  * Setting self.path is relative to the current working directory.
 	 For all other object methods, given paths that are relative are
@@ -17,7 +17,7 @@ File, Zip, and Dir are based on Path. The following apply to all:
 	 current path.
 	 
  * Creating a File or Dir object requires that the specified path
-	 or directory actually exist. See the base.expandpath() keyword 
+	 or directory actually exist. See the base.Path.expand(). keyword 
 	 description to figure out how to make this work for you.
 	 
  * File and Dir methods that access codecs expect keyword arguments
@@ -27,7 +27,7 @@ File, Zip, and Dir are based on Path. The following apply to all:
 	 whether files are read/written with codecs or just plain bytes.
 """
 
-import os, shutil, codecs, glob, zipfile
+import os, shutil, glob, zipfile, json, ast
 
 try:
 	from ..base import *
@@ -35,76 +35,25 @@ except:
 	from base import *
 
 
-FS_ENCODE = DEF_ENCODE
 
 
 
-class Path(object):
-	"""Represents file system paths."""
-	
-	def __init__(self, p=None, **k):
-		self.__p = expandpath(k.get('path', p), **k)
-	
-	def __str__(self):
-		return self.path
-	
-	def __unicode__(self):
-		return self.path
-	
-	@property
-	def path(self):
-		return self.getpath()
-	
-	@path.setter
-	def path(self, path):
-		self.setpath(path)
-	
-	def exists(self, path=None):
-		p = self.merge(path)
-		return os.path.exists(p)
-	
-	def getpath(self):
-		return self.__p
-	
-	def setpath(self, path):
-		self.__p = path
-	
-	def isfile(self, path=None):
-		return os.path.isfile(self.merge(path))
-	
-	def isdir(self, path=None):
-		return os.path.isdir(self.merge(path))
-	
-	def islink(self, path=None):
-		"""True if path is a symbolic link."""
-		return os.path.islink(self.merge(path))
-	
-	def ismount(self, path=None):
-		"""True if path is a mount point."""
-		return os.path.ismount(self.merge(path))
-	
-	def touch(self, path=None, times=None):
-		"""Touch file at path. Arg times applies to os.utime()."""
-		p = self.merge(path)
-		with open(p, 'a'):
-			os.utime(p, times)  
-	
-	def merge(self, path):
-		"""Returns the given path relative to self.path."""
-		if not path:
-			return self.path
-		p = os.path.expanduser(path)
-		if os.path.isabs(p):
-			return os.path.normpath(p)
-		else:
-			p = os.path.join(self.path, p)
-			return os.path.abspath(os.path.normpath(p))
+def config(filepath, data=None, **k):
+	"""
+	Convenience function for reading/writing config files. If data is
+	specified, it's written to the file at filepath. Otherwise, the 
+	data at filepath is read and returned as an object.
+	"""
+	if data:
+		ConfigFile(filepath).write(data, **k)
+	else:
+		return ConfigFile(filepath).read(**k)
 
 
 
 
 
-class Dir(Path):
+class Dir(Path): #base.Path
 	"""
 	Directory functions. Any partial paths given as arguments to 
 	methods will be taken as relative to self.path. Setting self.path
@@ -114,7 +63,7 @@ class Dir(Path):
 	
 	def __init__(self, path=None, **k):
 		"""
-		Pass path to a directory. Keywords apply as to base.expandpath().
+		Pass path to a directory. Kwargs apply as to base.Path.expand().
 		"""
 		Path.__init__(self, k.get('dir', path), **k)
 		if self.exists() and not self.isdir():
@@ -153,10 +102,7 @@ class Dir(Path):
 		"""Return a File object to the given path."""
 		return File(self.merge(path), **k)
 	
-	
-	#
 	# Pattern-Matching Methods
-	#
 	def cp(self, pattern, dst, **k):
 		"""
 		Copy src to dst; If src is directory, any keyword arguments are 
@@ -227,9 +173,12 @@ class Dir(Path):
 
 
 
+
 class ImmutablePath(Path):
 	def setpath(self, path):
 		raise ValueError('fs-immutable-path')
+
+
 
 
 
@@ -237,7 +186,7 @@ class File(ImmutablePath):
 	"""Represents a file."""
 	
 	def __init__(self, path, **k):
-		"""Pass path to file. Keywords apply as to base.expandpath()."""
+		"""Pass path to file. Keywords apply as to base.Path.expand()."""
 		Path.__init__(self, k.get('file', path), **k)
 		if self.exists() and not self.isfile():
 			raise ValueError('not-a-file')
@@ -253,52 +202,16 @@ class File(ImmutablePath):
 				a.append(fp.readline())
 		return ''.join(a)
 	
-	# OPEN
-	def open(self, **k):
-		"""
-		Open file at self.path with codecs.open(), or with the built-in
-		open method if mode includes a 'b'. All kwargs are passed for 
-		option, either so use only those that are appropriate to the 
-		required mode.
-		
-		Returns the open file pointer. You'll need to close it when you
-		are done with it.
-		
-		IMPORTANT: 
-		 * To read binary data: theFile.read(mode="rb")
-		 * To read unicode text: theFile.read(encoding="<encoding>")
-		 * To write binary data: theFile.write(theBytes, mode="wb")
-		 * To write unicode text: theFile.write(s, encoding="<encoding>")
-		
-		With mode "r" or "w", codecs automatically read/write the BOM
-		where appropriate (assuming you specify the right encoding). 
-		However, if you have text to save as encoded bytes, you can 
-		do this so as to save BOM and bytes as encoded:
-			>>> theFile.write(theBytes, mode="wb")
-		
-		This insures that byte string (already encoded) are written 
-		"as-is", including the BOM if any, and can be read by:
-			>>> s = theFile.read(encoding="<encoding>")
-		"""
-		k.setdefault('mode', 'r')
-		if 'b' in k['mode']:
-			return open(self.path, **k)
-		else:
-			k.setdefault('encoding', FS_ENCODE)
-			return codecs.open(self.path, **k)
-		
 	# READ
-	def read(self, **k):
+	def read(self, mode='r', **k):
 		"""Open and read file at self.path. Default mode is 'r'."""
-		k.setdefault('mode', 'r')
-		with self.open(**k) as fp:
+		with self.open(mode, **k) as fp:
 			return fp.read()
 	
 	# WRITE
-	def write(self, data, **k):
+	def write(self, data, mode='w', **k):
 		"""Open and write data to file at self.path."""
-		k.setdefault('mode', 'w')
-		with self.open(**k) as fp:
+		with self.open(mode, **k) as fp:
 			fp.write(data)
 	
 	# TOUCH
@@ -310,11 +223,44 @@ class File(ImmutablePath):
 
 
 
+
+class ConfigFile(File):
+	"""
+	Config files are written as json, but can be read as either json
+	or the text representation of a python dict (so as to allow for 
+	documentation in distributed config files).
+	"""
+	def read(self, **k):
+		"""
+		Returns a python object (typically a dict) containing the 
+		configuration information.
+		"""
+		ss = File.read(self, **k)
+		try:
+			try:
+				return ast.literal_eval(ss)
+			except Exception as ex:
+				compile(ss, self.path, 'eval') #try to get a line number
+				raise
+		except:
+			raise
+			return json.loads(ss)
+	
+	def write(self, data, **k):
+		"""Write data to this file as JSON."""
+		# REM: kwargs defined in base
+		jdata = json.dumps(data, indent=DEF_INDENT, cls=JSONDisplay)
+		File.write(self, jdata, **k)
+
+
+
+
+
 class Zip(File):
 	"""Zip file."""
 	
 	def __init__(self, path, **k):
-		"""Pass path to file. Keywords apply as to base.expandpath()."""
+		"""Pass path to file. Keywords apply as to base.Path.expand()."""
 		Path.__init__(self, k.get('zip', path), **k)
 		with zipfile.ZipFile(self.path, 'w') as z:
 			pass

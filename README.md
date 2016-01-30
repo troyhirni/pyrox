@@ -26,9 +26,9 @@
 The pyrox project contains experimental work.
 
 Package Goals:
-* rely only on built-in python modules and functions
-* work in both python 2 and 3
-* give special attention to unicode issues
+ * rely only on built-in python modules and functions
+ * work in both python 2 and 3
+ * give special attention to unicode issues
 
 
 **DEPENDENCE**
@@ -36,7 +36,6 @@ Package Goals:
     base
       |____ database
       |____ dom
-      |____ factory
       |____ fmt
       |____ fs
       |____ pdq
