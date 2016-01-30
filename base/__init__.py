@@ -357,3 +357,26 @@ class JSONDisplay(json.JSONEncoder):
 
 
 
+class Config(object):
+	
+	def read(cls, filepath, mode="r", **k):
+		"""Write config from the given file."""
+		ss = Path(filepath).reader(mode, **k).read()
+		try:
+			try:
+				return ast.literal_eval(ss)
+			except:
+				compile(ss, self.path, 'eval') #try to get a line number
+				raise
+		except:
+			return json.loads(ss)
+	
+	def write(self, filepath, data, mode='w', **k):
+		"""Write data to the given file as JSON."""
+		jstring = json.dumps(data, indent=DEF_INDENT, cls=JSONDisplay)
+		Path(filepath).writer(mode, **k).write(jstring)
+
+
+
+
+
