@@ -394,7 +394,6 @@ def config(path, data=None, **k):
 
 
 
-
 # CREATE
 def create(conf, *args, **kwargs):
 	"""
@@ -414,4 +413,24 @@ def create(conf, *args, **kwargs):
 	# Create and return the object described by conf.
 	return Factory(conf, *args, **kwargs).create()
 
+
+
+# TYPE-RELATED UTILS
+def typestr(x):
+	"""
+	Returns string in format 'module.class' for given type or object.
+	"""
+	if not isinstance(x, type):
+		x = type(x)
+	n = x.__name__
+	m = x.__dict__.get('__module__')
+	return '%s.%s'%(m,n) if m else n
+
+def isproxy(x):
+	"""True if x is a proxy, else False."""
+	return issubclass(type(x), weakref.ProxyType)
+
+def proxify(o):
+	"""Return o if it's a proxy, else proxy to o."""
+	return o if (o==None) or isproxy(o) else weakref.proxy(o)
 
