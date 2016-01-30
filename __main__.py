@@ -27,6 +27,5 @@ if __name__ == '__main__':
 		except TypeError:
 			pe = cmd.split('.')
 			obj = __import__(cmd, globals(), locals(), pe[:-1])
-			print obj
 		prompt.prompt(obj)
 	
