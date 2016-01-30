@@ -379,4 +379,18 @@ class Config(object):
 
 
 
+#
+# FUNCTIONS
+#
+
+def config(filepath, data=None, **k):
+	"""
+	Convenience function for reading/writing config files. If data is
+	specified, it's written to the file at filepath. Otherwise, the 
+	data at filepath is read and returned as an object.
+	"""
+	if data:
+		Config().write(filepath, data, **k)
+	else:
+		return Config().read(filepath, **k)
 

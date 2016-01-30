@@ -38,21 +38,6 @@ except:
 
 
 
-def config(filepath, data=None, **k):
-	"""
-	Convenience function for reading/writing config files. If data is
-	specified, it's written to the file at filepath. Otherwise, the 
-	data at filepath is read and returned as an object.
-	"""
-	if data:
-		ConfigFile(filepath).write(data, **k)
-	else:
-		return ConfigFile(filepath).read(**k)
-
-
-
-
-
 class Dir(Path): #base.Path
 	"""
 	Directory functions. Any partial paths given as arguments to 
@@ -219,38 +204,6 @@ class File(ImmutablePath):
 		"""Touch this file."""
 		with open(self.path, 'a'):
 			os.utime(self.path, times)  
-
-
-
-
-
-class ConfigFile(File):
-	"""
-	Config files are written as json, but can be read as either json
-	or the text representation of a python dict (so as to allow for 
-	documentation in distributed config files).
-	"""
-	def read(self, **k):
-		"""
-		Returns a python object (typically a dict) containing the 
-		configuration information.
-		"""
-		ss = File.read(self, **k)
-		try:
-			try:
-				return ast.literal_eval(ss)
-			except Exception as ex:
-				compile(ss, self.path, 'eval') #try to get a line number
-				raise
-		except:
-			raise
-			return json.loads(ss)
-	
-	def write(self, data, **k):
-		"""Write data to this file as JSON."""
-		# REM: kwargs defined in base
-		jdata = json.dumps(data, indent=DEF_INDENT, cls=JSONDisplay)
-		File.write(self, jdata, **k)
 
 
 
