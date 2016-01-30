@@ -383,14 +383,38 @@ class Config(object):
 # FUNCTIONS
 #
 
-def config(filepath, data=None, **k):
+# CONFIG
+def config(path, data=None, **k):
 	"""
 	Convenience function for reading/writing config files. If data is
 	specified, it's written to the file at filepath. Otherwise, the 
 	data at filepath is read and returned as an object.
 	"""
 	if data:
-		Config().write(filepath, data, **k)
+		Config().write(path, data, **k)
 	else:
-		return Config().read(filepath, **k)
+		return Config().read(path, **k)
+
+
+
+
+# CREATE
+def create(conf, *args, **kwargs):
+	"""
+	Uses a Factory to create an object as described by config and any 
+	additional args and kwargs. If conf is the path to an existing 
+	file, then it will be converted to a configuration dict. Otherwise, 
+	it should be a type or the text representation of a type in the 
+	form "package.module.class".
+	"""
+	if isinstance(conf, basestring):
+		# Don't allow Path.expand to raise an exception if the file does
+		# not exist; in such a case, conf is a type description string.
+		path = Path.expand(conf, affirm=None)
+		if os.path.exists(path):
+			conf = config(path)
+	
+	# Create and return the object described by conf.
+	return Factory(conf, *args, **kwargs).create()
+
 
