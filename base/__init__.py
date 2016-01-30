@@ -214,15 +214,12 @@ class Path(object):
 	def open(self, mode='r', **k):
 		"""
 		Open file at self.path with codecs.open(), or with the built-in
-		open method if mode includes a 'b'. All kwargs are passed for 
+		open function if mode includes a 'b'. All kwargs are passed for 
 		either option, so use only those that are appropriate to the 
 		given mode.
 		
-		YOU MUST CLOSE!
-		Returns the open file pointer. You'll need to close it when you
-		are done with it.
-		
-		IMPORTANT: 
+		IMPORTANT:
+		 * Returns an open file pointer; Close it when you're done. 
 		 * To read binary data: theFile.read(mode="rb")
 		 * To read unicode text: theFile.read(encoding="<encoding>")
 		 * To write binary data: theFile.write(theBytes, mode="wb")
@@ -231,7 +228,7 @@ class Path(object):
 		With mode "r" or "w", codecs automatically read/write the BOM
 		where appropriate (assuming you specify the right encoding). 
 		However, if you have text to save as encoded bytes, you can 
-		do this so as to save BOM and bytes as encoded:
+		do the following so as to save BOM and bytes as encoded:
 			>>> theFile.write(theBytes, mode="wb")
 		
 		This insures that byte string (already encoded) are written 
