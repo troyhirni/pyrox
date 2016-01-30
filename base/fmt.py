@@ -50,11 +50,11 @@ class NoFormat(FormatBase):
 	
 	def __call__(self, *a, **k):
 		"""Formats and returns data."""
-		return a[0] if a else ''
+		return str(a[0]) if a else ''
 	
 	def output(self, *a, **k):
 		"""Format and print data."""
-		print a[0] if a else ''
+		print (a[0] if a else '')
 
 
 
@@ -111,18 +111,15 @@ class JCompact(JSON):
 		return ''.join(json.dumps(data, **self.kwargs).splitlines())
 
 
+"""
 # JSON - Utility
 class JSONDisplay(json.JSONEncoder):
-	"""
-	Handles unparsable types by returning their representation to be
-	stored as a string.
-	"""
 	def default(self, obj):
 		try:
 			return json.JSONEncoder.default(self, obj)
 		except TypeError:
 			return repr(obj)
-
+"""
 
 
 #
