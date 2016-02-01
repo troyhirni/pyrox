@@ -8,7 +8,7 @@ BASE - Defintions needed by many modules in this package. Expect
        the end, it will consist of most basic needs.
 """
 
-import os, codecs, json, weakref
+import os, ast, codecs, json, weakref
 
 
 try:
@@ -359,10 +359,23 @@ class Config(object):
 			try:
 				return ast.literal_eval(ss)
 			except:
-				compile(ss, self.path, 'eval') #try to get a line number
+				compile(ss, filepath, 'eval') #try to get a line number
 				raise
-		except:
-			return json.loads(ss)
+		except BaseException as ast_ex:
+			try:
+				return json.loads(ss)
+			except BaseException as json_ex:
+				raise Exception ("config-read-error", {
+						"ast" : {
+							"type" : type(ast_ex),
+							"args" : ast_ex.args
+						},
+						"json" : {
+							"type" : type(json_ex),
+							"args" : json_ex.args
+						}
+					})
+			
 	
 	def write(self, filepath, data, mode='w', **k):
 		"""Write data to the given file as JSON."""
