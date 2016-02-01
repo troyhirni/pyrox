@@ -11,6 +11,11 @@ try:
 except:
 	import base
 
+try:
+	basestring
+except:
+	basestring = unicode = str
+
 
 class Database(object):
 	"""
@@ -40,6 +45,8 @@ class Database(object):
 		#
 		if not conf:
 			conf = {}
+		elif isinstance(conf, basestring):
+			conf = base.config(conf)
 		
 		# kwargs rule
 		conf.update(k)
@@ -49,7 +56,7 @@ class Database(object):
 		
 		# path, for file-based databases
 		path = conf.get('path')
-		self.__path = base.expandpath(path) if path else None
+		self.__path = base.Path.expand(path) if path else None
 		
 		# arguments required to open the database.
 		self.__args = conf.get('args', [])
