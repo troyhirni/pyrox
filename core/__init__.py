@@ -12,8 +12,8 @@ an application.
 """
 
 try:
-	from .. import base
-	from ..base import *
+	from .. import base   # to import cross-version types
+	from ..base import *  # for clarity in function calls
 except:
 	import base
 	from base import *
@@ -25,26 +25,23 @@ import weakref
 
 
 def coreload():
-	"""Convenience method, to coreload from interpreter."""
+	"""Convenience function, to coreload from interpreter."""
 	Core.coreload()
 
 
 
-#
-# CORE
-#
+
 class Core(_core.Core):
 	pass
 
 
 
-#
-# OBJECT
-#
-class Object(object):
+
+
+class CoreNode(object):
 	"""
-	Basic core object; contains methods and properties needed to exist
-	in a system of core objects.
+	The base class for core package objects; contains methods and 
+	properties that link the object within a tree structure.
 	"""
 	
 	def __init__(self, config=None, *args, **kwargs):
@@ -55,13 +52,13 @@ class Object(object):
 		# CORE (specified only for root object)
 		c = conf.get('core')
 		if c:
-			self.__core = proxify(c)
+			self.__core = base.proxify(c)
 			del(conf['core'])
 	
 		# OWNER (specified for all objects except root)
 		o = conf.get('owner')
 		if o:
-			self.__owner = proxify(o)
+			self.__owner = base.proxify(o)
 			del(conf['owner'])
 		else:
 			self.__owner = None
@@ -70,12 +67,10 @@ class Object(object):
 	# DECORE
 	def _decore(self):
 		return {
-			'type' : typestr(self),
+			'type' : base.typestr(self),
 			'args' : self.__args,
 			'kwargs' : self.__kwargs, 
-			'core' : {
-				'Object' : {}
-			}
+			'core' : {}
 		}
 	
 	
@@ -87,12 +82,9 @@ class Object(object):
 	@property
 	def core(self):
 		"""
-		Finds (if necessary) and returns the proxy to
-		the core object.
-		
-		NOTE: The core object (of class Core) contains
-		      the root object but should not be considered
-		      as being a part of the object tree.
+		Find (if necessary) and return the proxy to the core object.
+		NOTE: The core object (Core) contains the root object but should
+		      not be considered as being a part of the object tree.
 		"""
 		try:
 			return self.__core
@@ -105,17 +97,13 @@ class Object(object):
 	
 	@property
 	def owner(self):
-		"""
-		Returns a proxy to this object's owner.
-		"""
+		"""Return a proxy to this object's owner."""
 		return self.__owner
 	
 	
 	@property
 	def proxy(self):
-		"""
-		Returns this object's proxy.
-		"""
+		"""Return this object's proxy."""
 		try:
 			return self.__proxy
 		except:
@@ -126,11 +114,9 @@ class Object(object):
 	@property
 	def root(self):
 		"""
-		Returns the root object's proxy.
-		
-		WARNING: The root object DOES return a proxy 
-		to itself, which could lead to infinite loops
-		if used incorrectly.
+		Return a proxy to the root object of this object's tree.
+		WARNING: The root object DOES return a proxy to itself, which 
+		         could lead to infinite loops if used incorrectly.
 		"""
 		try:
 			return self.__root
@@ -145,34 +131,33 @@ class Object(object):
 	# CONFIG
 	def config(self, *args, **kwargs):
 		"""
-		Returns the configuration dict for this object. First call fully
+		Return the configuration dict for this object. First call fully
 		instantiates and stores this object's configuration. Subsequent 
-		calls will return the stored config.
+		calls return the stored config.
 		"""
 		try:
 			return self.__conf
+		
 		except Exception:
-			pass
-		
-		config = args[0] if len(args) else {}
-		
-		# Store args/kwargs for _decore
-		self.__args = args
-		self.__kwargs = kwargs
-		
-		if isinstance(config, (str,unicode)):
-			path = util.expandpath(config, checkpath=False)
-			if os.path.exists(path):
-				config = base.config(path)
-		
-		if not isinstance(config, dict):
-			config = {}
-		
-		# Kwargs always replace config values.
-		config.update(kwargs)
-		
-		# store config and return it
-		self.__conf = config
-		return self.__conf
+			config = args[0] if len(args) else {}
+			
+			# Store args/kwargs for _decore
+			self.__args = args
+			self.__kwargs = kwargs
+			
+			if isinstance(config, basestring):
+				path = base.Path.expand(config, checkpath=False)
+				if os.path.exists(path):
+					config = base.config(path)
+			
+			if not isinstance(config, dict):
+				config = {}
+			
+			# Kwargs always replace config values.
+			config.update(kwargs)
+			
+			# store config and return it
+			self.__conf = config
+			return self.__conf
 
 
