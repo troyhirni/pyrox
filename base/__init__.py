@@ -8,7 +8,7 @@ BASE - Defintions needed by many modules in this package. Expect
        the end, it will consist of most basic needs.
 """
 
-import os, ast, codecs, json, weakref
+import ast, codecs, json, os, sys, traceback, weakref
 
 
 try:
@@ -443,4 +443,42 @@ def isproxy(x):
 def proxify(o):
 	"""Return o if it's a proxy, else proxy to o."""
 	return o if (o==None) or isproxy(o) else weakref.proxy(o)
+
+
+
+# DEBUGGING
+def debug(b=True):
+	"""
+	A debug hook to show uncaught exceptions in a nice format. Call 
+	debug(True) to start and debug(False) to go back to normal.
+	"""
+	Debug().debug(b)
+
+
+def debug_hook(t,v,tb):
+	try:
+		raise v
+	except BaseException as v:
+		try:
+			print (repr(type(v)))
+			print (json.dumps(
+				v.args, cls=JSONDisplay, indent=DEF_INDENT, sort_keys=True
+			))
+			print ("Traceback:")
+			for L in traceback.format_tb(tb):
+				print (L)
+		except:
+			print ("WARNING: DEBUG HOOK FAILED!")
+			debug(False)
+
+
+class Debug(object):
+	__DEBUG = False
+	__SYSEX = sys.excepthook
+	def debug(self, b):
+		Debug.__DEBUG = True if b else False
+		if Debug.__DEBUG:
+			sys.excepthook = debug_hook
+		else:
+			sys.excepthook = Debug.__SYSEX
 
