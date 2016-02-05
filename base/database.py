@@ -16,6 +16,8 @@ try:
 except:
 	basestring = unicode = str
 
+import sys
+
 
 class Database(object):
 	"""
@@ -23,74 +25,93 @@ class Database(object):
 	cross-dbms, cross-python-version access to database functionality.
 	"""
 	
-	def __init__(self, conf=None, **k):
+	def __init__(self, config=None, *a, **k):
 		"""
 		Pass a config dict with keys:
-		 - module: a db-api module (eg, sqlite3)
-		 - args  : arguments to be passed to the open() method
-		 - sql   : a dict containing creation and operational sql
-		 - path  : file path to the db file (if applicable).
+		 - module: a db-api module or module name (default: "sqlite3")
+		 - args  : arguments to be passed to the open() method.
+		 - path  : file path to the db file (if applicable); if included,
+		           this value is prepended to args.
 		
-		BE AWARE that path, if included, is prepended to args. 
+		Or, pass the file path to the JSON or python text representation
+		of a dict containing such a configuration.
 		"""
-		
-		self.__con = None
-		self.__mod = None
-		self.__path = None
-		self.__modname = None
-		self.__inited = None
-		
-		#
-		# Create from config...
-		#
-		if not conf:
-			conf = {}
-		elif isinstance(conf, basestring):
-			conf = base.config(conf)
-		
-		# kwargs rule
-		conf.update(k)
-		
-		# defaults
-		conf.setdefault('module', 'sqlite3')
-		
-		# path, for file-based databases
-		path = conf.get('path')
-		self.__path = base.Path.expand(path) if path else None
-		
-		# arguments required to open the database.
-		self.__args = conf.get('args', [])
-		if self.__path:
-			self.__args.insert(0, self.__path)
-		
-		# module
-		m = conf.get('module')
-		try:
-			self.__mod = __import__(m)
-			self.__modname = m
-		except Exception as ei:
-			try:
-				self.__mod = m
-				self.__modname = m.__name__
-			except Exception as em:
-				exdesc = {
-					'err-import' : str(ei),
-					'err-module' : str(em)
-				}
-				raise type(em)('db-init', exdesc)
+		# config
+		conf = self.config(config, *a, **k)
+		self.__path = conf['path']
+		self.__args = conf['args']
+		self.__mod = conf['module']
+		self.__modname = conf['modname']
+		self.__autoinit = conf.get('autoinit', False)
 		
 		# sql
 		self.__sql = conf.get('sql', {})
-		if not isinstance(self.__sql, dict):
-			raise TypeError('db-config-sql')
 		self.__op = self.__sql.get('op', {})
 		
-		# init-check
-		self.__autoinit = conf.get('autoinit')
+		# runtime
+		self.__con = None
+		self.__inited = None
+	
+	
+	def config(self, conf=None, *a, **k):
+		"""Return a config dict based on the common pyro(x) rules."""
+		try:
+			return self.__config
+		except:
+			if not conf:
+				conf = {}
+			elif isinstance(conf, basestring):
+				conf = base.config(conf)
+			
+			# kwargs rule
+			conf.update(k)
+			
+			# defaults
+			conf.setdefault('module', 'sqlite3')
+			
+			# Arguments required to open the database; As with kwargs, this 
+			# also overrides any arguments specified in conf.
+			conf['args'] = a if a else conf.get('args', [])
+			
+			# path, for file-based databases
+			path = conf.get('path')
+			if path:
+				conf['path'] = base.Path.expand(path)
+				conf['args'].insert(0, path)
+			
+			# module
+			m = conf.get('module')
+			try:
+				conf['module'] = __import__(m)
+				conf['modname'] = m
+			except Exception as ei:
+				try:
+					conf['module'] = m
+					conf['modname'] = m.__name__
+				except Exception as em:
+					exdesc = {
+						'err-import' : str(ei),
+						'err-module' : str(em)
+					}
+					raise Exception('db-init', exdesc)
+			
+			# sql
+			conf['sql'] = conf.get('sql', {})
+			if isinstance(conf['sql'], basestring):
+				conf['sql'] = base.config(conf['sql'])
+			if not isinstance(conf['sql'], dict):
+				raise TypeError('db-config-sql')
+				
+			# init-check
+			conf['autoinit'] = conf.get('autoinit')
+			
+			self.__config = conf
+			return conf
 	
 	
 	
 	def __del__(self):
+		"""Close this database if open."""
 		self.close()
 		
 		
@@ -175,7 +196,7 @@ class Database(object):
 				cc = self.query('select v from __meta where k="version"')
 				self.__inited = True if cc.fetchone() else False
 				if not self.__inited:
-					raise type(ex)('db-autoinit')
+					raise Exception('db-autoinit', self.xdata())
 			finally:
 				self.__autoinit = False
 		
@@ -236,9 +257,9 @@ class Database(object):
 			return self.execute(sql, *args)
 		except Exception as ex:
 			if not self.active:
-				raise Exception('db-inactive')
+				raise Exception('db-inactive', self.xdata())
 			self.__rollback()
-			raise
+			raise Exception('db-query-err', self.xdata(sql=sql))
 	
 	# Q-MANY
 	def qmany(self, sql, *args):
@@ -249,9 +270,9 @@ class Database(object):
 			return self.executemany(sql, *args)
 		except Exception:
 			if not self.active:
-				raise Exception('db-inactive')
+				raise Exception('db-inactive', self.xdata())
 			self.__rollback()
-			raise
+			raise Exception('db-query-err', self.xdata(sql=sql))
 	
 	# Q-LIST
 	def qlist(self, queries, cursor=None):
@@ -265,7 +286,7 @@ class Database(object):
 			return cc
 		except Exception as ex:
 			self.__rollback()
-			raise
+			raise Exception('db-query-err', self.xdata(sql=sql))
 	
 	
 	# OPQ - Op Query
@@ -278,5 +299,33 @@ class Database(object):
 		return self.query(self.__op[qname], *args)
 	
 	
+	# OPS - Op Query List
+	def ops (self, qname, *args):
+		"""
+		Execute a list of queries specified by an op name. This only 
+		applies to op values that are lists of queries to execute.
+		On error, rollback.
+		"""
+		for sql in self.__op[qname]:
+			self.query(sql, *args)
 	
 	
+	def xdata(self, **k):
+		"""
+		Packs relevant debug data from this object in a dict with given
+		kwargs and returns that dict.
+		"""
+		# exception info
+		xtype, xval = sys.exc_info()[:2]
+		
+		if xtype:
+			k['type'] = xtype
+		if xval:
+			k['args'] = xval.args
+		
+		# database info
+		k['module'] = self.__modname
+		k['active'] = self.active
+		if self.path:
+			k['path'] = self.path
+		return k
