@@ -23,7 +23,10 @@
 
 ## about pyrox
 
-The pyrox project contains experimental work.
+The pyrox project contains experimental work. It's an attempt to find
+the best organization of functions and classes in a library that can
+be used in a variety of ways - as the foundation for applications,
+for light, general use in the interpreter, or anything in between.
 
 Package Goals:
  * rely only on built-in python modules and functions
@@ -32,6 +35,11 @@ Package Goals:
 
 
 **DEPENDENCE**
+
+The base package modules depend only on the base module (__init__)
+except for the url module, which depends on the text module for 
+encoding-detection, and the scan module, which depends on udata for
+unicode-related information.
 
     base
       |____ database
@@ -44,3 +52,7 @@ Package Goals:
       |____ udata ____ scan
     
 
+The core package will depend on various modules from base, and (as
+within the base package) all core modules will import base or will
+import * from base so as to have access to cross-version definitions
+and the most basic functional needs.
