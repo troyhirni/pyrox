@@ -27,7 +27,7 @@ All classes are based on base.Path:
 	 whether files are read/written with codecs or just plain bytes.
 """
 
-import os, shutil, glob, zipfile, json, ast
+import os, shutil, glob, gzip, zipfile, json, ast
 
 try:
 	from ..base import *
@@ -207,6 +207,91 @@ class File(ImmutablePath):
 
 
 
+
+
+class Gzip(File):
+	"""Gzip file support; EXPERIMENTAL."""
+	def open(self, mode='rb', **k):
+		return gzip.open(self.path, mode, **k)
+
+
+
+
+class Tar(fs.File):
+	"""Tar file support; EXPERIMENTAL."""
+	
+	# OPEN TAR FILE
+	def open(self, mode="r", **k):
+		"""Open the tarfile; return the TarFile object."""
+		return tarfile.open(self.path, mode="r", **k)
+	
+	def ls(self):
+		return self.names
+	
+	@property
+	def names(self):
+		try:
+			return self.__names
+		except:
+			with self.open('r|*') as f:
+				self.__names = f.getnames()
+			return self.__names
+
+	@property
+	def members(self):
+		try:
+			return self.__members
+		except:
+			rr = {}
+			with self.open('r|*') as f:
+				mm = f.getmembers()
+				for m in mm:
+					rr[m.name] = m
+			self.__members = rr
+			return rr
+	
+	def memberinfo(self, name):
+		"""
+		Return with member names as keys; each value is a dict containing
+		information on the corresponding member.
+		"""
+		try:
+			return self.__meminfo
+		except:
+			rr = {}
+			with self.open('r|*') as f:
+				mm = f.getmembers()
+				for m in mm:
+					rr[name] = dict(
+						size = m.size,
+						mtime = m.mtime,
+						mode = m.mode,
+						type = m.type,
+						linkname = m.linkname,
+						uid = m.uid,
+						gid = m.gid,
+						uname = m.uname,
+						gname = m.gname,
+						pax = m.pax_headers	
+					)
+			self.__meminfo = rr
+			return rr
+	
+	
+	
+	def read(self, member, mode='r'):
+		return self.reader(member, mode).read()
+	
+	def reader(self, member, mode='r'):
+		return fs.Reader(self.open(mode).extractfile(member))
+	
+	
+	
+	def writer(self, *a):
+		raise NotImplementedError()
+	
+	def write(self, *a):
+		raise NotImplementedError()
 
 
 class Zip(File):
