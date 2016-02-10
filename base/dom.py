@@ -40,8 +40,8 @@ class Parse(HTMLParser):
 		HTMLParser.__init__(self)
 		
 		self.decl = [] # DocType plus other declarations
-		self.root = Element()
-		self.doc = Document(self.root)
+		self.root = RootElement()
+		self.doc = Document(self.root, self.decl)
 		
 		# accumulate nodes inside unclosed elements
 		self._acum = []
@@ -138,14 +138,9 @@ class Node(object):
 	def ownerDocument(self):
 		"""Returns the root element (document object) for a node."""
 		try:
-			return self.__document
+			return self.ownerElement.ownerDocument
 		except:
-			p = self.ownerElement()
-			if not p:
-				self.__document = self if isinstance(self, DocumentNode) else None
-			else:
-				self.__document = p.ownerDocument()
-			return self.__document
+			return None
 	
 	def isSameNode(self, other):
 		return id(self) == id(other)
@@ -153,6 +148,10 @@ class Node(object):
 	# False None Pass
 	@property
 	def nodeValue(self):
+		return None
+	
+	@property
+	def childNodes(self):
 		return None
 
 	def hasAttributes(self):
@@ -170,8 +169,9 @@ class Node(object):
 
 class Document(Node):
 	def __init__(self, root=None, decl=None):
-		self.__root = root
 		self.__decl = decl
+		self.__root = root
+		self.__root._setdocument(self)
 	
 	def __getitem__(self, key):
 		return self.__root[key]
@@ -198,7 +198,35 @@ class Document(Node):
 				return decl[1]
 		return None
 	
-
+	
+	"""
+	def getElementsByTagName(self, tagname, node=None, accum=[]):
+		
+		# if node's not provided, use root element
+		if not node:
+			print ('not node')
+			node = self.documentElement
+		
+		try:
+			Document.DEBUG.append(node.nodeValue)
+		except:
+			Document.DEBUG = []
+			Document.DEBUG.append(node.nodeValue)
+		
+		# do child nodes
+		if node.hasChildNodes():
+			childList = node.childNodes
+			for child in childList:
+				print ("child: %s" % str(child))
+				self.getElementsByTagName(tagname, child, accum)
+		
+		# get current node
+		if node.nodeName == tagname:
+			accum.append(node)
+		
+		# at the end, they need to all be returned
+		return accum
+	"""
 
 
 
@@ -260,11 +288,11 @@ class Element(Node):
 	
 	@property
 	def previousSibling(self):
-		return self.parent._prevchild()
+		return self.parentNode._prevchild(self)
 	
 	@property
 	def nextSibling(self):
-		return self.parent._nextchild()
+		return self.parentNode._nextchild(self)
 	
 	@property
 	def localName(self):
@@ -321,6 +349,25 @@ class Element(Node):
 		except IndexError:
 			return None
 
+
+
+
+
+class RootElement(Element):
+	
+	def _setdocument(self, doc):
+		self.__doc = doc
+	
+	@property
+	def ownerDocument(self):
+		try:
+			return self.__doc
+		except:
+			return None
+	
+	@property
+	def nodeName(self):
+		return "/"
 
 
 
