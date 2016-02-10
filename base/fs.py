@@ -27,7 +27,7 @@ All classes are based on base.Path:
 	 whether files are read/written with codecs or just plain bytes.
 """
 
-import os, shutil, glob, gzip, zipfile, json, ast
+import os, shutil, glob, gzip, zipfile, json, ast, tarfile
 
 try:
 	from ..base import *
@@ -217,6 +217,7 @@ class Gzip(File):
 
 
 
+
 class Tar(fs.File):
 	"""Tar file support; EXPERIMENTAL."""
 	
@@ -292,6 +293,9 @@ class Tar(fs.File):
 	
 	def write(self, *a):
 		raise NotImplementedError()
+
+
+
 
 
 class Zip(File):
