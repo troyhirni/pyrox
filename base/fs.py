@@ -218,7 +218,7 @@ class Gzip(File):
 
 
 
-class Tar(fs.File):
+class Tar(File):
 	"""Tar file support; EXPERIMENTAL."""
 	
 	# OPEN TAR FILE
@@ -278,15 +278,11 @@ class Tar(fs.File):
 			self.__meminfo = rr
 			return rr
 	
-	
-	
 	def read(self, member, mode='r'):
 		return self.reader(member, mode).read()
 	
 	def reader(self, member, mode='r'):
-		return fs.Reader(self.open(mode).extractfile(member))
-	
-	
+		return Reader(self.open(mode).extractfile(member))
 	
 	def writer(self, *a):
 		raise NotImplementedError()
