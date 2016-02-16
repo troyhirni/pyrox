@@ -152,22 +152,35 @@ class Node(object):
 	
 	@property
 	def childNodes(self):
-		return None
+		return tupel()
 
 	def hasAttributes(self):
 		return False
 	
 	def hasChildNodes(self):
 		return False
+	
 
 
 
 
 
 
+class ENode (Node):
+	def __call__(self, tagname):
+		r = []
+		for c in self.childNodes:
+			if c.nodeName == tagname:
+				r.append(c)
+		return r
+				
+	
 
 
-class Document(Node):
+
+
+
+class Document(ENode):
 	def __init__(self, root=None, decl=None):
 		self.__decl = decl
 		self.__root = root
@@ -188,6 +201,10 @@ class Document(Node):
 		return "#document"
 	
 	@property
+	def childNodes(self):
+		return tuple(self.documentElement)
+	
+	@property
 	def documentElement(self):
 		return self.__root
 	
@@ -199,39 +216,31 @@ class Document(Node):
 		return None
 	
 	
-	"""
-	def getElementsByTagName(self, tagname, node=None, accum=[]):
-		
-		# if node's not provided, use root element
+	def getElementsByTagName(self, tagname, node=None, accum=None):
+		r = accum or []
+		self.__getelementsbytagname(tagname, node, r)
+		return r
+	
+	def __getelementsbytagname(self, tagname, node, accum):
+		# if node's None provided, use root element
 		if not node:
-			print ('not node')
+			#print ('not node')
 			node = self.documentElement
 		
-		try:
-			Document.DEBUG.append(node.nodeValue)
-		except:
-			Document.DEBUG = []
-			Document.DEBUG.append(node.nodeValue)
-		
-		# do child nodes
 		if node.hasChildNodes():
-			childList = node.childNodes
-			for child in childList:
-				print ("child: %s" % str(child))
-				self.getElementsByTagName(tagname, child, accum)
-		
-		# get current node
-		if node.nodeName == tagname:
-			accum.append(node)
-		
-		# at the end, they need to all be returned
-		return accum
-	"""
+			for n in node.childNodes:
+				if n.nodeName == tagname:
+					accum.append(n)
+				if n.hasChildNodes():
+					self.__getelementsbytagname(tagname, n, accum)
 
 
 
 
-class Element(Node):
+
+
+
+class Element(ENode):
 	
 	def __init__(self, tag='', attrs=()):
 		Node.__init__(self)
@@ -353,6 +362,8 @@ class Element(Node):
 
 
 
+
+
 class RootElement(Element):
 	
 	def _setdocument(self, doc):
@@ -368,6 +379,9 @@ class RootElement(Element):
 	@property
 	def nodeName(self):
 		return "/"
+
+
+
 
 
 
@@ -490,6 +504,8 @@ class ProcessingInstruction (Node):
 	@property
 	def nodeValue(self):
 		return self.data
+
+
 
 
 

@@ -239,12 +239,12 @@ class Path(object):
 		
 	# READER
 	def reader(self, mode="r", **k):
-		"""Open and read file at self.path."""
+		"""Open file at self.path and return a Reader."""
 		return Reader(self.open(mode, **k))
 	
 	# WRITER
 	def writer(self, mode="w", **k):
-		"""Open and write data to file at self.path."""
+		"""Open file at self.path and return a Writer."""
 		return Writer(self.open(mode, **k))
 	
 	@classmethod
@@ -375,7 +375,6 @@ class Config(object):
 							"args" : json_ex.args
 						}
 					})
-			
 	
 	def write(self, filepath, data, mode='w', **k):
 		"""Write data to the given file as JSON."""
