@@ -173,9 +173,9 @@ class QRow(object):
 	For self-documentation in code, some variable names are available 
 	as properties.
 	"""
-	def __init__(self, query, key, value, *a, **k):
+	def __init__(self, query, item, value, *a, **k):
 		self.q = query
-		self.i = key
+		self.i = item
 		self.v = value
 		self.a = a
 		self.k = k
@@ -187,21 +187,21 @@ class QRow(object):
 		return str(self.q[self.i])
 	
 	@property
-	def key(self):
-		"""
-		Return self.i - the row key; eg., an integer offset, dict key, 
-		etc...
-		"""
+	def item(self):
+		"""Enumeration item, starting at zero."""
 		return self.i
 	
 	@property
 	def value(self):
-		"""Return self.v, the full row value."""
+		"""
+		The enumeration value. Eg, when q.data is type list, this is the
+		current list item; when dict, it's the dict key, etc...
+		"""
 		return self.v
 	
 	@property
 	def type(self):
-		"""Return self.v, the full row value."""
+		"""Return the type of the current value."""
 		return type(self.v)
 	
 	def ii(self, *a):
@@ -210,7 +210,7 @@ class QRow(object):
 	
 	def split(self, *a):
 		"""
-		Split the entire row. Arguments are different from python's
+		Split the enumeration value. Args are different from python's
 		''.split - if first arg is int, it's used as the 2nd argument
 		and None is the first split argument. If there are two args, 
 		they're passed as (sep, max) to python's split method.
@@ -219,7 +219,7 @@ class QRow(object):
 		return self.v.split(*aa)
 	
 	def join(self, char):
-		"""Join list items by given char and return."""
+		"""Return list items joined by given char."""
 		return char.join(self.v)
 	
 	def extend(self, *a):
