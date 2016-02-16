@@ -150,9 +150,9 @@ class Encoded(object):
 	Attempts to detect encoding of raw bytes strings. This is not yet
 	a comprehensive detection system. I've still got a lot to learn :)
 	
-	~~~ PROBLEMS WITH THE decode() METHOD? READ THE FOLLOWING ~~~
+	~~~ PROBLEMS WITH THE detect() METHOD? READ THE FOLLOWING ~~~
 	
-	The decode() method works by first looking for a BOM and then, if
+	The detect() method works by first looking for a BOM and then, if
 	that fails, looking for a specification in the text itself (in the
 	form of encoding=<enc>, coding=<enc>, or charset=<enc>). 
 	
