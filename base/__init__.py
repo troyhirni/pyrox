@@ -133,6 +133,7 @@ class Factory(object):
 			raise type(ex)('factory-import-fail', {
 				'path' : Path,
 				'python' : str(ex),
+				'tracebk': tracebk(),
 				'suggest' : ['check-file-path', 'check-class-path',
 					'check-python-syntax']
 			})
@@ -373,7 +374,8 @@ class Config(object):
 						"json" : {
 							"type" : type(json_ex),
 							"args" : json_ex.args
-						}
+						},
+						"tracebk" : tracebk()
 					})
 	
 	def write(self, filepath, data, mode='w', **k):
@@ -382,11 +384,6 @@ class Config(object):
 		Path(filepath).writer(mode, **k).write(jstring)
 
 
-
-
-#
-# FUNCTIONS
-#
 
 # CONFIG
 def config(path, data=None, **k):
@@ -446,6 +443,30 @@ def proxify(o):
 
 
 # DEBUGGING
+def xdata(rdict):
+	"""Set exception type, args, and traceback in dict rdict."""
+	try:
+		xtype, xval = sys.exc_info()[:2]
+		if xtype:
+			rdict['type'] = xtype
+		if xval:
+			rdict['args'] = xval.args
+		rdict['tracebk'] = tracebk()
+	finally:
+		xtype = None
+		xval = None
+
+
+def tracebk():
+	"""Return current exception's traceback as a list."""
+	tb = sys.exc_info()[2]
+	try:
+		if tb:
+			return traceback.format_tb(tb)
+	finally:
+		del(tb)
+
+
 def debug(b=True):
 	"""
 	A debug hook to show uncaught exceptions in a nice format. Call 
@@ -480,4 +501,5 @@ class Debug(object):
 			sys.excepthook = debug_hook
 		else:
 			sys.excepthook = Debug.__SYSEX
+
 

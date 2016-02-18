@@ -315,6 +315,7 @@ class Database(object):
 		Packs relevant debug data from this object in a dict with given
 		kwargs and returns that dict.
 		"""
+		"""
 		# exception info
 		xtype, xval = sys.exc_info()[:2]
 		
@@ -322,6 +323,8 @@ class Database(object):
 			k['type'] = xtype
 		if xval:
 			k['args'] = xval.args
+		"""
+		base.xdata(k)
 		
 		# database info
 		k['module'] = self.__modname
