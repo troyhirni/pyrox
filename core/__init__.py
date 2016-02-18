@@ -69,9 +69,8 @@ class CoreBase(object):
 			del(conf['owner'])
 		else:
 			self.__owner = None
+			self.__paused = False # needed only by root object
 		
-		# Hold the paused state for all subclasses.
-		self.__paused = False
 	
 	
 	# DECORE
@@ -83,10 +82,10 @@ class CoreBase(object):
 		_decore() method. Use the dict this method returns to record all
 		information to rebuild this object's state after coreload.
 		
-		Note that self.__paused is set here as an indicator that no 
+		Note that the paused state is set here as an indicator that no 
 		processing should take place while this object is "decored".
 		"""
-		self.__paused = True
+		self.root.__paused = True
 		return {
 			'type' : base.typestr(self),
 			'args' : self.__args,
@@ -105,7 +104,7 @@ class CoreBase(object):
 		      last method called before returning this object to an
 		      active state.
 		"""
-		self.__paused = False
+		self.root.__paused = False
 	
 	
 	@property
@@ -163,7 +162,7 @@ class CoreBase(object):
 		Convenience method for debugging after coreload() errors. This
 		method should always return False during normal operation.
 		"""
-		return self.__paused
+		return self.root.__paused
 	
 	
 	# CONFIG
