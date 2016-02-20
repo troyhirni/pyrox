@@ -19,6 +19,10 @@ if __name__ == '__main__':
 	
 	if not cmd or (cmd in ['-h', '--help']):
 		print ("\nUSAGE: python %s [[package.]module.]class" % (app))
+	elif cmd == '--clean':
+		from base import fs
+		d = fs.Dir()
+		d.find('.', '*.pyc', fn=d.rm)
 	else:
 		import base
 		from base import prompt

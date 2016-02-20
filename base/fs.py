@@ -10,11 +10,6 @@ WARNING: Dir methods that accept a 'pattern' argument perform their
 				 careful with this. There's neither confirmation nor "undo"!
 
 All classes are based on base.Path:
-
- * Setting self.path is relative to the current working directory.
-	 For all other object methods, given paths that are relative are
-	 merged with self.path to create an absolute path relative to the
-	 current path.
 	 
  * Creating a File or Dir object requires that the specified path
 	 or directory actually exist. See the base.Path.expand(). keyword 
@@ -30,8 +25,10 @@ All classes are based on base.Path:
 import os, shutil, glob, gzip, zipfile, json, ast, tarfile
 
 try:
+	from .. import base
 	from ..base import *
 except:
+	import base
 	from base import *
 
 
@@ -44,22 +41,28 @@ class Dir(Path): #base.Path
 	methods will be taken as relative to self.path. Setting self.path
 	with a relative path will be taken as relative to the current
 	working directory.
+	
+	Setting self.path is relative to the current working directory.
+	For all other object methods, given paths that are relative are
+	merged with self.path to create an absolute path relative to the
+	current path.
 	"""
 	
 	def __init__(self, path=None, **k):
 		"""
 		Pass path to a directory. Kwargs apply as to base.Path.expand().
 		"""
-		Path.__init__(self, k.get('dir', path), **k)
-		if self.exists() and not self.isdir():
-			raise ValueError('not-a-directory')
+		p = k.get('dir', path)
+		Path.__init__(self, p, **k)
+		if not (self.exists() and self.isdir()):
+			raise ValueError('fs-invalid-dir', base.xdata(path=p))
 	
 	# Path-only methods
 	def cd(self, path):
 		"""Change directory the given path."""
 		p = self.merge(path)
 		if not os.path.isdir(p):
-			raise Exception ('not-a-directory')
+			raise Exception ('fs-not-a-dir', base.xdata(path=p))
 		self.path = p
 	
 	def ls(self, path=None):
@@ -95,7 +98,7 @@ class Dir(Path): #base.Path
 		"""
 		for src in self.match(pattern):
 			if self.exists(dst):
-				raise Exception('fs-path-exists', dst)
+				raise Exception('fs-path-exists',  base.xdata(dest=dst))
 			if os.path.isdir(src):
 				return shutil.copytree(src, self.merge(dst), **k)
 			else:
@@ -142,7 +145,7 @@ class Dir(Path): #base.Path
 						 using it with a function.
 		"""
 		if not pattern:
-			raise ValueError('fs-pattern-required')
+			raise ValueError('fs-pattern-required', base.xdata())
 		path = self.merge(path)
 		rlist = []
 		for d, dd, ff in os.walk(path):
@@ -161,7 +164,7 @@ class Dir(Path): #base.Path
 
 class ImmutablePath(Path):
 	def setpath(self, path):
-		raise ValueError('fs-immutable-path')
+		raise ValueError('fs-immutable-path', base.xdata())
 
 
 
@@ -173,8 +176,8 @@ class File(ImmutablePath):
 	def __init__(self, path, **k):
 		"""Pass path to file. Keywords apply as to base.Path.expand()."""
 		Path.__init__(self, k.get('file', path), **k)
-		if self.exists() and not self.isfile():
-			raise ValueError('not-a-file')
+		if not (self.exists() and self.isfile()):
+			raise ValueError('fs-not-a-file', base.xdata())
 	
 	# HEAD
 	def head(self, lines=12, **k):

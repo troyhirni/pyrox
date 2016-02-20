@@ -443,15 +443,20 @@ def proxify(o):
 
 
 # DEBUGGING
-def xdata(rdict):
-	"""Set exception type, args, and traceback in dict rdict."""
+def xdata(rdata={}, **k):
+	"""Set exception type, args, and traceback in dict rdata."""
+	for kkey in k:
+		rdata.update(k)
 	try:
 		xtype, xval = sys.exc_info()[:2]
 		if xtype:
-			rdict['type'] = xtype
+			rdata['type'] = xtype
 		if xval:
-			rdict['args'] = xval.args
-		rdict['tracebk'] = tracebk()
+			rdata['args'] = xval.args
+		tblist = tracebk()
+		if tblist:
+			rdata['tracebk'] = tblist
+		return rdata
 	finally:
 		xtype = None
 		xval = None

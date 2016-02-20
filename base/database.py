@@ -36,22 +36,20 @@ class Database(object):
 		Or, pass the file path to the JSON or python text representation
 		of a dict containing such a configuration.
 		"""
+		self.__con = None
+		self.__inited = None
+		
 		# config
 		conf = self.config(config, *a, **k)
-		self.__path = conf['path']
-		self.__args = conf['args']
-		self.__mod = conf['module']
-		self.__modname = conf['modname']
+		self.__path = conf.get('path')
+		self.__args = conf.get('args')
+		self.__mod = conf.get('module')
+		self.__modname = conf.get('modname')
 		self.__autoinit = conf.get('autoinit', False)
 		
 		# sql
 		self.__sql = conf.get('sql', {})
 		self.__op = self.__sql.get('op', {})
-		
-		# runtime
-		self.__con = None
-		self.__inited = None
-	
 	
 	def config(self, conf=None, *a, **k):
 		"""Return a config dict based on the common pyro(x) rules."""
@@ -93,6 +91,7 @@ class Database(object):
 						'err-import' : str(ei),
 						'err-module' : str(em)
 					}
+					exdesc['tracebk'] = base.tracebk()
 					raise Exception('db-init', exdesc)
 			
 			# sql
@@ -182,7 +181,10 @@ class Database(object):
 		elif not self.mod:
 			raise Exception('db-module')
 		
-		self.__con = self.mod.connect(*self.__args, **kwargs)
+		try:
+			self.__con = self.mod.connect(*self.__args, **kwargs)
+		except BaseException as ex:
+			raise type(ex)('db-open-fail', self.xdata())
 		
 		# auto-init
 		if not self.__autoinit:

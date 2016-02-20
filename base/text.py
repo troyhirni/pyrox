@@ -110,7 +110,7 @@ class Text(object):
 				ee = Encoded(x)
 				de = ee.detect()
 				if not de:
-					raise Exception('text-encoding-needed')
+					raise Exception('text-encoding-needed',  base.xdata())
 				self.__enc = de
 				self.__text = ee.bytes.decode(self.__enc, **k)
 				
