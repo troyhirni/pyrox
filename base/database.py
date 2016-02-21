@@ -16,7 +16,7 @@ try:
 except:
 	basestring = unicode = str
 
-import sys
+import sys, json
 
 
 class Database(object):
@@ -51,6 +51,7 @@ class Database(object):
 		self.__sql = conf.get('sql', {})
 		self.__op = self.__sql.get('op', {})
 	
+	
 	def config(self, conf=None, *a, **k):
 		"""Return a config dict based on the common pyro(x) rules."""
 		try:
@@ -60,6 +61,8 @@ class Database(object):
 				conf = {}
 			elif isinstance(conf, basestring):
 				conf = base.config(conf)
+			else:
+				conf = json.loads(json.dumps(conf))
 			
 			# kwargs rule
 			conf.update(k)
