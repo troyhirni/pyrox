@@ -3,7 +3,7 @@ Copyright 2014-2016 Troy Hirni
 This file is part of the pyrox project, distributed under
 the terms of the GNU Affero General Public License.
 
-FS - Path, File, Directory.
+FS - Directory and File classes
 
 WARNING: Dir methods that accept a 'pattern' argument perform their
 				 operations on all matching files and directories. Be very 
@@ -22,7 +22,7 @@ All classes are based on base.Path:
 	 whether files are read/written with codecs or just plain bytes.
 """
 
-import os, shutil, glob, gzip, zipfile, json, ast, tarfile
+import os, shutil, glob, gzip, zipfile, tarfile
 
 try:
 	from .. import base
