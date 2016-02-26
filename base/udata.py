@@ -262,7 +262,19 @@ class PropList(object):
 		[[0x0009,0x000D], 0x0020, 0x0085, 0x00A0, 0x1680, [0x2000,0x200A], 0x2028, 0x2029, 0x202F, 0x205F, 0x3000]
 	]
 	
-	__KEYS = ['ASCII_Hex_Digit', 'Bidi_Control', 'Dash', 'Deprecated', 'Diacritic', 'Extender', 'Hex_Digit', 'Hyphen', 'IDS_Binary_Operator', 'IDS_Trinary_Operator', 'Ideographic', 'Join_Control', 'Logical_Order_Exception', 'Noncharacter_Code_Point', 'Other_Alphabetic', 'Other_Default_Ignorable_Code_Point', 'Other_Grapheme_Extend', 'Other_ID_Continue', 'Other_ID_Start', 'Other_Lowercase', 'Other_Math', 'Other_Uppercase', 'Pattern_Syntax', 'Pattern_White_Space', 'Quotation_Mark', 'Radical', 'STerm', 'Soft_Dotted', 'Terminal_Punctuation', 'Unified_Ideograph', 'Variation_Selector', 'White_Space']
+	__KEYS = [
+		'ASCII_Hex_Digit', 'Bidi_Control', 'Dash',                # 0-2
+		'Deprecated', 'Diacritic', 'Extender',                    # 2-5
+		'Hex_Digit', 'Hyphen', 'IDS_Binary_Operator',             # 6-8
+		'IDS_Trinary_Operator', 'Ideographic', 'Join_Control',    # 9-11
+		'Logical_Order_Exception', 'Noncharacter_Code_Point',     # 12-13
+		'Other_Alphabetic', 'Other_Default_Ignorable_Code_Point', # 14-15
+		'Other_Grapheme_Extend', 'Other_ID_Continue',             # 16-17
+		'Other_ID_Start', 'Other_Lowercase', 'Other_Math',        # 18-20
+		'Other_Uppercase', 'Pattern_Syntax', 'Pattern_White_Space',#21-23
+		'Quotation_Mark', 'Radical', 'STerm', 'Soft_Dotted',      # 24-27
+		'Terminal_Punctuation', 'Unified_Ideograph',              # 28-29
+		'Variation_Selector', 'White_Space']                      # 30-31
 	
 	@classmethod
 	def __item(cls, key):
@@ -302,24 +314,23 @@ class PropList(object):
 		ii = k.get('items', [])
 		for pname in a:
 			if not pname in ii:
-				ii.append(self.indexof(pname))
+				ix = self.indexof(pname)
+				if ix < 0:
+					raise ValueError('udata-propname-invalid', pname)
+				ii.append(ix)
 		
 		self.__items = ii
 		if not self.__items:
-			raise ValueError('proplist-empty')
+			raise ValueError('udata-proplist-empty') #base.xdata()
 	
 	@property
 	def items(self):
-		"""
-		Return the list of items (integers) this object represents.
-		"""
+		"""Return a list (of integers) this object represents."""
 		return self.__items
 	
 	@property
 	def keys(self):
-		"""
-		Return a list of item names (strings) this object represents.
-		"""
+		"""Return a list (of strings) this object represents."""
 		try:
 			return self.__keys
 		except:
@@ -334,9 +345,10 @@ class PropList(object):
 		Return True if the given unichr matches one of the properties
 		this object was created to represent.
 		"""
-		# loop through each proplist this object was created to represent
 		x = ord(c)
 		iint = isinstance # 6% faster
+		
+		# loop through each proplist this object was created to represent
 		for listid in self.__items:
 			proplist = self.__ITEMS[listid]
 			for i in proplist:
@@ -402,6 +414,25 @@ if __name__ == '__main__':
 				bracket(c) 
 			t2 = time.clock() - t1
 			print (t2)
+		
+		elif flag == '--cat':
+			try:
+				t = args[1]
+			except Exception as ex:
+				print ("ERROR: Property Required. Eg, --cat Dash")
+			else:
+				g = PropList(args[1]).propgen()
+				d = {}
+				import unicodedata
+				for c in g:
+					cat = unicodedata.category(c)
+					try:
+						d[cat] += 1
+					except:
+						d[cat] = 1 
+				#print d
+				for x in d:
+					print ("%s = %s" % (x, str(d[x])))
 		
 		# PROP-LIST MATCH
 		elif args:
