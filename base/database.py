@@ -316,24 +316,8 @@ class Database(object):
 	
 	
 	def xdata(self, **k):
-		"""
-		Packs relevant debug data from this object in a dict with given
-		kwargs and returns that dict.
-		"""
-		"""
-		# exception info
-		xtype, xval = sys.exc_info()[:2]
-		
-		if xtype:
-			k['type'] = xtype
-		if xval:
-			k['args'] = xval.args
-		"""
-		base.xdata(k)
-		
-		# database info
-		k['module'] = self.__modname
-		k['active'] = self.active
+		"""Return a dict containing debug information."""
+		d = dict(module=self.__modname, active=self.active)
 		if self.path:
-			k['path'] = self.path
-		return k
+			d['path'] = self.path
+		return base.xdata(d, **k)
