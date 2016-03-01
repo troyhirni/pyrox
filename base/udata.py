@@ -264,7 +264,7 @@ class PropList(object):
 	
 	__KEYS = [
 		'ASCII_Hex_Digit', 'Bidi_Control', 'Dash',                # 0-2
-		'Deprecated', 'Diacritic', 'Extender',                    # 2-5
+		'Deprecated', 'Diacritic', 'Extender',                    # 3-5
 		'Hex_Digit', 'Hyphen', 'IDS_Binary_Operator',             # 6-8
 		'IDS_Trinary_Operator', 'Ideographic', 'Join_Control',    # 9-11
 		'Logical_Order_Exception', 'Noncharacter_Code_Point',     # 12-13
