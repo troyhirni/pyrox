@@ -13,13 +13,10 @@ import ast, codecs, json, os, sys, traceback, weakref
 
 try:
 	basestring
-	textinput = raw_input
-
 except:
 	from imp import reload
 	basestring = unicode = str
 	unichr = chr
-	textinput = input
 
 
 DEF_INDENT = 2

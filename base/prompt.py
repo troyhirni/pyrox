@@ -11,7 +11,11 @@ try:
 except:
 	from base import *
 
-from . import scan
+try:
+	textinput = raw_input
+except:
+	textinput = input
+
 
 import time
 
