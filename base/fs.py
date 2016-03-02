@@ -17,7 +17,7 @@ All classes are based on base.Path:
 	 
  * File and Dir methods that access codecs expect keyword arguments
 	 for the codecs methods. By default, encoding is set to the value
-	 of FS_ENCODE (which is originally 'utf-8'). For files, use the
+	 of DEF_ENCODE (which is originally 'utf-8'). For files, use the
 	 mode keyword with 'w', 'r', 'wb', etc... The mode determines 
 	 whether files are read/written with codecs or just plain bytes.
 """
@@ -49,13 +49,14 @@ class Dir(Path): #base.Path
 	"""
 	
 	def __init__(self, path=None, **k):
-		"""
-		Pass path to a directory. Kwargs apply as to base.Path.expand().
-		"""
+		"""Pass a file system path. Kwargs apply as to Path.expand()."""
 		p = k.get('dir', path)
-		Path.__init__(self, p, **k)
-		if not (self.exists() and self.isdir()):
-			raise ValueError('fs-invalid-dir', base.xdata(path=p))
+		if not 'affirm' in k:
+			k['affirm'] = 'checkdir'
+		try:
+			Path.__init__(self, p, **k)
+		except Exception:
+			raise ValueError('fs-invalid-dir', base.xdata(path=p)) 
 	
 	# Path-only methods
 	def cd(self, path):
@@ -175,16 +176,17 @@ class File(ImmutablePath):
 	
 	def __init__(self, path, **k):
 		"""Pass path to file. Keywords apply as to base.Path.expand()."""
-		Path.__init__(self, k.get('file', path), **k)
-		if not (self.exists() and self.isfile()):
-			raise ValueError('fs-not-a-file', base.xdata())
+		try:
+			Path.__init__(self, k.get('file', path), **k)
+		except:
+			raise ValueError('fs-invalid-path', base.xdata())
 	
 	# HEAD
 	def head(self, lines=12, **k):
 		"""Top lines of file. Any kwargs apply to codecs.open()."""
 		a = []
 		k.setdefault('mode', 'r')
-		k.setdefault('encoding', FS_ENCODE)
+		k.setdefault('encoding', DEF_ENCODE)
 		with self.open(**k) as fp:
 			for i in range(0, lines):
 				a.append(fp.readline())
