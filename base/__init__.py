@@ -3,10 +3,11 @@ Copyright 2014-2016 Troy Hirni
 This file is part of the pyrox project, distributed under
 the terms of the GNU Affero General Public License.
 
-BASE - Common class, function, value, and type defintions needed by
-       many modules in this package.
+BASE
+ - Type defintions for reloading and for unicode in python 2 or 3
+ - Basic config, factory, debug, unicode, and utility functionality
+   and the constant variable definition to support it.
 """
-
 
 import ast, codecs, json, os, sys, traceback, weakref
 
@@ -21,7 +22,6 @@ except:
 
 DEF_INDENT = 2
 DEF_ENCODE = 'utf_8'
-FS_ENCODE = DEF_ENCODE
 
 
 
@@ -148,8 +148,6 @@ def debug_hook(t,v,tb):
 			if Debug.showtb():
 				print ("Traceback:")
 				traceback.print_tb(tb)
-				#for L in traceback.format_tb(tb):
-				#	print (L)
 		except:
 			print ("WARNING: DEBUG HOOK FAILED!")
 			debug(False)
@@ -262,7 +260,7 @@ class Factory(object):
 				return tt
 		
 		# load from module
-		MOD = self.__fimport(sPath, None, None, sType)
+		MOD = self.__fimport(sPath, sType)
 		T = MOD.__dict__.get(sType)
 		if not T:
 			raise TypeError('factory-type-fail', {
@@ -274,9 +272,9 @@ class Factory(object):
 	
 	
 	# F-IMPORT
-	def __fimport(self, Path, G=None, L=None, T=None):
-		G = G if G else globals()
-		L = L if L else locals()
+	def __fimport(self, Path, T=None):
+		G = globals()
+		L = locals()
 		try:
 			return __import__(str(Path), G, L, str(T), self.level)
 		except Exception as ex:
@@ -307,6 +305,10 @@ class Path(object):
 	
 	def __unicode__(self):
 		return self.path
+	
+	@property
+	def parent(self):
+		return os.path.dirname(self.path)
 	
 	@property
 	def path(self):
@@ -385,7 +387,7 @@ class Path(object):
 		if 'b' in mode:
 			return open(self.path, **k)
 		else:
-			k.setdefault('encoding', FS_ENCODE)
+			k.setdefault('encoding', DEF_ENCODE)
 			return codecs.open(self.path, mode, **k)
 		
 	# READER
@@ -426,18 +428,22 @@ class Path(object):
 		
 		v = k.get('affirm', "checkpath")
 		if (v=='checkpath') and (not OP.exists(OP.dirname(path))):
-			raise Exception('no-such-path', {'path' : path})
-		if v and (not OP.exists(path)):
-			if (v=='checkdir'):
-				raise Exception('no-such-dir', {'path' : path})
-			elif v in ['makepath', 'touch']:
-				if not OP.exists(OP.dirname(path)):
-					os.makedirs(OP.dirname(path))
-				if v == 'touch':
-					with open(path, 'a'):
-						os.utime(path, None)
-			elif (v=='makedirs'):
-				os.makedirs(path)
+			raise Exception('no-such-path', {'path' : OP.dirname(path)})
+		if v:
+			if OP.exists(path):
+				if (v=='checkdir') and (not OP.isdir(path)):
+					raise Exception('not-a-directory', {'path' : path})
+			else:
+				if (v=='checkdir'):
+					raise Exception('no-such-directory', {'path' : path})
+				elif v in ['makepath', 'touch']:
+					if not OP.exists(OP.dirname(path)):
+						os.makedirs(OP.dirname(path))
+					if v == 'touch':
+						with open(path, 'a'):
+							os.utime(path, None)
+				elif (v=='makedirs'):
+					os.makedirs(path)
 		
 		return path
 
