@@ -1,0 +1,4 @@
+
+This is an experiment to see measure the efficiency and usability
+of developing the various formatting and file type classesas plugins.
+

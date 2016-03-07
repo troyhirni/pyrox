@@ -25,6 +25,11 @@ DEF_ENCODE = 'utf_8'
 
 
 
+# EXPERIMENTAL
+def plugin(fmt, *a, **k):
+	return create("%s.plugin.%s" % (__name__, fmt), *a, **k)
+
+
 #
 # CONFIG
 #
