@@ -3,7 +3,7 @@ Copyright 2014-2016 Troy Hirni
 This file is part of the aimy project, distributed under
 the terms of the GNU Affero General Public License.
 
-Wrapper for databases that implement the DB-API 2.0 interface.
+Wraps database modules that implement the DB-API 2.0 interface.
 """
 
 try:
@@ -16,7 +16,7 @@ try:
 except:
 	basestring = unicode = str
 
-import sys, json
+import sys
 
 
 class Database(object):
@@ -62,7 +62,7 @@ class Database(object):
 			elif isinstance(conf, basestring):
 				conf = base.config(conf)
 			else:
-				conf = json.loads(json.dumps(conf))
+				conf = dict(conf)
 			
 			# kwargs rule
 			conf.update(k)
