@@ -16,7 +16,6 @@ try:
 except:
 	basestring = unicode = str
 
-import sys
 
 
 class Database(object):
@@ -162,7 +161,7 @@ class Database(object):
 		defined in config. This category is a list of sql statements
 		intended to define tables and indices, and to populate tables
 		if needed. Also creates a __corectl table with one field whose
-		value is set to the current __corectl version, 2.
+		value is set to the current __corectl version, 3.
 		"""
 		cr = self.cat("create")
 		if cr:
@@ -255,9 +254,7 @@ class Database(object):
 	
 	# QUERY
 	def query(self, sql, *args):
-		"""
-		Execute query with given args; Rollback on error.
-		"""
+		"""Execute query with given args; Rollback on error."""
 		try:
 			return self.execute(sql, *args)
 		except Exception as ex:
@@ -268,9 +265,7 @@ class Database(object):
 	
 	# Q-MANY
 	def qmany(self, sql, *args):
-		"""
-		Just like query, but uses executemany.
-		"""
+		"""Just like query, but uses executemany."""
 		try:
 			return self.executemany(sql, *args)
 		except Exception:
@@ -281,9 +276,7 @@ class Database(object):
 	
 	# Q-LIST
 	def qlist(self, queries, cursor=None):
-		"""
-		Execute list of query strings. On error, rollback.
-		"""
+		"""Execute list of query strings. On error, rollback."""
 		try:
 			cc = cursor if cursor else self.cursor()
 			for sql in queries:

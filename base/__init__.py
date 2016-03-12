@@ -126,7 +126,7 @@ def tracebk():
 	tb = sys.exc_info()[2]
 	try:
 		if tb:
-			return traceback.format_tb(tb)
+			return list(traceback.extract_tb(tb))
 	finally:
 		del(tb)
 
@@ -394,7 +394,7 @@ class Path(object):
 		else:
 			k.setdefault('encoding', DEF_ENCODE)
 			return codecs.open(self.path, mode, **k)
-		
+	
 	# READER
 	def reader(self, mode="r", **k):
 		"""Open file at self.path and return a Reader."""
