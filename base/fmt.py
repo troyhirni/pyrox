@@ -124,6 +124,7 @@ class Grid (FormatBase):
 		Kwarg `sep` defaults to a single space; Optional `cellformat` kwarg
 		specifies a callable to apply to each cell (default: str).
 		"""
+		self.__ind = k.get('indent', "")
 		self.__sep = k.get('sep', FORMAT_SEP)
 		self.__fmt = k.get('cellformat') or str
 		FormatBase.__init__(self)
@@ -162,6 +163,7 @@ class Grid (FormatBase):
 	def format(self, grid, **k):	
 		
 		# format grid
+		ind = k.get("indent", self.__ind)
 		fmt = k.get("cellformat", self.__fmt)
 		if fmt:
 			grid = self.formatgrid(grid, fmt)
@@ -169,7 +171,14 @@ class Grid (FormatBase):
 		r = []
 		f = self.formatstring(grid)
 		for row in grid:
-			r.append(f.format(*row))
+			r.append("%s%s" % (ind, f.format(*row)))
+			"""
+			try:
+				r.append("%s%s" % (ind, f.format(*row)))
+			except IndexError:
+				pass
+			"""
+				
 		return '\n'.join(r)
 
 
@@ -189,7 +198,7 @@ class Table(Grid):
 		Grid.__init__(self, **k)
 		self.__width = k.get('width', 1)
 		if self.__width < 1:
-			raise Exception ('invalid-column-count')
+			raise Exception ('invalid-width')
 		
 	def format(self, data, **k):
 		"""
@@ -197,19 +206,29 @@ class Table(Grid):
 		lists) and passing it to Grid.format. Keyword arguments are passed
 		on to Grid.format(). 
 		"""
+		datalist = self.merge(data, **k)
+		return Grid.format(self, datalist, **k)
+	
+	
+	def merge(self, data, **k):
 		width = k.get('width', self.__width)
 		y = []
 		x = 0
 		line = []
 		for d in data:
-			if x < self.__width:
+			if x <= self.__width:
 				line.append(d)
 				x += 1
-			else:
+			if x == self.__width:
 				y.append(line)
 				line = []
 				x = 0
-				
-		return Grid.format(self, y, **k)
+		
+		if line:
+			line.extend(''.split(',')*width)
+			y.append(line[0:width])
+		
+		return y
 
+		
 
