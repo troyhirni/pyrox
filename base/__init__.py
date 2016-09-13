@@ -39,10 +39,10 @@ def config(path, data=None, **k):
 	specified, it's written to the file at filepath. Otherwise, the 
 	data at filepath is read and returned as an object.
 	"""
-	if data:
-		Config(path).write(data, **k)
+	if data != None:
+		Config(path, **k).write(data)
 	else:
-		return Config(path).read(**k)
+		return Config(path, **k).read()
 
 
 
@@ -507,7 +507,7 @@ class Config(Path):
 	
 	
 	def read(self):
-		"""Write config from this object's file path."""
+		"""Read config from this object's file path."""
 		txt = self.reader("r", **self.__k).read()
 		try:
 			try:

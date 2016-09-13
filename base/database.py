@@ -304,8 +304,18 @@ class Database(object):
 		applies to op values that are lists of queries to execute.
 		On error, rollback.
 		"""
-		for sql in self.__op[qname]:
-			self.query(sql, *args)
+		try:
+			xq = len(self.__op[qname])
+			xa = len(args)
+			xsql = self.__op[qname]
+			for i in range(0, xq):
+				sql = xsql[i]
+				if (i<xa) and (args[i]):
+					self.query(sql, args[i])
+				else:
+					self.query(sql)
+		except:
+			raise Exception(self.xdata())
 	
 	
 	def xdata(self, **k):

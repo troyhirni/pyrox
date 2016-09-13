@@ -17,6 +17,8 @@ import json
 JSON_ENCODE = DEF_ENCODE
 JSON_INDENT = DEF_INDENT
 
+FORMAT_SEP = '   '
+
 
 class FormatBase(object):
 	"""Abstract base formatting class."""
@@ -117,12 +119,12 @@ class JCompact(JSON):
 class Grid (FormatBase):
 	"""Format list of lists into a grid."""
 	
-	def __init__(self, sep=' ', **k):
+	def __init__(self, **k):
 		"""
-		Arg sep defaults to a single space; Optional 'cellformat' kwarg
+		Kwarg `sep` defaults to a single space; Optional `cellformat` kwarg
 		specifies a callable to apply to each cell (default: str).
 		"""
-		self.__sep = sep
+		self.__sep = k.get('sep', FORMAT_SEP)
 		self.__fmt = k.get('cellformat') or str
 		FormatBase.__init__(self)
 	
@@ -169,3 +171,45 @@ class Grid (FormatBase):
 		for row in grid:
 			r.append(f.format(*row))
 		return '\n'.join(r)
+
+
+
+
+class Table(Grid):
+	"""
+	Formats a list into a grid of specified width (by converting the list
+	into a "list of lists" suitable for processing by Grid).
+	"""
+	def __init__(self, **k):
+		"""
+		Keyword argument `width` is the default number of columns into which
+		any `data` list given to the format() method will be split. Default
+		is 1. Any additional kwargs will be passed on to Grid's constructor.
+		"""
+		Grid.__init__(self, **k)
+		self.__width = k.get('width', 1)
+		if self.__width < 1:
+			raise Exception ('invalid-column-count')
+		
+	def format(self, data, **k):
+		"""
+		Format the given list `data` by separating it into a grid (a list of
+		lists) and passing it to Grid.format. Keyword arguments are passed
+		on to Grid.format(). 
+		"""
+		width = k.get('width', self.__width)
+		y = []
+		x = 0
+		line = []
+		for d in data:
+			if x < self.__width:
+				line.append(d)
+				x += 1
+			else:
+				y.append(line)
+				line = []
+				x = 0
+				
+		return Grid.format(self, y, **k)
+
+
