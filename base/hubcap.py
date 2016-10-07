@@ -30,9 +30,6 @@ h.start()
 # create a task in a new thread
 h.create('threadedTask')
 
-# now the task must be started
-d = h.get('threadedTask')
-
 # write a command to the threaded task
 h.writeto('threadedTask', dict(command='status'))
 
