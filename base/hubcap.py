@@ -19,7 +19,7 @@ NOTE:
 
 
 #
-##  EXAMPLE 1 - Threaded Task
+##  EXAMPLE 1 - Threaded Task (to be run in python interpreter)
 #
 import hubcap
 
@@ -38,7 +38,7 @@ h.writeto('threadedTask', dict(command='status'))
 
 
 #
-##  EXAMPLE 2 - Process Task
+##  EXAMPLE 2 - Process Task (to be run in python interpreter)
 #
 import hubcap
 
@@ -46,7 +46,7 @@ import hubcap
 h = hubcap.Hub()
 h.start()
 
-# create a task in a new thread
+# create a task in a new process
 h.launch('launchedTask')
 
 # write a command to the launched task
