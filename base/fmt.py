@@ -60,6 +60,8 @@ class NoFormat(FormatBase):
 
 
 
+
+
 #
 # PYTHON FORMAT
 #
@@ -74,6 +76,8 @@ class Format(FormatBase):
 	
 	def format(self, *a, **k):
 		return self.args[0].format(*a, **k)
+
+
 
 
 
@@ -111,6 +115,9 @@ class JCompact(JSON):
 	def format(self, data):
 		#Format as compact json; no unnecessary white.
 		return ''.join(json.dumps(data, **self.kwargs).splitlines())
+
+
+
 
 
 #
@@ -184,6 +191,7 @@ class Grid (FormatBase):
 
 
 
+
 class Table(Grid):
 	"""
 	Formats a list into a grid of specified width (by converting the list
@@ -231,4 +239,25 @@ class Table(Grid):
 		return y
 
 		
+
+
+
+
+
+
+
+class List(Grid):
+	"""
+	Simple list formatter - displays a list's items in individually
+	numbered rows.
+	"""
+	def format(self, dataList, **k):
+		i = 1
+		flist = []
+		for x in dataList:
+			flist.append([i, x])
+			i += 1
+		return Grid.format(self, flist, **k)
+
+
 
