@@ -5,7 +5,7 @@ the terms of the GNU Affero General Public License.
 
 DOM   **   UNDER CONSTRUCTION   **   STILL QUITE A WAY TO GO
 
-Will provide an XML/HTML parser with partial DOM implementation.
+Will provide an HTML parser with partial DOM implementation.
 The main goal here is to safely gather data from unknown sources
 without being too particular about perfection in their formatting.
 We're here for the data.
@@ -488,7 +488,7 @@ class CDATASection (CharacterData):
 
 
 class ProcessingInstruction (Node):
-	def __init__(target, data):
+	def __init__(self, target, data):
 		Node.__init__(self)
 		self.target = target
 		self.data = data
