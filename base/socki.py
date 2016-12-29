@@ -288,29 +288,6 @@ class SockInfo(object):
 		
 		# print the output
 		base.create('pyrox.base.fmt.Grid').output(c)
-		
-		
-		
-		"""
-		r = [
-			["SELECTED:", ""],
-			["addr0", self.addr0],
-			["host", self.host],
-			["hostname", self.hostname],
-			["fqdn", self.fqdn],
-			["cname", self.cname],
-			["port", self.port],
-			["addr", self.addr],
-			["family", "%s (%i)" % (self.nfamily, self.family)],
-			["hostex", self.hostex],
-			["proto", "%s (%i)" % (self.nproto, self.proto)],
-			["socktype", "%s (%i)" % (self.nsocktype, self.socktype)],
-			
-			["\nCHOICES:", ""],
-			["addrinfo", self.addrinfo],
-		]
-		base.create('pyrox.base.fmt.Grid').output(r)
-		"""
 
 
 
