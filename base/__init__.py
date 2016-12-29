@@ -185,11 +185,27 @@ class Debug(object):
 # FACTORY
 #
 class Factory(object):
-	
+	"""
+	A simple, generic factory class.
+	"""
 	FACTORY_LEVEL = 0
 	__cache = {}
 	
 	def __init__(self, conf, *args, **kwargs):
+		"""
+		Argument `conf` is a dict containing:
+		  type   : string describing the object to create
+		  args   : list of arguments for object's constructor
+		  kwargs : a dict of keyword arguments for constructor
+		
+		If conf argument is *not* a dict, it will be taken as a type
+		description. Additional optional args and kwargs will be passed
+		directly to the new object (of type 'type') when its created.
+		
+		Type description strings should be in the form of a fully 
+		qualified import description followed by the object type or class
+		name. (Eg. "pyrox.base.fmt.Grid").
+		"""
 		# get type, args, and kwargs from config dict
 		if isinstance(conf, dict):
 			T = conf.get('type')
