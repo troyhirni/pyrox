@@ -51,14 +51,17 @@ class NoFormat(FormatBase):
 	"""Return/Print as-is."""
 	
 	def __call__(self, *a, **k):
-		"""Formats and returns data."""
+		"""
+		Returns first argument, ignoring additional arguments and kwargs.
+		"""
 		return str(a[0]) if a else ''
 	
 	def output(self, *a, **k):
-		"""Format and print data."""
+		"""
+		Print first argument with no formatting, ignoring additional 
+		arguments and kwargs.
+		"""
 		print (a[0] if a else '')
-
-
 
 
 
@@ -76,8 +79,6 @@ class Format(FormatBase):
 	
 	def format(self, *a, **k):
 		return self.args[0].format(*a, **k)
-
-
 
 
 
@@ -115,9 +116,6 @@ class JCompact(JSON):
 	def format(self, data):
 		#Format as compact json; no unnecessary white.
 		return ''.join(json.dumps(data, **self.kwargs).splitlines())
-
-
-
 
 
 #
@@ -191,7 +189,6 @@ class Grid (FormatBase):
 
 
 
-
 class Table(Grid):
 	"""
 	Formats a list into a grid of specified width (by converting the list
@@ -238,11 +235,6 @@ class Table(Grid):
 		
 		return y
 
-		
-
-
-
-
 
 
 
@@ -251,6 +243,9 @@ class List(Grid):
 	Simple list formatter - displays a list's items in individually
 	numbered rows.
 	"""
+	def __init__(self, **k):
+		Grid.__init__(self, **k)
+	
 	def format(self, dataList, **k):
 		i = 1
 		flist = []
@@ -258,6 +253,5 @@ class List(Grid):
 			flist.append([i, x])
 			i += 1
 		return Grid.format(self, flist, **k)
-
-
+	
 
