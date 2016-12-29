@@ -1,8 +1,16 @@
 """
-SOCKET INFO
+SOCKI - SOCKET INFO
 
+Convenience utility for finding the best socket creation arguments.
 
 """
+
+
+try:
+	from .. import base
+except:
+	import base
+
 import socket
 
 
@@ -47,8 +55,12 @@ def sockname(value, prefix=None):
 
 
 
-# TEMPORARY - REMOVE SOON
+# TEMPORARY - REMOVE EVENTUALLY
 def printx(prefix=''):
+	"""
+	List everything and it's value from socket.py; This will be removed
+	when no longer needed for reference.
+	"""
 	iPrefixLen = len(prefix)
 	for k in dir(socket):
 		if (iPrefixLen==0) or (k[:iPrefixLen] == prefix):
@@ -248,106 +260,59 @@ class SockInfo(object):
 		except:
 			self.__hostex = socket.gethostbyname_ex(self.host)
 			return self.__hostex
-
-
-
-
-
-#
-# SOCK TASK
-#
-class SockTask(Task):
 	
-	def __init__(self, config={}, **k):
-		Task.__init__(self, config, **k)
-		self.__sockinfo = SockInfo(config)
+	#
+	def display(self):
+		"""
+		Print the currently-available choices for creation of a socket
+		(for the given constructor arguments). 
+		"""
+		c = []
 		
-		# create the socket onOpen()
-		self.__socket = None
-	
-	@property
-	def active(self):
-		return True if self.__socket else False
-	
-	@property
-	def socket(self):
-		return self.__socket
-	
-	@property
-	def info(self):
-		return self.__sockinfo
-	
-	def onOpen(self):
-		si = self.info
-		self.__socket = socket.socket(si.family, si.socktype, si.proto)
-	
-	def onClose(self):
-		if self.__socket:
-			try:
-				self.__socket.close()
-			finally:
-				self.__socket = None
-
-
-#
-# CLIENT
-#
-class Client(SockTask):
-	
-	def onOpen(self):
-		SockTask.onOpen(self)
-		self.socket.connect(self.info.addr)
-	
-	def send(self, data):
-		try:
-			return self.socket.send(data)
-		except Exception as ex:
-			self.close()
-		return None
+		# append the things that stay the same...
+		c.append(["fqdn", self.fqdn])
+		c.append(["hostname", self.hostname])
 		
-	def recv(self, size=4096):
-		return self.socket.recv(size)
-
-
-
-
-#
-# SERVER
-#
-class Server(SockTask):
-	
-	def __init__(self, config, **k):
-		SockTask.__init__(self, config, **k)
-		self.host = config['host']
-		self.port = config['port']
-		self.reuse = config.get('reuse', True)
-		self.timeout = config.get('timeout', 0.0001)
-		self.sessions = {}
-	
-	def io(self):
-		try:
-			si = self.info
-			self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-			self.socket.settimeout(self.timeout)
-			self.socket.bind(si.addr)
-			self.listen()
+		# add each available socket description here
+		for i,x in enumerate(self.addrinfo):
+			c.extend([
+				['',''],
+				["addr%i"%i, x],
+				["cname", x[3]],
+				["host", x[4][0]],
+				["port", x[4][1]],
+				["family", "%s (%i)" % (sockname(x[0], "AF_"), x[0])],
+				["socktype", "%s (%i)" % (sockname(x[1], "SOCK_"), x[1])],
+				["proto", "%s (%i)" % (sockname(x[2], "IPPROTO_"), x[2])],
+			])
+		
+		# print the output
+		base.create('pyrox.base.fmt.Grid').output(c)
+		
+		
+		
+		"""
+		r = [
+			["SELECTED:", ""],
+			["addr0", self.addr0],
+			["host", self.host],
+			["hostname", self.hostname],
+			["fqdn", self.fqdn],
+			["cname", self.cname],
+			["port", self.port],
+			["addr", self.addr],
+			["family", "%s (%i)" % (self.nfamily, self.family)],
+			["hostex", self.hostex],
+			["proto", "%s (%i)" % (self.nproto, self.proto)],
+			["socktype", "%s (%i)" % (self.nsocktype, self.socktype)],
 			
-		except:
-			pass
-			
+			["\nCHOICES:", ""],
+			["addrinfo", self.addrinfo],
+		]
+		base.create('pyrox.base.fmt.Grid').output(r)
+		"""
+
+
+
 	
-	def onClose(self):
-		if self.socket:
-			self.socket.close()
-			self.socket = None
-	
-	def listen(self):
-		
-		# create socket
-		self.socket.listen(self.__bklog)
-		self.__listening = True
-
-
-
-
 
