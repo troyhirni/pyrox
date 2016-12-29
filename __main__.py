@@ -17,12 +17,22 @@ if __name__ == '__main__':
 	cmd = sys.argv[1] if len(sys.argv) > 1 else ''
 	args = sys.argv[2:]
 	
+	# help/how-to reminders
 	if not cmd or (cmd in ['-h', '--help']):
 		print ("\nUSAGE: python %s [[package.]module.]class" % (app))
+		print ("\n   OR: python -m pyrox --clean [path]")
+	
+	# print the arguments received by this call
+	elif cmd == '--args':
+		print ("\n %s" % (sys.argv))
+	
+	# remove *.pyc files
 	elif cmd == '--clean':
 		from base import fs
-		d = fs.Dir()
+		d = fs.Dir(args[1]) if len(args)>1 else fs.Dir()
 		d.find('.', '*.pyc', fn=d.rm)
+	
+	# test Prompt object
 	else:
 		import base
 		from base import prompt
