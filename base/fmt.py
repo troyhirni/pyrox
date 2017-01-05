@@ -3,7 +3,7 @@ Copyright 2014-2016 Troy Hirni
 This file is part of the pyrox project, distributed under
 the terms of the GNU Affero General Public License.
 
-JSON format objects with specialized conversion settings.
+FMT - Text formatting objects with conversion settings.
 """
 
 try:
@@ -51,17 +51,14 @@ class NoFormat(FormatBase):
 	"""Return/Print as-is."""
 	
 	def __call__(self, *a, **k):
-		"""
-		Returns first argument, ignoring additional arguments and kwargs.
-		"""
+		"""Formats and returns data."""
 		return str(a[0]) if a else ''
 	
 	def output(self, *a, **k):
-		"""
-		Print first argument with no formatting, ignoring additional 
-		arguments and kwargs.
-		"""
+		"""Format and print data."""
 		print (a[0] if a else '')
+
+
 
 
 
@@ -79,6 +76,8 @@ class Format(FormatBase):
 	
 	def format(self, *a, **k):
 		return self.args[0].format(*a, **k)
+
+
 
 
 
@@ -116,6 +115,9 @@ class JCompact(JSON):
 	def format(self, data):
 		#Format as compact json; no unnecessary white.
 		return ''.join(json.dumps(data, **self.kwargs).splitlines())
+
+
+
 
 
 #
@@ -189,6 +191,7 @@ class Grid (FormatBase):
 
 
 
+
 class Table(Grid):
 	"""
 	Formats a list into a grid of specified width (by converting the list
@@ -214,7 +217,6 @@ class Table(Grid):
 		datalist = self.merge(data, **k)
 		return Grid.format(self, datalist, **k)
 	
-	
 	def merge(self, data, **k):
 		width = k.get('width', self.__width)
 		y = []
@@ -238,14 +240,12 @@ class Table(Grid):
 
 
 
+
 class List(Grid):
 	"""
 	Simple list formatter - displays a list's items in individually
 	numbered rows.
 	"""
-	def __init__(self, **k):
-		Grid.__init__(self, **k)
-	
 	def format(self, dataList, **k):
 		i = 1
 		flist = []
@@ -253,5 +253,6 @@ class List(Grid):
 			flist.append([i, x])
 			i += 1
 		return Grid.format(self, flist, **k)
-	
+
+
 
