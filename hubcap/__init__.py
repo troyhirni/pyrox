@@ -9,24 +9,6 @@ A central hub.Hub app creates, controls, and passes messages between
 an arbitrary set of task.Task based apps running each in its own
 process. This is an early demo/debugging/development version, but it
 seems to work to some extent.
-
-
-cd dev
-python
-
-from pyrox.hubcap import hub
-h = hub.Hub()
-h.start()
-
-
-h.tasklaunch(2, 'pyrox.hubcap.task.add1.Add1')
-h.put(2, q=5)
-
-
-h.put(2, c='exit')
-
-
-
 """
 
 from .. import *
