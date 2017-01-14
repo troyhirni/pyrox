@@ -6,9 +6,6 @@ the terms of the GNU Affero General Public License.
 ZIP - Covers zip files.
 
 
-
-
-
 """
 
 import zipfile

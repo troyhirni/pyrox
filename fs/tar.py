@@ -6,15 +6,10 @@ the terms of the GNU Affero General Public License.
 TAR - Covers tar files.
 
 The Tar class is currently read-only.
-
-
-
 """
-
 
 import tarfile, fnmatch
 from .file import *
-
 
 
 class Tar(File):
@@ -87,11 +82,11 @@ class Tar(File):
 			self.__meminfo = rr
 			return rr
 	
+	
 	# DIR-LIKE  #X
 	def filter(self, pattern):
 		return fnmatch.filter(self.names, pattern)
 	
-	#def glob(self, pattern)  #X
 	
 	# FILE-LIKE
 	def read(self, member, mode='r'):
