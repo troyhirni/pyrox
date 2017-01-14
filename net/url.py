@@ -1,5 +1,5 @@
 """
-Copyright 2014-2016 Troy Hirni
+Copyright 2014-2017 Troy Hirni
 This file is part of the pyrox project, distributed under
 the terms of the GNU Affero General Public License.
 
@@ -8,7 +8,7 @@ Parse URLs; Retrieve and work with URL content.
 
 from .. import *
 
-from . import text
+from ..data import text
 
 
 # compensate for renamed symbols in python 3
