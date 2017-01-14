@@ -6,10 +6,7 @@ the terms of the GNU Affero General Public License.
 Prompt - Commind-line Interface
 """
 
-try:
-	from ..base import *
-except:
-	from base import *
+from .. import *
 
 try:
 	textinput = raw_input

@@ -9,12 +9,7 @@ The rows, select, update, delete and each methods accept keyword
 'where' - a callable that returns True for matching records.
 """
 
-from . import text
-
-try:
-	from ..base import *
-except:
-	from base import *
+from .. import *
 
 
 class Query(object):

@@ -5,20 +5,20 @@ of the GNU Affero General Public License.
 
 TASK
 
-This package contains the somewhat abstract base Task class and a
-demo task subclass.
-
-
+This package defines the Task class, base for custom tasks that make
+up a hub-controlled application.
 """
 
 from ..runner import *
 
 
 
-
-# ABSTRACT TASK (no run method)
 class Task(Runner):
+	"""
+	A Runner subclass that handles messaging for tasks.
+	"""
 	
+	# INIT
 	def __init__(self, config={}, **k):
 		"""
 		When creating a Task-based object, the factory config dict must 
@@ -37,20 +37,28 @@ class Task(Runner):
 		self.qtask = conf['qtask']
 		self.log("task init ok")
 	
-	
+	# GET
 	def get(self):
+		"""
+		Returns a message from the hub, or None if none exists.
+		"""
 		try:
 			return self.qtask.get(HC_Q_TIMEOUT)
 		except:
 			return None
 	
 	
+	# PUT
 	def put(self, m=None, **k):
+		"""
+		Queues an outgoing message to the Hub.
+		"""
 		m = m or {}
 		m.update(k)
 		self.qhub.put(dict(m))
 	
 	
+	# IO
 	def io(self):
 		"""
 		Read incomming messages and send them to self.onMessage()
@@ -62,23 +70,45 @@ class Task(Runner):
 		# read and process messages until the input queue is empty
 		m = self.get()
 		while m:
-			om(m)   #self.onMessage()
-			m = g() #self.get()
+			om(m)   # self.onMessage()
+			m = g() # self.get()
 	
 	
+	# CLOSE
+	def close(self):
+		"""
+		Delete queues and close the Runner.
+		"""
+		del(self.qhub)
+		del(self.qtask)
+		Runner.close(self)
+	
+	
+	# ON-MESSAGE
 	def onMessage(self, m):
 		"""
-		The Task onMessage handler processes the 'exit' command, which 
-		is passed in a message dict as {'c':'exit'}
+		The Task onMessage handler processes messages. All messages are
+		dicts with key/value pairs that must be documented.
+		
+		This method handles the following commands:
+		 - exit   : passed as dict(c='exit') # calls self.exit()
+		 - status : passed as c='status'     # from self.status()
+		 - debug  : passed as c='debug'      # raises an exception
+		 
+		Any message received that can't be handled is returned to the
+		hub with key e='unhandled-message'
 		"""
-		self.log("received message", m)
 		if 'c' in m:
 			if m['c'] == 'exit':
-				self.log("received exit message", m)
 				m['r'] = 'exiting'
 				self.put(m)
-				self.stop()
-				self.log("returned-from-stop", running=self.running)
+				self.exit()
+			elif m['c'] == 'status':
+				m['r'] = self.status()
+			elif m['c'] == 'debug':
+				raise Exception('debug-error', xdata(
+					reason='triggered-by-user'
+				))
 		else:
 			m['e'] = 'unhandled-message'
 			self.put(m)

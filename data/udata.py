@@ -8,13 +8,8 @@ UData - Unicode Data
 Access to more information from the unicode character database.
 """
 
-
 import struct, bisect
-
-try:
-	from ..base import *
-except:
-	from base import *
+from .. import *
 
 
 #
@@ -376,7 +371,7 @@ class PropList(object):
 
 
 
-
+"""
 if __name__ == '__main__':
 	
 	
@@ -460,6 +455,6 @@ if __name__ == '__main__':
 		print (" * Pass a list of properties to test PropList.match()")
 		print (" * Use flag -k for a list of PropList keys")
 		print (" * Use flag -b or -bp to test block() or bracket()")
-		print ("python -m pyrox.base.udata -b\n")
-
+		print ("python -m pyrox.data.udata -b\n")
+"""
 

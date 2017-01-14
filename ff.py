@@ -1,54 +1,94 @@
-"""
-FAST-FORWARD - DEMO - Coding in the style of jQuery
-
-The fast-forward module's objects encapsulate data in a way similar
-to base.pdq Query objects. Most properties and methods return another
-ff.FastForward object. 
-
-import ff
-d = ff.fdir('.')
-d.ls()       # returns flist object
-d.ls().val() # returns a python list (directory listing)
-d.ls().o     # shorthand - returns .val()
-
-# print each item on its own line
-d.ls().each(lambda o: o.out(o.v))
-
-NOTE: This is a very early ff version; As with everything in the
-      pyrox project, future versions may be VERY different.
-"""
-
-from pyrox import base
 
 
-def ff(*a, **k):
+
+
+
+
+
+
+def wrap(o):
 	"""
-	Convenience function that returns common ff objects.
+	Argument `v` is an object
 	"""
-	if 'file' in k:
-		return ffile(k['file'], **k)
-	elif 'dir' in k:
-		return fdir(k['dir'], **k)
-	elif 'list' in k:
-		return flist(k['list'])
-	elif a:
-		x = a[0]
-		if isinstance(x, list):
-			return flist(x)
-		elif isinstance(x, basestring):
-			import os
-			if os.path.isfile(x):
-				return ffile(s, **k)
-			elif os.path.isdir(x):
-				return fdir(x, **k)
-		
-	raise Exception('Unknown FastForward Type')
+	if isinstance(o, list):
+		return FFList(o)
+	return FFWrapper(o)
 
 
 
 
 
-class fparam(object):
+class FFSetter(object):
+	"""
+	Stores a FastForward object and an executable attribute. When the
+	stored attribute is called, it's result is wrapped in an FF object
+	and stored as the (stored) object's value.
+	"""
+	def __init__(self, wrapper, attr):
+		self.__wrap = wrapper # an FFWrapper object
+		self.__attr = attr    # an executable value
+	
+	def __call__(self, *a, **k):
+		"""
+		When this setter is "called", the stored attribute's result is 
+		'wrapped' using the wrap() function and the result is set as the
+		stored object's value.
+		"""
+		o = self.__attr(*a, **k)
+		self.__wrap.o = o
+		if isinstance(o, list):
+			return wrap(o)
+
+
+
+
+
+
+class FF(object):
+	
+	def __init__(self, o):
+		self.__o = o
+	
+	@property
+	def o(self):
+		"""
+		Return the wrapped object, whether from FFWrapper or FFData
+		subclasses.
+		"""
+		return self.__o
+	
+	@o.setter
+	def o(self, o):
+		self.__o = o
+
+
+
+
+
+class FFWrapper (FF):
+	"""
+	Copies an object's attributes, wrapping them inside an FFSetter
+	object that sets this object's value to an FF subclass object
+	containing the attribute method's result.
+	"""
+	def __init__(self, o, *a, **k):
+		"""
+		Pass object `x`; this object will be "wrapped" - it's attributes
+		copied to this FFWrapper object, but wrapped in an FFWrapper that
+		stores the original objects method results as FF subclass values.
+		"""
+		FF.__init__(self, o)
+		for n in dir(self.o):
+			if not ("__" in n):
+				ax = getattr(self.o, n)
+				if type(ax).__name__ == 'instancemethod':
+					setattr(self, n, FFSetter(self, ax))
+
+
+
+
+
+class FFParam(object):
 	"""
 	Parameter object used as argument to lambda calls in methods such
 	as each(); Similar to pyrox.base.pdq.QRow.
@@ -57,7 +97,7 @@ class fparam(object):
 	always contains the following member variables:
 	
 	The fparam member variables are:
-	 c : The calling object (eg, an flist)
+	 c : The calling object (eg, an FFList)
 	 i : The enumerated item number
 	 v : The value of the current item
 	
@@ -68,54 +108,39 @@ class fparam(object):
 		self.c = caller # the ff object (not its data)
 		self.i = item   # enumerated item's number
 		self.v = value  # the actual value of the item
+		
+		# the caller's contained object... for brevity's sake
+		self.o = self.c.o
 	
 	def set(self, value):
-		self.v = value
+		"""
+		Set the entire value of the current item.
+		"""
+		self.c.o = value
+		return self
+	
+	def seti(self, i, value):
+		"""
+		Set the item value of the current item. For example, if caller
+		self.c is a list, set self.c[i]=value.
+		"""
+		self.c.o[i] = value
+		return self
 	
 	# print output
 	def out(self, x):
 		"""Print the given value."""
 		print(x)
-	
+		return self
 
 
-# 
-# FF - FastForward base class
-#
-class FastForward(object):
+
+
+
+class FFData(FF):
 	"""
-	Base class receives and stores an initial value
+	Base class for builtin python classes such as list, str, etc...
 	"""
-	def __init__(self, obj, **k):
-		self.val(obj, **k)
-	
-	@property
-	def type(self):
-		return self.__T
-	
-	@property
-	def o(self):
-		return self.__o
-	
-	def val(self, *a, **k):
-		if a:
-			x=a[0]
-			self.__T = k.get('type', type(x))
-			self.__o = x
-		else:
-			return self.__o
-	
-	def each(self, fn, *a, **k):
-		fn(fparam(self, 0, self.o), *a, **k)
-	
-	def pdq(self, *a, **k):
-		return base.create('pyrox.base.pdq.Query', self.o)
-
-
-
-
-class fdata(FastForward):
-	
 	def __getitem__(self, key):
 		return self.o[key]
 	
@@ -126,23 +151,7 @@ class fdata(FastForward):
 
 
 
-class ftext(fdata):
-	def splitlines(self):
-		return flist(self.o.splitlines())
-	def dom(self):
-		return fdom(self.o)
-
-
-
-
-class flist(fdata):
-	
-	def __getitem__(self, key):
-		return self.o[key]
-	
-	def __len__(self):
-		return len(self.o)
-	
+class FFSeriesData(FFData):
 	def each(self, fn, *a, **k):
 		"""
 		Execute the given function once for each item in this list. The
@@ -156,133 +165,37 @@ class flist(fdata):
 		pass them).
 		"""
 		for i,v in enumerate(self.o):
-			fn(fparam(self.o, i, v), *a, **k)
+			fn(FFParam(self, i, v), *a, **k) 
+		return self
+
+
+
+
+
+class FFList(FFSeriesData):
 	
 	def sort(self, *a, **k):
-		"""Sort this list."""
-		self.val(sorted(self.o, *a, **k))
+		"""
+		Sort this list by passing self.o to the built-in `sorted` method.
+		Any additional args and kwargs are passed along to sorted().
+		"""
+		self.o = sorted(self.o, *a, **k)
 		return self
 	
 	def reverse(self):
 		"""Reverse this list."""
-		self.val(list(reversed(self.o)))
+		self.o = list(reversed(self.o))
 		return self
 	
 	def sorted(self, *a, **k):
-		"""Return a sorted copy of this list."""
-		return flist(sorted(self.o, *a, **k))
+		"""
+		Return a sorted copy of this list. Any additional args and kwargs
+		are passed along to sorted().
+		"""
+		return FFList(sorted(self.o, *a, **k))
 	
 	def reversed(self):
 		"""Return a reversed copy of this list."""
-		return flist(reversed(self.o))
-
-
-
-
-
-
-class fdom(fdata):
-	def __init__(self, text):
-		hparse = base.create('pyrox.base.dom.Parse', text)
-		fdata.__init__(self, hparse.doc)
-	
-	
-
-
-
-
-#
-# FILE SYSTEM
-#
-
-class ffs(FastForward):
-	"""File system object."""
-	def parent(self):
-		return fdir(self.o.path)
-
-
-
-
-
-class ffile(ffs):
-	"""
-	File object; Usage notes:
-	 * Use self.o to access data directly as a base.fs.File object
-	 * Use self.lines to get a list of lines from a text file
-	 * Use self.pdq to get a base.pdq.Query loaded with the text from
-	   this file.
-	"""
-	def __init__(self, path, **k):
-		ffs.__init__(
-			self, base.create('pyrox.base.fs.File', path, **k)
-		)
-	
-	def text(self, mode='r', **k):
-		return ftext(self.o.read(mode, **k))
-	
-	def lines(self, mode='r', **k):
-		return flist(self.o.read(mode, **k).splitlines())
-	
-	def pdq(self, mode='r', **k):
-		"""
-		Returns a Query object from pyrox.base.pdq
-		"""
-		return base.create(
-			'pyrox.base.pdq.Query', self.o.read(mode, **k)
-			)
-
-
-
-
-
-class fdir(ffs):
-	"""Directory object."""
-	def __init__(self, path=".", **k):
-		ffs.__init__(self, 
-			base.create('pyrox.base.fs.Dir', path, **k)
-		)
-	
-	def pdq(self, path, *a, **k):
-		return ffile(path, **k).pdq(*a, **k)
-	
-	def cd(self, *a, **k):
-		self.o.cd(*a, **k)
-		return self
-	
-	def mkdir(self, *a, **k):
-		self.o.mkdir(*a, **k)
-		return self
-	
-	def head(self, *a, **k):
-		return flist(self.o.head(*a, **k))
-	
-	def read(self, *a, **k):
-		return flist(self.o.read(*a, **k))
-	
-	def file(self, *a, **k):
-		return ffile(self.o.file(*a, **k))
-	
-	def cp(self, *a, **k):
-		self.o.cp(*a, **k)
-		return self
-	
-	def mv(self, *a, **k):
-		self.o.mv(*a, **k)
-		return self
-	
-	def rm(self, *a, **k):
-		self.o.rm(*a, **k)
-		return self
-	
-	def match(self, *a, **k):
-		return flist(self.o.match(*a, **k))
-	
-	def find(self, *a, **k):
-		return flist(self.val().find(*a, **k))
-		
-	def ls(self, *a, **k):
-		"""Get flist listing of current directory."""
-		return flist(self.val().ls(*a, **k))
-
+		return FFList(list(reversed(self.o)))
 
 

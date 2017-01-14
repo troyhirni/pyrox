@@ -1,0 +1,10 @@
+import pyrox as px
+h = px.ncreate('hubcap.hub.Hub')
+h.start()
+h.tasklaunch(1, 'pyrox.hubcap.task.add1.Add1')
+
+h.put(1, c='status')
+h.taskexit(1)
+h.put(1, c='status')
+
+h.exit()

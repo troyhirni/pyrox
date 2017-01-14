@@ -3,8 +3,19 @@ Copyright 2014-2016 Troy Hirni
 This file is part of the pyro project, distributed under
 the terms of the GNU Affero General Public License.
 
-CORE - Basic Application Components
+CORE - Basic Application Components - DEPRECATED!
 
+THIS PACKAGE IS DEPRECATED. Future efforts to provide the features
+of this package will be focused on the hubcap package, which operates
+in multiple processes rather than multiple threads. Use of processes
+provides the potential for much greater speed on systems with more
+than one processor.
+
+Unfortunately, hubcap is very early in development and doesn't really
+work at the moment, so I'll leave core here at least for a while in
+case it's features are needed.
+
+ORIGINAL DESCRIPTION:
 Defines the central component of a pyro(x)-based application. It 
 will define base classes that support processor time sharing and
 uninterrupted runtime reload, as well as services that constitute

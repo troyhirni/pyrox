@@ -29,12 +29,7 @@ h.put(2, c='exit')
 
 """
 
-try:
-	from ..base import *
-	from .. import base
-except:
-	from base import *
-	import base
+from .. import *
 
 import json, time, multiprocessing 
 
@@ -50,8 +45,8 @@ HC_Q_TIMEOUT = 0.001
 # TEMPORARY! Debug log.
 #
 HC_DBG_LOG = '%s/hubcap.log' % (__path__[0])
-
-
+HC_DBG_FMT = 'fmt.JDisplay'
+HC_DBG_SHOW = True
 
 def launch(typespec, *a, **k):
 	"""
@@ -85,7 +80,7 @@ def launch(typespec, *a, **k):
 	will be received as specified in the factory configuration dict.
 	"""
 	# create and run the task
-	t = base.create(typespec, *a, **k)
+	t = create(typespec, *a, **k)
 	t.run()
 
 
@@ -93,6 +88,48 @@ def launch(typespec, *a, **k):
 
 
 class Hubcap(object):
-	pass
+	
+	# create log formatter
+	__LFMT = ncreate(HC_DBG_FMT)
+	
+	# LOG
+	def log(self, *a, **k):
+		"""
+		Write log messages to HC_DBG_LOG file in format HC_DBG_FMT.
+		
+		Pass any number of arguments and kwargs - the more debug info
+		available, the better.
+		"""
+		if HC_DBG_LOG:
+			try:
+				a = list(a)
+				if k:
+					a.append(k)
+				f = open(HC_DBG_LOG, "a")
+				try:
+					p = multiprocessing.current_process()
+					pid = p.pid
+					T = type(self).__name__
+					d = {
+						'args' : a,
+						'proc' : p._name,
+						'pid' : pid,
+						'type' : T
+					}
+					
+					# format log/debug string
+					s = Hubcap.__LFMT.format(d)
+					
+					# log printing
+					if HC_DBG_SHOW:
+						print (s)
+					
+					# write to the log file
+					f.write("%s: %s\n" % (str(time.time()), s))
+				finally:
+					f.close()
+			except Exception as ex:
+				print ("Logging Error!")
+				print (ex)
 
 

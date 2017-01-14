@@ -1,15 +1,6 @@
-"""
-Copyright 2016 Troy Hirni
-This file is part of the pyrox project, distributed under
-the terms of the GNU Affero General Public License.
-
-Prompt for an object specified by package.module.class; additional
-arguments are passed to constructor.
-
-EXAMPLE: python pyrox base.fs.Dir ./pyrox/base
-"""
 
 import sys
+from . import *
 
 if __name__ == '__main__':
 	
@@ -19,27 +10,24 @@ if __name__ == '__main__':
 	
 	# help/how-to reminders
 	if not cmd or (cmd in ['-h', '--help']):
-		print ("\nUSAGE: python %s [[package.]module.]class" % (app))
-		print ("\n   OR: python -m pyrox --clean [path]")
+		print ("USAGE: python -m %s --clean [path]" % app)
 	
 	# print the arguments received by this call
 	elif cmd == '--args':
-		print ("\n %s" % (sys.argv))
+		print (str(sys.argv))
+	
+	# print the arguments received by this call
+	elif cmd == '--ipath':
+		print ("%s" % (Base.innerpath(*args)))
 	
 	# remove *.pyc files
 	elif cmd == '--clean':
-		from base import fs
-		d = fs.Dir(args[1]) if len(args)>1 else fs.Dir()
+		d = Base.ncreate('fs.dir.Dir', *args[1:])
 		d.find('.', '*.pyc', fn=d.rm)
 	
-	# test Prompt object
-	else:
-		import base
-		from base import prompt
-		try:
-			obj = base.Factory(cmd).create(*args)
-		except TypeError:
-			pe = cmd.split('.')
-			obj = __import__(cmd, globals(), locals(), pe[:-1])
-		prompt.prompt(obj)
-	
+	# prompt demo
+	elif cmd == '--prompt':
+		d = Base.ncreate(args[0], *args[1:])
+		p = Base.ncreate('intf.prompt.Prompt', d)
+		p.prompt()
+

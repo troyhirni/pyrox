@@ -2,7 +2,7 @@
 # pyrox
 
     
-    Copyright 2015-2016 Troy Hirni
+    Copyright 2015-2017 Troy Hirni
     This file is part of the pyrox project, distributed under
     the terms of the GNU Affero General Public License.
     
@@ -34,25 +34,11 @@ Package Goals:
  * give special attention to unicode issues
 
 
-**DEPENDENCE**
 
-The base package modules depend only on the base module (__init__)
-except for the url module, which depends on the text module for 
-encoding-detection, and the scan module, which depends on udata for
-unicode-related information.
+** UPDATE **
 
-    base
-      |____ database
-      |____ dom
-      |____ fmt
-      |____ fs
-      |____ pdq
-      |____ prompt   
-      |____ text _____ url
-      |____ udata ____ scan
-    
+Here's a major overhaul of pyrox, designed to help reduce the memory
+requirements since the `hubcap` package (if I can ever work out the
+bugs) will probably usually involve a lot of separate processess.
 
-The core package will depend on various modules from base, and (as
-within the base package) all core modules will import base or will
-import * from base so as to have access to cross-version definitions
-and the most basic functional needs.
+

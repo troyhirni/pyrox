@@ -3,21 +3,23 @@ Copyright 2014-2016 Troy Hirni
 This file is part of the pyrox project, distributed under
 the terms of the GNU Affero General Public License.
 
-Text (and support for Encoded bytes). 
+TEXT (and support for Encoded bytes). 
+
+This module provides a Text object that stores its own encoding, 
+useful in situations where text in many different encodings is being
+handled. An Encoded class is also defined here to provide some small
+measure of encoding detection, particularly for test "from the wild".
 """
 
 import codecs, encodings.aliases
-
-try:
-	from ..base import *
-except:
-	from base import *
 
 try:
 	from html.parser import HTMLParser
 except:
 	from HTMLParser import HTMLParser
 
+
+from .. import *
 
 
 
@@ -110,7 +112,7 @@ class Text(object):
 				ee = Encoded(x)
 				de = ee.detect()
 				if not de:
-					raise Exception('text-encoding-needed',  base.xdata())
+					raise Exception('text-encoding-needed',  xdata())
 				self.__enc = de
 				self.__text = ee.bytes.decode(self.__enc, **k)
 				
@@ -252,7 +254,7 @@ class Encoded(object):
 		Attempts to decode then reencode byte string argument for each
 		known encoding; Returns a list of encodings that succeed in this.
 		Set the encodings argument as a list to limit encodings tested; 
-		Default is base.ENCODINGS, which lists all documented encodings.
+		Default is ENCODINGS, which lists all documented encodings.
 		
 		Use this when searching manually for encodings that might work.
 		It's definitely NOT a valid way to *automatically* detect an 

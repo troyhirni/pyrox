@@ -15,7 +15,173 @@ from .runner import *
 
 
 class Hub(Runner):
+	"""
+	The center of a hub-controlled app, Hub spawns Task processes that
+	handle the work.
 	
+	Hub will eventually pass messages between tasks and handle utility
+	needs such as authentication.
+	"""
+	
+	# INIT
+	def __init__(self, config=None, **k):
+		conf = config or {}
+		Runner.__init__(self, conf)
+		self.tasks = {}
+		self.auto = conf.get('autolaunch', [])
+		self.factory = conf.get('factory', {})
+		
+		# debug formatting
+		self.fout = ncreate('fmt.JDisplay')
+	
+	
+	def __del__(self):
+		try:
+			self.exit()
+		except Exception as ex:
+			self.log(type(ex).__name__, ex.args)
+	
+	
+	
+	#
+	# ORISC
+	#
+	
+	# OPEN
+	def open(self, *a):
+		"""
+		Launch all preconfigured tasks.
+		"""
+		Runner.open()
+		for k in self.auto:
+			if k in self.factory:
+				self.tasklaunch(k, self.factory[k])
+			else:
+				self.log('hub-missing-factory', key=k)
+	
+	
+	# RUN
+	def run(self, *a):
+		"""
+		Run this hub. 
+		
+		NOTES:
+		 * At this point in development, control does not return from
+		   the .run() method until it's time to exit; Use the start()
+		   method when running from the python interpreter so you'll be
+		   able to continue to send commands to the hub (and to tasks,
+		   through the hub).
+		 * When running this hub from a thread, the run() method is 
+		   called by the Runner.start() method inside a new thread; this
+		   is why control returns (eg, to the interpreter) immediately.
+		"""
+		try:
+			# control stays with Runner.run until it's time to exit
+			Runner.run(self, *a)
+		finally:
+			# ...so, exit (to close all running task processes
+			self.exit()
+			time.sleep(self.sleep)
+	
+	
+	# IO
+	def io(self):
+		"""
+		Handle one pass through the event loop, reading and responding
+		to any received messages from each task.
+		"""
+		
+		# loop using local variables
+		om = self.onMessage
+		get = self.get
+		keys = self.tasks.keys()
+		
+		# loop through each task, processing messages
+		for t in keys:
+			
+			# Ignore missing tasks - they'll be gone the next time through
+			# the enclosing loop.
+			if t in self.tasks:
+				
+				# limit the number of messages to be handled each loop
+				imx = 32
+				ict = 0
+				
+				# get and handle messages from this tasks output queueAl
+				m = get(t)
+				while m:
+					om(m)
+					ict += 1
+					if ict >= imx:
+						break
+					m = get(t)
+	
+	
+	# EXIT - STOP/CLOSE
+	def exit(self):
+		"""
+		Exit all tasks then stop and close the hub.
+		"""
+		if self.running:
+			try:
+				self.log("HUB-EXIT")
+				tt = self.tasks.keys()
+				for taskid in tt:
+					self.taskexit(taskid)
+				self.tasks = {}
+			finally:
+				try:
+					self.stop()
+				finally:
+					self.close()
+	
+	
+	
+	#
+	# MESSAGING
+	#
+	
+	def onMessage(self, m):
+		"""
+		This is where messages will be handled. For now, in early
+		development, I'll just print them so I can see what's going on.
+		"""
+		# print out message in configured format (default: JDisplay)
+		self.fout.output(m)
+	
+	
+	
+	# GET
+	def get(self, taskid):
+		"""
+		Pop and return one item from the specified task's output queue. 
+		Returns None if no message item exists in the queue.
+		"""
+		trec = self.tasks[taskid]
+		qhub = trec['qhub']
+		try:
+			return qhub.get(timeout=HC_Q_TIMEOUT)
+		except:
+			return None
+	
+	
+	# PUT
+	def put(self, taskid, m=None, **k):
+		"""
+		Place item `m`, a dict, in the specified task's input queue.
+		"""
+		m = m or {}
+		m.update(k)
+		tr = self.tasks[taskid]
+		tr['qtask'].put(m)
+	
+	
+	
+	#
+	# TASK CONTROL
+	#
+	
+	# TASK LAUNCH
 	def tasklaunch(self, taskid, tasktype, *a, **k):
 		"""
 		The proper pre-configuration for a lists of hubcap Hub tasks is
@@ -63,84 +229,7 @@ class Hub(Runner):
 		self.log("TASKS:", self.tasks.keys())
 	
 	
-	
-	
-	def __init__(self, config=None, **k):
-		conf = config or {}
-		Runner.__init__(self, conf)
-		self.tasks = {}
-	
-	
-	def __del__(self):
-		try:
-			self.exit()
-		except Exception as ex:
-			self.log(type(ex).__name__, ex.args)
-	
-	
-	# messaging
-	
-	def get(self, taskid):
-		trec = self.tasks[taskid]
-		qhub = trec['qhub']
-		try:
-			return qhub.get(timeout=HC_Q_TIMEOUT)
-		except:
-			return None
-	
-	
-	def put(self, taskid, m=None, **k):
-		m = m or {}
-		m.update(k)
-		tr = self.tasks[taskid]
-		tr['qtask'].put(m)
-	
-	
-	# orisc
-	
-	def run(self, *a):
-		"""
-		Run this hub. 
-		
-		NOTES:
-		 * At this point in development, control does not return from
-		   the .run() method until it's time to exit, so call .exit()
-		   to release all task processes.
-		 * When running this hub from a thread, the run() method is 
-		   called by the Runner.start() method inside a new thread; this
-		   is why control returns (eg, to the interpreter) immediately.
-		"""
-		try:
-			# control stays with Runner.run until it's time to exit
-			Runner.run(self, *a)
-		finally:
-			# ...so, exit (to close all running task processes
-			self.exit()
-			time.sleep(self.sleep)
-	
-	
-	def io(self):
-		"""
-		Handle one pass through the event loop, reading and responding
-		to any received messages from each task.
-		"""
-		for t in self.tasks.keys():
-			if t in self.tasks: # ignore missing tasks
-				m = self.get(t)
-				while m:
-					if 'a' in m:
-						print json.dumps(m)
-					elif 'c' in m:
-						print
-						print "FOO BANG!"
-						print json.dumps(m)
-						print
-					
-					m = self.get(t)
-	
-	
-	# task control
-	
+	# TASK EXIT
 	def taskexit(self, taskid):
 		self.log("TASK-EXIT", taskid=taskid)
 		if not taskid in self.tasks:
@@ -148,6 +237,10 @@ class Hub(Runner):
 			return
 			
 		self.put(taskid, {'c':'exit'})
+		
+		while self.get(taskid):
+			pass #ignore any remaining messages (?)
+		
 		time.sleep(self.sleep) #need an exit dict!
 		
 		self.log("WAIT-FOR-TASK-EXIT", taskid=taskid)
@@ -162,21 +255,3 @@ class Hub(Runner):
 		
 		del(self.tasks[taskid])
 		self.log("TASKS:", self.tasks.keys())
-	
-	
-	# hub exit
-	
-	def exit(self):
-		if self.running:
-			try:
-				self.log("HUB-EXIT")
-				tt = self.tasks.keys()
-				for taskid in tt:
-					self.taskexit(taskid)
-				self.tasks = {}
-			finally:
-				self.stop()
-	
-
-
-+

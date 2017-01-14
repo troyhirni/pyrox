@@ -6,19 +6,12 @@ the terms of the GNU Affero General Public License.
 Wraps database modules that implement the DB-API 2.0 interface.
 """
 
-try:
-	from .. import base
-except:
-	import base
 
-try:
-	basestring
-except:
-	basestring = unicode = str
+from .. import *
 
 
 
-class Database(object):
+class Database(Base):
 	"""
 	A wrapper for DB-API 2.0 database access. This class facilitates 
 	cross-dbms, cross-python-version access to database functionality.
@@ -59,7 +52,7 @@ class Database(object):
 			if not conf:
 				conf = {}
 			elif isinstance(conf, basestring):
-				conf = base.config(conf)
+				conf = Base.config(conf)
 			else:
 				conf = dict(conf)
 			
@@ -76,7 +69,7 @@ class Database(object):
 			# path, for file-based databases
 			path = conf.get('path')
 			if path:
-				conf['path'] = base.Path.expand(path)
+				conf['path'] = Base.path().expand(path)
 				conf['args'].insert(0, path)
 			
 			# module
@@ -93,13 +86,13 @@ class Database(object):
 						'err-import' : str(ei),
 						'err-module' : str(em)
 					}
-					exdesc['tracebk'] = base.tracebk()
+					exdesc['tracebk'] = Base.tracebk()
 					raise Exception('db-init', exdesc)
 			
 			# sql
 			conf['sql'] = conf.get('sql', {})
 			if isinstance(conf['sql'], basestring):
-				conf['sql'] = base.config(conf['sql'])
+				conf['sql'] = Base.config(conf['sql'])
 			if not isinstance(conf['sql'], dict):
 				raise TypeError('db-config-sql')
 				
@@ -323,4 +316,4 @@ class Database(object):
 		d = dict(module=self.__modname, active=self.active)
 		if self.path:
 			d['path'] = self.path
-		return base.xdata(d, **k)
+		return Base.xdata(d, **k)

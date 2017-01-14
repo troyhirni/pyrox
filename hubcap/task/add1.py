@@ -5,15 +5,13 @@ of the GNU Affero General Public License.
 
 DEMO TASK - Add-1
 
-The Add1 demo task waits for dict a message with question 'q', an
-integer {'q':8} and replies by adding 1 to generate an answer 
-message {'q':8, 'a':9}.
-
+The Add1 demo task waits for message with question 'q', an integer,
+and adds answer 'a', an integer one greater than the question. 
+Eg., {'q':8} is replied to by adding 1 to generate answer message 
+{'q':8, 'a':9}.
 """
 
-
-from ..task import *
-
+from . import *
 
 class Add1(Task):
 	def onMessage(self, m):
