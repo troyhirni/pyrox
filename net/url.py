@@ -6,10 +6,7 @@ the terms of the GNU Affero General Public License.
 Parse URLs; Retrieve and work with URL content.
 """
 
-try:
-	from ..base import *
-except:
-	from base import *
+from .. import *
 
 from . import text
 

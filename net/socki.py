@@ -1,15 +1,15 @@
 """
+Copyright 2014-2017 Troy Hirni
+This file is part of the pyrox project, distributed under
+the terms of the GNU Affero General Public License.
+
 SOCKI - SOCKET INFO
 
 Convenience utility for finding the best socket creation arguments.
 
 """
 
-
-try:
-	from .. import base
-except:
-	import base
+from .. import *
 
 import socket
 
