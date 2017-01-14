@@ -1,9 +1,15 @@
+"""
+Copyright 2016-2017 Troy Hirni
+This file is part of the pyro project, distributed under the terms 
+of the GNU Affero General Public License.
 
+FAST-FORWARD - DEMO - Coding in the style of jQuery
 
+FF wraps objects in FFWrapper, pushing them or their results (also
+wrapped) forward through a series of chained commands in a way that's
+similar to data.pdq.Query objects.
 
-
-
-
+"""
 
 
 def wrap(o):
@@ -38,7 +44,6 @@ class FFSetter(object):
 		self.__wrap.o = o
 		if isinstance(o, list):
 			return wrap(o)
-
 
 
 
