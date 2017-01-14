@@ -1,5 +1,5 @@
 """
-Copyright 2016 Troy Hirni
+Copyright 2016-2017 Troy Hirni
 This file is part of the pyrox project, distributed under
 the terms of the GNU Affero General Public License.
 
@@ -16,12 +16,9 @@ try:
 except:
 	from HTMLParser import HTMLParser
 
-try:
-	from pyrox.base import *
-except:
-	from base import *
-
 from xml.dom import Node as TPythonNode
+
+from .. import *
 
 
 

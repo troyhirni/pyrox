@@ -1,22 +1,16 @@
 """
-Copyright 2014-2016 Troy Hirni
+Copyright 2014-2017 Troy Hirni
 This file is part of the pyro project, distributed under
 the terms of the GNU Affero General Public License.
 
 SCAN TEXT/BYTES
 
-
+Scan text based on extensive unicode data.
 """
 
-
+from .. import *
 import unicodedata as ucd 
 
-try:
-	from ..base import *
-except:
-	from base import *
-
-from . import udata
 
 
 

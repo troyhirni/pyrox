@@ -1,5 +1,5 @@
 """
-Copyright 2014-2016 Troy Hirni
+Copyright 2014-2017 Troy Hirni
 This file is part of the aimy project, distributed under
 the terms of the GNU Affero General Public License.
 
