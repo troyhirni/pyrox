@@ -5,14 +5,17 @@ the terms of the GNU Affero General Public License.
 
 ZIP - Covers zip files.
 
-
+THIS THING IS ***KILLING*** ME.
+I need to read this tomorrow when i'm not so tired.
+https://pymotw.com/2/zipfile/
 """
+
 
 import zipfile
 from .file import *
 
 
-class Zip(File):
+class Zip(ImmutablePath):
 	"""
 	Read and write .zip files.
 	
@@ -21,10 +24,24 @@ class Zip(File):
 	file.
 	"""
 	
-	def __init__(self, path, **k):
-		"""Pass path to file. Keywords apply as to base.Path.expand()."""
-		Path.__init__(self, k.get('zip', path), **k)
-		with zipfile.ZipFile(self.path, 'w') as z:
+	def __init__(self, path, pwd=None, comp=None, b64=None, **k):
+		"""
+		Pass path to file. Other optional arguments are:
+		 * pwd - a password
+		 * comp - compression: either ZIP_DEFLATED or default ZIP_STORED
+		 * b64 - allowZip64: allow zipfile size > 2GB
+		
+		Keywords apply as to base.Path.expand().
+		"""
+		ImmutablePath.__init__(self, k.get('zip', path), **k)
+		
+		# store password
+		self.__pass = pwd
+		self.__comp = comp if comp else zipfile.ZIP_DEFLATED
+		self.__b64 = b64
+		
+		# force creation of the file
+		with self.open() as z:
 			z.close()
 	
 	@property
@@ -32,25 +49,84 @@ class Zip(File):
 		"""Returns self.namelist()"""
 		return self.namelist()
 	
+	
+	# check how tarfile does this
+	#@property
+	#def members(self):
+	#	return self.infolist()
+	
+	
+	# OPEN
+	def open(self, mode='r', **k):
+		"""Returns a ZipFile object."""
+		try:
+			return zipfile.ZipFile(self.path, mode, self.__comp, self.__b64)
+		except RuntimeError:
+			try:
+				self.__comp = zipfile.ZIP_DEFLATED
+				return zipfile.ZipFile(self.path, mode, self.__comp, self.__b64)
+			except:
+				self.__comp = zipfile.ZIP_STORED
+				return zipfile.ZipFile(self.path, mode, self.__comp, self.__b64)
+	
+	# TEST
+	def test(self):
+		with self.open() as z:
+			try:
+				return z.testzip()
+			finally:
+				z.close()
+	
+	
+	# NAME LIST
 	def namelist(self):
-		with zipfile.ZipFile(self.path, 'r') as z:
-			nn = z.namelist()
-			z.close()
-			return nn
+		with self.open() as z:
+			try:
+				return z.namelist()
+			finally:
+				z.close()
 	
-	def read(self, zpath):
-		with zipfile.ZipFile(self.path, 'r') as z:
-			r = z.read(zpath)
-			z.close()
-			return r
 	
-	def write(self, zpath, data, mode='a'):
+	# INFO LIST
+	def infolist(self):
+		with self.open() as z:
+			try:
+				return z.infolist()
+			finally:
+				z.close()
+	
+	
+	# READ
+	def read(self, member, **k):
+		with self.open() as z:
+			try:
+				return z.read(member, **k)
+			finally:
+				z.close()
+	
+	
+	# WRITE
+	def write(self, member, data, mode='a', **k):
 		"""
-		Write data to zpath within the zip file. Default mode is 'w'; to
-		append more files, use mode='a'.
+		Write data to member (zip path) within the zip file. Default mode
+		is 'a'.
+		
+		To overwrite all contents, use mode='w'.... CHECK THIS!!!
 		"""
-		with zipfile.ZipFile(self.path, mode) as z:
-			z.writestr(zpath, data)
-			z.close()
-
+		with self.open(mode) as z:
+			try:
+				z.writestr(member, data, **k)
+			finally:
+				z.close()
+	
+	
+	# READER
+	def reader(*a,**k):
+		raise NotImplementedError('maybe-someday')
+	
+	
+	# WRITER
+	def writer(*a,**k):
+		raise NotImplementedError('maybe-someday')
+		
 
