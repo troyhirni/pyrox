@@ -64,26 +64,26 @@ class Mime(object):
 	def subtype(self):
 		return self.__subtype
 	
-	def file(self):
+	def file(self, **k):
+		
+		# set this object as a keyword argument
+		k['mime']=self
 		
 		# application is zip or tar
 		if self.__type == 'application':
 			if self.__subtype == 'zip':
-				return Base.ncreate('fs.zip.Zip', self.__url)
+				return Base.ncreate('fs.zip.Zip', self.__url, **k)
 			elif self.__subtype == 'x-tar':
-				return Base.ncreate('fs.tar.Tar', self.__url)
+				return Base.ncreate('fs.tar.Tar', self.__url, **k)
 		
 		# gzip encoded
 		elif self.__enc == 'gzip':
-			return Base.ncreate('fs.gzip.Gzip', self.__url)
+			return Base.ncreate('fs.gzip.Gzip', self.__url, **k)
 		
 		# gzip encoded
 		elif self.__enc == 'bzip2':
-			return Base.ncreate('fs.bzip.Bzip', self.__url)
+			return Base.ncreate('fs.bzip.Bzip', self.__url, **k)
 		
-		# any kind of text file
-		if self.__type == 'text':
-			return Base.ncreate('fs.file.File', self.__url)
-		
-		raise Exception('file-opener-not-available')
+		# last resort: any kind of file
+		return Base.ncreate('fs.file.File', self.__url, **k)
 

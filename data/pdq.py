@@ -91,6 +91,12 @@ class Query(object):
 	
 	
 	@property
+	def file(self):
+		"""Return file, if one was specified to the constructor."""
+		return self.__file
+	
+	
+	@property
 	def len(self):
 		"""Return self.data length."""
 		return len(self.data)

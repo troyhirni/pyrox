@@ -6,9 +6,6 @@ of the GNU Affero General Public License.
 FS - File System Functionality
 
 The base for pyro file system operations.
-
-
-
 """
 
 from .. import *
@@ -35,6 +32,7 @@ class Path(Base):
 	
 	def __init__(self, p=None, **k):
 		self.__p = self.expand(k.get('path', p), **k)
+		self.__m = k.get('mime')
 	
 	def __str__(self):
 		return self.path
@@ -62,15 +60,22 @@ class Path(Base):
 			self.__opener = opener.Opener()
 			return self.__opener
 	
-	"""
 	@property
-	def dir(self):
-		return pyro.create(pyro.importpath("fs.fsdir.Dir"), *a, **k)
-	
-	@property
-	def file(self):
-		return pyro.create(pyro.importpath("fs.fsfile.File"), *a, **k)
-	"""
+	def mime(self):
+		"""
+		Return a mime object for the file at this path. For non-files, or
+		in the case of any error, returns None.
+		
+		EXPERIMENTAL!
+		"""
+		try:
+			return self.__mime
+		except:
+			try:
+				self.__mime = ncreate('fs.mime.Mime', self.path)
+			except:
+				self.__mime = None
+			return self.__mime
 	
 	def exists(self, path=None):
 		return os.path.exists(self.merge(path))
@@ -155,8 +160,9 @@ class Path(Base):
 		"""Open file at self.path and return a Writer."""
 		return Writer(self.open(mode, **k))
 	
+	
 	@classmethod
-	def expand(cls, path=None, **k):
+	def expand(cls, path=None, **k): # EXPAND
 		"""
 		Returns an absolute path.
 		
