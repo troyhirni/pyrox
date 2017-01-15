@@ -5,26 +5,85 @@ Affero General Public License.
 
 PDQ - Python Data Query
 
-The rows, select, update, delete and each methods accept keyword
-'where' - a callable that returns True for matching records.
+PDQ is a tool for quick exploration and manipulation of python lists.
+Create a Query object passing a list or text to the constructor. Use 
+Query methods to massage the data until it's just what you need. The 
+rows, select, update, delete and each methods accept keyword `where` 
+- a callable that returns True for matching records.
+
+The head(), peek(), and grid() methods display small sections of 
+current data in various formats, and fmt() is available to help you
+format (or output) the data in various other ways. The data property
+returns the data itself, or lets you completely reset the data. There
+is even a one-time undo() method in case you get unexpected results.
+
+Keyword args 'file' and 'gzip' let you specify a text or gzip file
+to import as string data. Use Query.splitlines() to split the data
+into a list of lines. Use Query.update() to split individual lines
+into lists. For example:
+
+# EXAMPLE:
+import pdq
+q = pdq.Query(file="space-separated-values.txt", encoding='ascii')
+q.splitlines()
+q.update(lambda o: o.v.split())
+
+# EXAMPLE 2 - a quick way to get a table full of integers
+from ..data import rand
+rowct = 7 # row count
+fldct = 6 # field count
+intsz = 5 # integer length
+q = pdq.Query([list(rand.randgen(fldct, rand.randi, intsz))
+	for x in range(0,rowct)])
+
+# EXAMPLE 2 NOTES:
+#  - Change 'rand.randi' to .randf for floats;
+#  - You can use a lambda instead of rand.randi;
 """
 
 from .. import *
 
 
 class Query(object):
-	def __init__(self, data=[], **k):
+	def __init__(self, data=None, **k):
 		"""
-		Argument 'data' can be text, bytes, or a python list. If you 
-		know the encoding of your text, pass it as encoding=<enc>.
+		Argument 'data' can be text, bytes, or a python list. If data
+		specification results in byte-text and you know the encoding, 
+		pass it as a kwarg: encoding=<enc>. DO NOT pass an encoding with
+		anything other than byte strings or file specifications that will
+		produce encoded byte strings.
+		
+		Additional kwargs:
+		 - file : load text from a file; supports text, zip, bzip2, gzip,
+		          and tar files
+		 - name : zip and tar files require a name kwarg to identify the
+		          item within the file to read
+		 - row  : a custom row type may be specified to replace QRow
 		"""
-		self.Row =  k.get('Row', QRow)
-		if 'encoding' in k:
-			self.encoding = k['encoding']
-			self.__data = data.decode(self.encoding)
+		# encoding; used only if data is text
+		self.__encoding = k.get('encoding', None)
+		
+		# type specification for row object
+		self.__TRow =  k.get('row', QRow)
+		
+		# make sure there's something for data
+		data = data if data else ''
+		
+		# allow reading of text or gzip files
+		if 'file' in k:
+			mm = Base.ncreate('fs.mime.Mime', k['file'])
+			f = mm.file() #Base.ncreate("fs.file.File", k['file'])
+			if  not f:
+				raise Exception('file-not-created')
+			self.__file = f
+			self.__name = n = k.get('name')
+			self.__data = f.read(n) if n else f.read()
 		else:
 			self.__data = data
-		self.__undo = self.__data
+		
+		# decode to unicode string
+		if self.__encoding:
+			self.__data = self.__data.decode(self.__encoding)
 	
 	
 	def __getitem__(self, key):
@@ -53,6 +112,9 @@ class Query(object):
 	
 	# UTILITY METHODS
 	
+	def fmt(self, spec, *a, **k):
+		return create(spec, *a, **k)
+	
 	def head(self, *a):
 		"""Return, from the given offset, the given number of lines."""
 		x,y = (a[0],sum(a[0:2])) if len(a)>1 else (0, a[0] if a else 9)
@@ -73,6 +135,7 @@ class Query(object):
 				return str(self.data).splitlines()[x:y]
 		
 	def peek(self, *a):
+		"""Print each line. Same args as head()."""
 		h = self.head(*a)
 		if isinstance(h, (bytes,basestring)):
 			print (h)
@@ -80,11 +143,20 @@ class Query(object):
 			for l in h:
 				print (l)
 	
+	def grid(self, *a, **k):
+		"""
+		Output a grid. Same args as head(); Kwargs passed to grid.Grid
+		constructor.
+		"""
+		Base.ncreate('fmt.grid.Grid', **k).output(self.head(*a))
+	
 	def rows(self, *a, **k):
-		"""Returns a generator of self.Rows for matching rows."""
+		"""
+		Returns a generator of type QRow for matching rows.
+		"""
 		where = k.get('where')
 		for i,v in enumerate(self.data):
-			x = self.Row(self, i, v, *a, **k)
+			x = self.__TRow(self, i, v, *a, **k)
 			if (not where) or where(x):
 				yield x
 	
@@ -232,4 +304,6 @@ class QRow(object):
 			return self.v[:]
 		except:
 			return self.v
-
+	
+	def out(self, v=None):
+		print (v if v else o.v)

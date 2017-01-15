@@ -25,19 +25,32 @@ class Zip(File):
 		"""Pass path to file. Keywords apply as to base.Path.expand()."""
 		Path.__init__(self, k.get('zip', path), **k)
 		with zipfile.ZipFile(self.path, 'w') as z:
-			pass
+			z.close()
+	
+	@property
+	def names(self):
+		"""Returns self.namelist()"""
+		return self.namelist()
 	
 	def namelist(self):
 		with zipfile.ZipFile(self.path, 'r') as z:
-			return z.namelist()
+			nn = z.namelist()
+			z.close()
+			return nn
 	
 	def read(self, zpath):
 		with zipfile.ZipFile(self.path, 'r') as z:
-			return z.read(zpath)
+			r = z.read(zpath)
+			z.close()
+			return r
 	
-	def write(self, zpath, data):
-		with zipfile.ZipFile(self.path, 'a') as z:
+	def write(self, zpath, data, mode='a'):
+		"""
+		Write data to zpath within the zip file. Default mode is 'w'; to
+		append more files, use mode='a'.
+		"""
+		with zipfile.ZipFile(self.path, mode) as z:
 			z.writestr(zpath, data)
-
+			z.close()
 
 

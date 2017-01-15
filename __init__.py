@@ -60,11 +60,16 @@ class Base(object):
 	
 	@classmethod
 	def config(cls, *a, **k):
+		"""
+		Creates and stores the Config type on the first call (bringing
+		the config module into memory). Uses that type object to create
+		a new Config for reading and writing config files. 
+		"""
 		try:
-			return cls.__Config(*a, **k)
+			return cls.__TConfig(*a, **k)
 		except:
-			cls.__Config = TFactory(cls.innerpath('fs.config.Config')).type
-			return cls.__Config(*a, **k)
+			cls.__TConfig = TFactory(cls.innerpath('fs.config.Config')).type
+			return cls.__TConfig(*a, **k)
 	
 	@classmethod
 	def create(cls, conf, *a, **k):
@@ -170,10 +175,10 @@ class Base(object):
 	@classmethod
 	def path(cls, *a, **k):
 		try:
-			return cls.__Path(*a, **k)
+			return cls.__TPath(*a, **k)
 		except:
-			cls.__Path = TFactory(cls.innerpath('fs.Path')).type
-			return cls.__Path(*a, **k)
+			cls.__TPath = TFactory(cls.innerpath('fs.Path')).type
+			return cls.__TPath(*a, **k)
 
 
 

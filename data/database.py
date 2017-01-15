@@ -272,12 +272,16 @@ class Database(Base):
 		"""Execute list of query strings. On error, rollback."""
 		try:
 			cc = cursor if cursor else self.cursor()
+			qn=0
 			for sql in queries:
 				cc.execute(sql)
+				qn += 1
 			return cc
 		except Exception as ex:
 			self.__rollback()
-			raise Exception('db-query-err', self.xdata(sql=sql))
+			raise Exception('db-query-err', self.xdata(sql=sql, qitem=qn,
+				qlist=queries
+			))
 	
 	
 	# OPQ - Op Query
