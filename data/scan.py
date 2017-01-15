@@ -116,33 +116,43 @@ class Scanner(object):
 		"""Current position in scan."""
 		return self.__pos
 	
+	
+	#
 	# GENERAL
+	#
+	
+	# CLONE - Copy scanner from current pos (same data)
 	def clone(self):
 		"""
 		Return a new Scan object set to this object's data and position.
 		"""
 		return type(self)(self.__data, self.pos, **self.__k)
 	
+	# MOVE - Move either direction by `i`
 	def move(self, i):
 		"""Move by integer i."""
 		self.__pos = self.pos + i
 	
+	# NEXT - move forward by 1
 	def next(self):
 		c = self.cur
 		self.__pos += 1
 		return c
 	
+	# PEEK - return next char without moving
 	def peek(self):
 		"""Returns next character/byte without moving."""
 		return self.__data[self.pos + 1]
 	
 	
-	# SEARCH
+	# SEARCH - search for given text/bytes
 	def match(self, x):
-		"""Return the lenght of x if next data == x, else 0."""
+		"""Return the length of x if next data == x, else 0."""
 		L = len(x)
 		return L if self.__data[self.pos:L] == x else 0
 	
+	
+	# FIND - any first matching arg (text/bytes)
 	def find(self, *a):
 		"""
 		Search forward for the first match to any the given arguments. 
@@ -161,7 +171,7 @@ class Scanner(object):
 			except IndexError:
 				tests.remove(x)
 			pos += 1
-	
+		return -1
 	
 	def seek(self, *a):
 		"""
@@ -170,7 +180,7 @@ class Scanner(object):
 		returns False.
 		"""
 		r = self.find(*a)
-		if r:
+		if r > 0:
 			self.move(r)
 		return r >= 0
 
