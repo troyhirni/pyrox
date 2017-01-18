@@ -50,5 +50,6 @@ Temporary Items
 *.pyc
 __pycache__/
 __pycache__
+wiki/
 wiki
 
