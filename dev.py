@@ -71,3 +71,16 @@ class Debug(object):
 		return cls.__TRACE
 
 
+
+
+#
+# INFORMATION
+#
+
+def dirpeek(obj):
+	d = dir(obj)
+	rd = {}
+	for i,v in enumerate(d):
+		rd[v] = getattr(obj,v)
+	JDisplay(sort_keys=1).output(rd)
+
