@@ -16,15 +16,8 @@ from ..fmt import JSONDisplay
 class Config(Path):
 	
 	def __init__(self, path, **k):
-		Path.__init__(self, path, **k)
+		Path.__init__(self, path)
 		self.__k = k
-	
-	
-	def config(self, data=None):
-		if data:
-			self.write(data)
-		else:
-			return self.read()
 	
 	
 	def write(self, data, **k):
@@ -48,19 +41,11 @@ class Config(Path):
 			try:
 				return json.loads(txt)
 			except BaseException as json_ex:
-				# since this is reporting two exceptions, it can't use the
-				# xdata function to package the exception data.
-				raise Exception ("config-read-error", {
-						"ast" : {
-							"type" : type(ast_ex),
-							"args" : ast_ex.args
-						},
-						"json" : {
-							"type" : type(json_ex),
-							"args" : json_ex.args
-						},
-						"tracebk" : tracebk()
-					})
+				raise Exception ("config-read-error", xdict(
+					path = self.path, pathk = k,
+					ast = {"type" : type(ast_ex), "args" : ast_ex.args},
+					json = {"type" : type(json_ex), "args" : json_ex.args}
+				)
 
 
 
