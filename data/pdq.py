@@ -28,17 +28,10 @@ q = pdq.Query(file="space-separated-values.txt", encoding='ascii')
 q.splitlines()
 q.update(lambda o: o.v.split())
 
-# EXAMPLE 2 - a quick way to get a table full of integers
-from ..data import rand
-rowct = 7 # row count
-fldct = 6 # field count
-intsz = 5 # integer length
-q = pdq.Query([list(rand.randgen(fldct, rand.randi, intsz))
-	for x in range(0,rowct)])
-
-# EXAMPLE 2 NOTES:
-#  - Change 'rand.randi' to .randf for floats;
-#  - You can use a lambda instead of rand.randi;
+# EXAMPLE 2 - a quick way to get a grid full of floats
+import random
+r=[[random.random()*10000 for x in range(0,3)] for y in range(0,20)]
+q = pdq.Query(r)
 """
 
 from .param import *
