@@ -14,7 +14,7 @@ similar to data.pdq.Query objects.
 
 def wrap(o):
 	"""
-	Argument `v` is an object
+	Argument `o` is an object
 	"""
 	if isinstance(o, list):
 		return FFList(o)
