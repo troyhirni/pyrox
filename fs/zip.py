@@ -1,6 +1,6 @@
 """
 Copyright 2016-2017 Troy Hirni
-This file is part of the pyrox project, distributed under
+This file is part of the pyro project, distributed under
 the terms of the GNU Affero General Public License.
 
 ZIP - Covers zip files.
@@ -109,9 +109,7 @@ class Zip(ImmutablePath):
 	def write(self, member, data, mode='a', **k):
 		"""
 		Write data to member (zip path) within the zip file. Default mode
-		is 'a'.
-		
-		To overwrite all contents, use mode='w'.... CHECK THIS!!!
+		is 'a'. (To overwrite all contents, use mode='w'.)
 		"""
 		with self.open(mode) as z:
 			try:
