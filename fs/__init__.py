@@ -65,8 +65,6 @@ class Path(Base):
 		"""
 		Return a mime object for the file at this path. For non-files, or
 		in the case of any error, returns None.
-		
-		EXPERIMENTAL!
 		"""
 		try:
 			return self.__mime

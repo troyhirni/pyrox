@@ -16,8 +16,15 @@ from ..fmt import JSONDisplay
 class Config(Path):
 	
 	def __init__(self, path, **k):
-		Path.__init__(self, path)
+		Path.__init__(self, path, **k)
 		self.__k = k
+	
+	
+	def config(self, data=None):
+		if data:
+			self.write(data)
+		else:
+			return self.read()
 	
 	
 	def write(self, data, **k):

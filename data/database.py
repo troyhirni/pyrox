@@ -11,7 +11,7 @@ from .. import *
 
 
 
-class Database(Base):
+class Database(object):
 	"""
 	A wrapper for DB-API 2.0 database access. This class facilitates 
 	cross-dbms, cross-python-version access to database functionality.
@@ -31,9 +31,14 @@ class Database(Base):
 		self.__con = None
 		self.__inited = None
 		
-		# config
+		# build config using self.config() method
 		conf = self.config(config, *a, **k)
-		self.__path = conf.get('path')
+		
+		# expand path
+		path = Base.path(conf.get('path'), affirm='makepath').path
+		
+		# config
+		self.__path = path
 		self.__args = conf.get('args')
 		self.__mod = conf.get('module')
 		self.__modname = conf.get('modname')
@@ -44,17 +49,17 @@ class Database(Base):
 		self.__op = self.__sql.get('op', {})
 	
 	
-	def config(self, conf=None, *a, **k):
+	def config(self, config=None, *a, **k):
 		"""Return a config dict based on the common pyro(x) rules."""
 		try:
 			return self.__config
 		except:
-			if not conf:
-				conf = {}
-			elif isinstance(conf, basestring):
-				conf = Base.config(conf)
+			if not config:
+				conf = config = {}
+			elif isinstance(config, basestring):
+				conf = Base.config(config, **k).read()
 			else:
-				conf = dict(conf)
+				conf = dict(config)
 			
 			# kwargs rule
 			conf.update(k)
@@ -86,7 +91,7 @@ class Database(Base):
 						'err-import' : str(ei),
 						'err-module' : str(em)
 					}
-					exdesc['tracebk'] = Base.tracebk()
+					exdesc['tracebk'] = tracebk()
 					raise Exception('db-init', exdesc)
 			
 			# sql
@@ -178,8 +183,11 @@ class Database(Base):
 		
 		try:
 			self.__con = self.mod.connect(*self.__args, **kwargs)
+			
 		except BaseException as ex:
-			raise type(ex)('db-open-fail', self.xdata())
+			raise type(ex)('db-open-fail', self.xdata(
+				python=str(ex), args=self.__args, kwargs=kwargs,
+			))
 		
 		# auto-init
 		if not self.__autoinit:
@@ -320,4 +328,6 @@ class Database(Base):
 		d = dict(module=self.__modname, active=self.active)
 		if self.path:
 			d['path'] = self.path
-		return Base.xdata(d, **k)
+		
+		# this is the pyro __init__ xdata() function
+		return xdata(d, **k)

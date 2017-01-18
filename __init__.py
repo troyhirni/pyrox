@@ -3,7 +3,7 @@ Copyright 2014-2017 Troy Hirni
 This file is part of the pyro project, distributed under the terms 
 of the GNU Affero General Public License.
 
-PYROX
+PYRO
 
 This package is intended to provide support for python application
 and script development and to be a helpful utility in an interpreter
@@ -27,25 +27,24 @@ Here are some more 2/3 compatability tips:
 COMMAND LINE USE
 Currently, there's not much available for use from the command line,
 but there are several packages and modules under construction which
-will be very useful from the command line. Therefore, this __init__
-module will remain bare, and the most basic package needs will be
-imported here as a convenience but will remain in the 'base' module 
-where they can be imported by __main__.py.
+will be very useful from the command line.
 
 Useful command line features:
- $ python -m pyrox --clean
+ $ python -m pyro --clean
 
 """
 
-
-import sys, os, time, traceback
-
+import os, sys, time, traceback
 
 try:
 	basestring
 except:
 	basestring = unicode = str
 	unichr = chr
+
+
+# REM: Set to True for development, False for release versions.
+AUTO_DEBUG = True
 
 
 DEF_INDENT = 2
@@ -60,11 +59,6 @@ class Base(object):
 	
 	@classmethod
 	def config(cls, *a, **k):
-		"""
-		Creates and stores the Config type on the first call (bringing
-		the config module into memory). Uses that type object to create
-		a new Config for reading and writing config files. 
-		"""
 		try:
 			return cls.__TConfig(*a, **k)
 		except:
@@ -92,14 +86,6 @@ class Base(object):
 		
 		# Create and return the object described by conf.
 		return Factory(conf, *a, **k).create()
-
-	@classmethod
-	def ncreate(cls, innerPath, *a, **k):
-		"""
-		Expand `innerPath` argument through Base.innerpath then create
-		and return the described object.
-		"""
-		return cls.create(cls.innerpath(innerPath), *a, **k)
 	
 	@classmethod
 	def innerpath(cls, innerPath=None):
@@ -118,59 +104,14 @@ class Base(object):
 		m = cls.__module__
 		p = '.%s' % (innerPath) if innerPath else ''
 		return "%s%s" % (m, p) if m else innerPath
-	
+
 	@classmethod
-	def xdata(cls, xdata=None, **k):
+	def ncreate(cls, innerPath, *a, **k):
 		"""
-		Package extensive exception data into a dict to be passed as the
-		second argument to a new exception. This classmethod merges any
-		given keyword args, exception type, args, and traceback values 
-		with dict `xdata` into a new dict suitable for display by the 
-		Debug class.
-		
-		The xdata argument is optional, defaulting to an empty dict. Any
-		keywords (also optional) will update the xdata dict.
-		
-		Existing exceptions are chained in the current result's `prior` 
-		key value, and multiple new exceptions are added as they are 
-		processed by the xdata classmethod.
-		
-		NOTES:
-		 * The pyro package standard is to pass a 'dash-separated-error'
-		   string as the first argument and an xdata dict as the second 
-		   argument in any exception thrown (or caught and rethrown)..
+		Expand `innerPath` argument through Base.innerpath then create
+		and return the described object.
 		"""
-		
-		# argument management
-		xdata = xdata or {}
-		xdata.update(k)
-		
-		# forced arguments
-		xdata.setdefault('time', time.clock())
-		
-		# create and populate the return dict
-		r = dict(detail=xdata)
-		
-		# if this is a current exception situation, record its values 
-		try:
-			xtype, xval = sys.exc_info()[:2]
-			xprior = {}
-			if xtype or xval:
-				xprior['type'] = xtype
-				xprior['args'] = xval.args
-				tblist = tracebk()
-				if tblist:
-					xprior['tracebk'] = list(tblist)
-				r['prior'] = xprior
-			return r
-		finally:
-			# Some versions of python may encounter problems if these values,
-			# are not nullified.
-			xtype = None
-			xval = None
-	
-	
-	# COMMON NEEDS
+		return cls.create(cls.innerpath(innerPath), *a, **k)
 	
 	@classmethod
 	def path(cls, *a, **k):
@@ -180,15 +121,6 @@ class Base(object):
 			cls.__TPath = TFactory(cls.innerpath('fs.Path')).type
 			return cls.__TPath(*a, **k)
 
-
-
-#
-# FOR CONVENIENCE...
-#
-create  = Base.create
-ncreate = Base.ncreate
-path    = Base.path
-xdata   = Base.xdata
 
 
 
@@ -313,8 +245,8 @@ class TFactory(object):
 			)
 		except Exception as ex:
 			raise type(ex)('factory-import-fail', xdata(
-				python=str(ex), path=path, T=T, typeinfo=self.__typeinfo, 
-				suggest=[
+				python=str(ex), path=path, T=T, 
+				typeinfo=self.__typeinfo, suggest=[
 					'check-file-path', 'check-class-path','check-python-syntax'
 				]
 			))
@@ -378,6 +310,7 @@ class Factory(TFactory):
 
 
 
+
 def tracebk():
 	"""Return current exception's traceback as a list."""
 	tb = sys.exc_info()[2]
@@ -387,3 +320,65 @@ def tracebk():
 		finally:
 			del(tb)
 
+
+
+def xdata(xdata=None, **k):
+	"""
+	Package extensive exception data into a dict to be passed as the
+	second argument to a new exception. This classmethod merges any
+	given keyword args, exception type, args, and traceback values 
+	with dict `xdata` into a new dict suitable for display by the 
+	Debug class.
+	
+	The xdata argument is optional, defaulting to an empty dict. Any
+	keywords (also optional) will update the xdata dict.
+	
+	Existing exceptions are chained in the current result's `prior` 
+	key value, and multiple new exceptions are added as they are 
+	processed by the xdata classmethod.
+	
+	NOTES:
+	 * The pyro package standard is to pass a 'dash-separated-error'
+	   string as the first argument and an xdata dict as the second 
+	   argument in any exception thrown (or caught and rethrown)..
+	"""
+	# argument management
+	xdata = xdata or {}
+	xdata.update(k)
+	
+	# forced arguments
+	xdata.setdefault('time', time.time())
+	
+	# create and populate the return dict
+	r = dict(detail=xdata)
+	
+	# if this is a current exception situation, record its values 
+	try:
+		xtype, xval = sys.exc_info()[:2]
+		xprior = {}
+		if xtype or xval:
+			xprior['xtype'] = xtype
+			xprior['xargs'] = xval.args
+			tblist = tracebk()
+			if tblist:
+				xprior['tracebk'] = list(tblist)
+			r['prior'] = xprior
+		return r
+	finally:
+		# Some versions of python may encounter problems if these values,
+		# are not nullified.
+		xtype = None
+		xval = None
+
+
+
+
+#
+# DEV / DEBUG
+#
+def debug(debug=True, showtb=True):
+	"""Enable/disable debugging/traceback."""
+	TFactory(Base.innerpath('dev.debug')).type(debug,showtb)
+
+if AUTO_DEBUG:
+	debug()
