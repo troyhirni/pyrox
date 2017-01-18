@@ -41,10 +41,10 @@ q = pdq.Query([list(rand.randgen(fldct, rand.randi, intsz))
 #  - You can use a lambda instead of rand.randi;
 """
 
-from .. import *
+from .param import *
 
 
-class Query(object):
+class Query(Base):
 	def __init__(self, data=None, **k):
 		"""
 		Argument 'data' can be text, bytes, or a python list. If data
@@ -64,16 +64,16 @@ class Query(object):
 		self.__encoding = k.get('encoding', None)
 		
 		# type specification for row object
-		self.__TRow =  k.get('row', QRow)
+		self.__TRow = k.get('row', QRow)
 		
 		# make sure there's something for data
-		data = data if data else ''
+		self.__data = data = data if data else ''
 		
 		# allow reading of text or gzip files
 		if 'file' in k:
 			mm = Base.ncreate('fs.mime.Mime', k['file'])
-			f = mm.file() #Base.ncreate("fs.file.File", k['file'])
-			if  not f:
+			f = mm.file()
+			if not f:
 				raise Exception('file-not-created')
 			self.__file = f
 			self.__name = n = k.get('name')
@@ -84,7 +84,9 @@ class Query(object):
 		# decode to unicode string
 		if self.__encoding:
 			self.__data = self.__data.decode(self.__encoding)
-	
+		
+		# prep undo
+		self.__undo = self.__data
 	
 	def __getitem__(self, key):
 		return self.data[key]
@@ -118,8 +120,6 @@ class Query(object):
 	
 	# UTILITY METHODS
 	
-	def fmt(self, spec, *a, **k):
-		return create(spec, *a, **k)
 	
 	def head(self, *a):
 		"""Return, from the given offset, the given number of lines."""
@@ -127,18 +127,24 @@ class Query(object):
 		try:
 			lines = self.data.splitlines()
 			try:
-				# hopefully it's unicode
+				# unicode
+				self.lasthead = 'unicode'
 				return '\n'.join(lines[x:y])
 			except TypeError:
-				# or bytes
+				# bytes
+				self.lasthead = 'bytes'
 				return b'\n'.join(lines[x:y])
 		except AttributeError:
 			try:
-				# or already a list
+				# list
+				self.lasthead = 'list'
 				return self.data[x:y]
 			except:
-				# or something python can turn into a string
-				return str(self.data).splitlines()[x:y]
+				# other - something python can turn into a string
+				self.lasthead = 'other'
+				fmt = Base.ncreate('fmt.JDisplay')
+				return fmt(self.data).splitlines()[x:y]
+				#return str(self.data).splitlines()[x:y]
 		
 	def peek(self, *a):
 		"""Print each line. Same args as head()."""
@@ -160,11 +166,8 @@ class Query(object):
 		"""
 		Returns a generator of type QRow for matching rows.
 		"""
-		where = k.get('where')
-		for i,v in enumerate(self.data):
-			x = self.__TRow(self, i, v, *a, **k)
-			if (not where) or where(x):
-				yield x
+		return self.__TRow.paramgen(self.data, self, *a, **k)
+	
 	
 	#
 	# QUERY METHODS - Always return a Query object.
@@ -188,7 +191,12 @@ class Query(object):
 		"""Returns a new Query with a copy of matching records."""
 		result = []
 		for row in self.rows(*a, **k):
-			result.append(fn(row) if fn else row.v[:])
+			try:
+				result.append(fn(row) if fn else row.v[:])
+			except Exception as ex:
+				raise type(ex)('callback-fail', xdata(i=row.i, v=row.v,
+					python=str(ex))
+				)	
 		return Query(result)
 	
 	def sort(self, fn=None, **k):
@@ -237,79 +245,22 @@ class Query(object):
 			fn(row)
 		return self
 
+			
 
 
-class QRow(object):
+
+class QRow(ParamData):
 	"""
-	The 'r' value used in the fn, where, and order lambdas, above. 
-	Method and variable names are small to accomodate use tight spaces.
-	For self-documentation in code, some variable names are available 
-	as properties.
+	The parameter object passed to callback functions/lambdas.
 	"""
-	def __init__(self, query, item, value, *a, **k):
-		self.q = query
-		self.i = item
-		self.v = value
-		self.a = a
-		self.k = k
+	def __init__(self, query, value, item, *a, **k):
+		ParamData.__init__(self, query, value, item, *a, **k)
+		self.q = query # same as self.c
 	
-	def __getitem__(self, key):
-		return self.q[self.i][key]
-	
-	def __str__(self):
-		return str(self.q[self.i])
-	
-	@property
-	def item(self):
-		"""Enumeration item, starting at zero."""
-		return self.i
-	
-	@property
-	def value(self):
+	def qq(self, v=None, **k):
 		"""
-		The enumeration value. Eg, when q.data is type list, this is the
-		current list item; when dict, it's the dict key, etc...
+		Returns a new Query object giving arg `v` or self.v if `v` is 
+		None. Keyword arguments also work, so a file kwarg can load a 
+		file (ignoring v and self.v altogether).
 		"""
-		return self.v
-	
-	@property
-	def type(self):
-		"""Return the type of the current value."""
-		return type(self.v)
-	
-	def ii(self, *a):
-		"""Return given columns as a list."""
-		return [self.v[c] for c in a]
-	
-	def split(self, *a):
-		"""
-		Split the enumeration value. Args are different from python's
-		''.split - if first arg is int, it's used as the 2nd argument
-		and None is the first split argument. If there are two args, 
-		they're passed as (sep, max) to python's split method.
-		"""
-		aa = [None, a[0]] if isinstance(a[0], int) else a
-		return self.v.split(*aa)
-	
-	def join(self, char):
-		"""Return list items joined by given char."""
-		return char.join(self.v)
-	
-	def extend(self, *a):
-		"""
-		If two args are given, the second (list) extends the first.
-		If one arg is given, it must be a list to extend self.v (only 
-		appropriate if self.v is a list). Return the result.
-		"""
-		x.extend(y)
-		return x
-	
-	def cp(self):
-		"""Return a copy of this row."""
-		try:
-			return self.v[:]
-		except:
-			return self.v
-	
-	def out(self, v=None):
-		print (v if v else o.v)
+		return Query(v=v if v else self.v, **k)
