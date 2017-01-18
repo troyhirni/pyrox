@@ -1,6 +1,6 @@
 """
-Copyright 2016 Troy Hirni
-This file is part of the pyrox project, distributed under
+Copyright 2014-2017 Troy Hirni
+This file is part of the pyro project, distributed under
 the terms of the GNU Affero General Public License.
 
 Reload base package and all base modules.
@@ -10,12 +10,6 @@ try:
 	reload
 except:
 	from imp import reload
-
-# base
-try:
-	from .. import base
-except:
-	import base
 
 # core
 try:

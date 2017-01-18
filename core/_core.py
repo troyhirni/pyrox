@@ -1,20 +1,18 @@
 """
-Copyright 2014-2016 Troy Hirni
+Copyright 2014-2017 Troy Hirni
 This file is part of the pyro project, distributed under
 the terms of the GNU Affero General Public License.
 
 Uninterrupted runtime reload for supported objects.
 """
-
-try:
-	from .. import base
-except:
-	import base
-
 try:
 	reload
 except:
 	from imp import reload
+
+
+from .. import *
+
 
 import weakref
 
@@ -23,30 +21,13 @@ import weakref
 # ON-CORELOAD
 def oncoreload():
 	"""
-	Reloads all base and core modules; Tries to import and reload a
-	_coreload module in the parent directory (if one exists).
-	Alternately, you can replace this oncoreload() function with your 
-	own reloading function for tighter control of what gets reloaded.
+	The ../_coreload.py file must import then reload all modules in the
+	project, including any packages above it in the directory structure,
+	and all their contained packages and modules. The core._coreload
+	module must be called, too.
 	"""
-	try:
-		from ..base import _coreload as base_coreload
-	except:
-		import base._coreload as base_coreload
+	from .. import _coreload as base_coreload
 	reload(base_coreload)
-	
-	from . import _coreload
-	reload(_coreload)
-	reload(base)
-	
-	# This gives the parent application a chance to reload additional
-	# custom modules. Ignores ImportError in parent's _coreload module
-	# to avoid failure if no such module exists.
-	try:
-		from .. import _coreload as _parent_coreload
-	except ImportError:
-		pass
-	else:
-		reload(_parent_coreload)
 
 
 
@@ -64,13 +45,13 @@ class Core(object):
 	__CORES = []
 	def __init__(self, *a, **k):
 		"""
-		Pass args and kwargs necessary for a base.Factory to create the
+		Pass args and kwargs necessary for a Factory to create the
 		root object to be contained by this core. This can be a config 
-		file path or the arguments and kwargs accepted by base.create(), 
-		but cannot be a straight type or coreload() will fail.
+		file path or the arguments and kwargs accepted by Base.create(), 
+		but cannot be a straight type or core0load() will fail.
 		"""
 		k['core'] = self.proxy
-		self.__r = base.create(*a, **k)
+		self.__r = Base.create(*a, **k)
 		self.__p = weakref.proxy(self.__r)
 		Core.__CORES.append(self.proxy)
 	
@@ -123,7 +104,7 @@ class Core(object):
 		a = d['args']
 		k = d['kwargs']
 		k['core'] = self.proxy
-		self.__r = base.create(t, *a, **k)
+		self.__r = Base.create(t, *a, **k)
 		self.__p = weakref.proxy(self.__r)
 
 

@@ -1,5 +1,5 @@
 """
-Copyright 2014-2016 Troy Hirni
+Copyright 2014-2017 Troy Hirni
 This file is part of the pyro project, distributed under
 the terms of the GNU Affero General Public License.
 
@@ -27,19 +27,46 @@ try:
 except:
 	import _thread as thread 
 
-try:
-	from .. import base   # to import cross-version types
-	from ..base import *  # for clarity in function calls
-except:
-	import base
-	from base import *
-
+from .. import *
 from . import _core
 
 import time, weakref
 
 
 DEF_SLEEP = 0.1
+
+
+
+
+
+# IS PROXY
+def isproxy(ref):
+	"""
+	Returns True if the argument 'ref' is a proxy
+	type, else False.
+	"""
+	return issubclass(type(ref), weakref.ProxyType)
+
+# PROXIFY
+def proxify(o):
+	"""
+	Returns o if o is a proxy. Otherwise, creates
+	and returns a proxy to o.
+	"""
+	return o if (not o) or isproxy(o) else weakref.proxy(o)
+
+# TYPE-STR
+def typestr(typeOrObj):
+	"""
+	Returns a string representation of the module.class
+	path of an object type.
+	"""
+	if not isinstance(typeOrObj, type):
+		typeOrObj = type(typeOrObj)
+	n = typeOrObj.__name__
+	m = typeOrObj.__dict__.get('__module__')
+	return '%s.%s'%(m,n) if m else n
+
 
 
 
@@ -70,13 +97,13 @@ class CoreBase(object):
 		# CORE (specified only for root object)
 		c = conf.get('core')
 		if c:
-			self.__core = base.proxify(c)
+			self.__core = proxify(c)
 			del(conf['core'])
 	
 		# OWNER (specified for all objects except root)
 		o = conf.get('owner')
 		if o:
-			self.__owner = base.proxify(o)
+			self.__owner = proxify(o)
 			del(conf['owner'])
 		else:
 			self.__owner = None
@@ -98,7 +125,7 @@ class CoreBase(object):
 		"""
 		self.root.__paused = True
 		return {
-			'type' : base.typestr(self),
+			'type' : typestr(self),
 			'args' : self.__args,
 			'kwargs' : self.__kwargs, 
 			'core' : {}
@@ -194,9 +221,9 @@ class CoreBase(object):
 			self.__kwargs = kwargs
 			
 			if isinstance(config, basestring):
-				path = base.Path.expand(config, checkpath=False)
+				path = Base.path.expand(config, checkpath=False)
 				if os.path.exists(path):
-					config = base.config(path)
+					config = Base.config(path)
 			
 			if not isinstance(config, dict):
 				config = {}
