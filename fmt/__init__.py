@@ -73,7 +73,7 @@ class NoFormat(FormatBase):
 		"""Formats and returns data."""
 		return str(a) if a else ''
 	
-	def output(self, *a, **k):
+	def output(self, a):
 		"""Format and print data."""
 		print (a)
 
@@ -171,7 +171,13 @@ class JSONDisplay(json.JSONEncoder):
 	"""
 	def default(self, obj):
 		try:
-			return json.JSONEncoder.default(self, obj)
-		except TypeError:
-			return repr(obj)
+			try:
+				return json.JSONEncoder.default(self, obj)
+			except TypeError:
+				return repr(obj)
+			except Exception:
+				return repr(obj)
+		except:
+			print (obj)
+			raise
 
