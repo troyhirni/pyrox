@@ -50,14 +50,14 @@ class Query(Base):
 		 - file : load text from a file; supports text, zip, bzip2, gzip,
 		          and tar files
 		 - name : zip and tar files require a name kwarg to identify the
-		          item within the file to read
+		          item to read from within the file
 		 - row  : a custom row type may be specified to replace QRow
 		"""
 		# encoding; used only if data is text
 		self.__encoding = k.get('encoding', None)
 		
 		# type specification for row object
-		self.__TRow = k.get('row', QRow)
+		self.__TRow = k.get('row', QueryRow)
 		
 		# make sure there's something for data
 		self.__data = data = data if data else ''
@@ -242,7 +242,7 @@ class Query(Base):
 
 
 
-class QRow(ParamData):
+class QueryRow(ParamData):
 	"""
 	The parameter object passed to callback functions/lambdas.
 	"""
