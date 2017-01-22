@@ -47,7 +47,8 @@ class Dataset (Base):
 		except Exception:
 			# If that raises an error, assume db is a config specification.
 			k.setdefault('sql', DATASET_SQL)
-			db = ncreate('data.database.Database', db, **k)
+			k['autoinit'] = True
+			db = Base.ncreate('data.database.Database', db, **k)
 			db.open()
 		
 		# private vars
@@ -124,7 +125,7 @@ class DSet (object):
 		return self.db.opq("search-data", (self.setid, tag, data, order))
 	
 	
-	def add(self, **k):
+	def add(self, listOfDicts=None, **k):
 		"""
 		Create new record
 		Select new record's ID
@@ -136,7 +137,29 @@ class DSet (object):
 		NOTE: If tag already exists, the tagid
 		      is returned. If the data already
 		      exists, it's dataid is returned.
+		
+		NEW FEATURE:
+		Since transactions are so slow, there's now an optional 
+		`listOfDicts` argument that, when given, loops adding all records
+		before committing.
 		"""
+		# accept a list of dicts or just keyword args
+		dicts = listOfDicts or k
+		
+		for d in dicts:
+			with thread.allocate_lock():
+				self.db.opq('rec-add', (self.setid, time.time()))
+				c=self.db.opq('rec-max', (self.setid,))
+				recid=c.fetchone()[0]
+				
+				for kw in d:
+					tagid = self.__tagAdd(kw)
+					dataid = self.__dataAdd(d[kw])
+					self.db.opq("field-add", (recid, tagid, dataid))
+				
+			self.db.commit()
+	
+	def __add(self, **k):
 		with thread.allocate_lock():
 			self.db.opq('rec-add', (self.setid, time.time()))
 			c=self.db.opq('rec-max', (self.setid,))
@@ -146,9 +169,7 @@ class DSet (object):
 				tagid = self.__tagAdd(kw)
 				dataid = self.__dataAdd(k[kw])
 				self.db.opq("field-add", (recid, tagid, dataid))
-			
-			self.db.commit()
-	
+		
 	
 	def __dataAdd(self, data):
 		c = self.db.opq('data-find', (data,))
