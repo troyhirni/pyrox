@@ -26,6 +26,12 @@ class ParamBase(object):
 	
 	@classmethod
 	def paramgen(cls, data, caller, *a, **k):
+		"""
+		Return a generator suitable for the given data, which must be 
+		of the following types:
+		 * sequence - list, set, tupel
+		 * mapping  - dict or dict-like with key:value mapping
+		"""
 		if isinstance(data, (list, set, tuple)):
 			return cls.pgseq(data, caller, *a, **k)
 		elif isinstance(data, dict):
@@ -190,20 +196,6 @@ class ParamData(ParamBase):
 		except:
 			return self.v
 	
-	# set an external object's item value.
-	def setkv(self, obj, key, value):
-		"""
-		Set the value associated with the given object's key. This is
-		meant to facilitate population of lists, dicts, etc... that are
-		in the global scope.
-		
-		x = ff.wrap([['a',1],['b',2]])
-		d = {}
-		x.each(lambda p: p.setkv(d, p.v[0], p.v[1]))
-		print (d)
-		"""
-		obj[key] = value
-	
 	
 	## utility
 	
@@ -222,7 +214,7 @@ class ParamData(ParamBase):
 
 
 
-class Chain(object):
+class Chain(ParamBase):
 	"""
 	Chain lets you manipulate string, list, and dict data in a single
 	line of dot-joined commands. Every method alters self.v, then
@@ -244,13 +236,41 @@ class Chain(object):
 		self.v = v
 	
 	
+	
+	# GENERAL
+	def fn(self, fn, *a, **k):
+		"""
+		Execute the given function passing any args/kwargs, then sets
+		this objects value (self.v) to the function result.
+		"""
+		self.v = fn(self, *a, **k)
+		return self
+	
+	def proc(self, fn, *a, **k):
+		"""
+		Execute the given function passing any args/kwargs. Function
+		return value is ignored.
+		"""
+		fn(self)
+		return self
+	
+	def noop(self, *a):
+		"""
+		Ignore any arguments. Return self. This is a good lambda totally
+		unrelated things.
+		"""
+		return self
+	
+	
+	
 	# DICT-ONLY
 	
 	# set a default key value...
-	def df(self, k, default):
+	def sdef(self, k, default):
 		"""Set a default dict value for the given key."""
 		self.setdefault(k, default)
 		return self
+	
 	
 	
 	# LIST/DICT/ETC...
@@ -282,7 +302,7 @@ class Chain(object):
 			else: 
 				#sequence
 				rr = []
-				for i in self.v:
+				for i,v in enumerate(self.v):
 					if not (i in a):
 						rr.append(self.v[i])
 				self.v = rr
@@ -291,6 +311,14 @@ class Chain(object):
 		except IndexError as ex:
 			raise type(ex)('error', xdata(i=i,a=a,python=str(ex)))
 		return self
+	
+	
+	# for each item in self.v
+	def each(self, fn, *a, **k):
+		for i in self.v:
+			fn(self(self.v[i]))
+		return self
+	
 	
 	# LIST ONLY
 	
@@ -312,6 +340,7 @@ class Chain(object):
 		return self
 	
 	
+	
 	# STRING ONLY
 	
 	# split text...
@@ -320,7 +349,20 @@ class Chain(object):
 		return self
 	
 	
-	# GENERAL
-	def do(self, fn):
-		self.v = fn(self.v)
+	
+	# MANIPULATING EXTERNAL OBJECTS
+	
+	# set an external object's item value.
+	def setkv(self, obj, key, value):
+		"""
+		Set the value associated with the given object's key. This is
+		meant to facilitate population of lists, dicts, etc... that are
+		in the global scope.
+		
+		d = {}
+		x.each(lambda p: p.setkv(d, p.v[0], p.v[1]))
+		print (d)
+		"""
+		obj[key] = value
+		return self
 
