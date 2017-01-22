@@ -11,9 +11,16 @@ Debugging -	Call dev.debug() to turn on an exception that displays
 """
 
 
-# REM: .fmt imports sys, json, traceback (some through pyro.*)
-#import sys, json, traceback
+# easier to reload
+try:
+	PY_RELOAD = reload
+except:
+	from imp import reload
+	PY_RELOAD = reload
+
+
 from .fmt import *
+
 
 
 def debug(debug=True, showtb=False):
@@ -26,6 +33,7 @@ def debug(debug=True, showtb=False):
 	Debug().debug(debug, showtb)
 
 
+
 def debug_hook(t,v,tb):
 	try:
 		raise v
@@ -33,7 +41,7 @@ def debug_hook(t,v,tb):
 		try:
 			print (repr(type(v)))
 			print (json.dumps(
-				v.args, cls=JSONDisplay, indent=JSON_INDENT, 
+				v.args, indent=DEF_INDENT, 
 				sort_keys=True
 			))
 			if Debug.showtb():
