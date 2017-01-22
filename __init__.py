@@ -34,19 +34,34 @@ Useful command line features:
 
 """
 
-import os, sys, time, traceback
-
-try:
-	basestring
-except:
-	basestring = unicode = str
-	unichr = chr
-
-
-# REM: Set to True for development, False for release versions.
+#
+# REMEMBER!
+#  - Set to True for development, False for release versions.
+#
 AUTO_DEBUG = True
 
 
+# imports needed by this module
+import os, sys, time, traceback
+
+
+# common python 2/3 typedefs
+try:
+	basestring
+	try:
+		unichr(0x10FFFF) # check wide support
+	except:
+		import struct
+		def unichr (i):
+			yield struct.pack('i', i).decode('utf-32')
+except:
+	basestring = unicode = str
+	unichr = chr
+	if AUTO_DEBUG:
+		from imp import reload
+
+
+# default global values
 DEF_INDENT = 2
 DEF_ENCODE = 'utf_8'
 
@@ -62,7 +77,7 @@ class Base(object):
 		try:
 			return cls.__TConfig(*a, **k)
 		except:
-			cls.__TConfig = TFactory(cls.innerpath('fs.config.Config')).type
+			cls.__TConfig=TFactory(cls.innerpath('fs.config.Config')).type
 			return cls.__TConfig(*a, **k)
 	
 	@classmethod
