@@ -58,3 +58,20 @@ class File(ImmutablePath):
 
 
 
+class MultiFile(File):
+	
+	@property
+	def names(self):
+		"""
+		Return the tar member or zipfile path as specified by the string
+		argument `memberpath`.
+		"""
+		raise NotImplemented("member-lookup-fail", xdata(o=repr(self),
+			reason="no-subclass-def", detail="subclass-must-implement"
+		))
+
+
+class MFReader(Reader):
+	def __init__(self, fp, name):
+		Reader.__init__(self, fp)
+		self.__member = name

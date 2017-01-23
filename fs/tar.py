@@ -19,14 +19,6 @@ class Tar(File):
 		File.__init__(self, path, **k)
 		self.__innerdir = '/' #X
 	
-	# OPEN TAR FILE
-	def open(self, mode="r", **k):
-		"""Open the tarfile; return the TarFile object."""
-		return tarfile.open(self.path, mode="r", **k)
-	
-	def ls(self):
-		return self.names
-	
 	@property
 	def names(self):
 		try:
@@ -86,22 +78,32 @@ class Tar(File):
 	# DIR-LIKE  #X
 	def filter(self, pattern):
 		return fnmatch.filter(self.names, pattern)
+
+	
+	# OPEN TAR FILE
+	def open(self, mode="r", **k):
+		"""Open the tarfile; return the TarFile object."""
+		return tarfile.open(self.path, mode="r", **k)
 	
 	
 	# FILE-LIKE
-	def read(self, member, mode='r'):
-		return self.reader(member, mode).read()
-	
 	def reader(self, member, mode='r'):
+		"""Read and return the entire contents of `member`."""
 		return Reader(self.open(mode).extractfile(member))
+	
+	#
+	# TO DO: figure out how to implement this!
+	#
+	def write(self, *a):
+		raise NotImplementedError()
 	
 	def writer(self, *a):
 		raise NotImplementedError()
+
+
+
+	# Dir-like
+	def ls(self):
+		return self.names
 	
-	def write(self, *a):
-		raise NotImplementedError()
-
-
-
-
 

@@ -27,7 +27,7 @@ def rmkeys(d, rmkeys):
 # PATH
 #  - Base for fs module's classes.
 #
-class Path(Base):
+class Path(object):
 	"""Represents file system paths."""
 	
 	def __init__(self, p=None, **k):
@@ -66,14 +66,7 @@ class Path(Base):
 		Return a mime object for the file at this path. For non-files, or
 		in the case of any error, returns None.
 		"""
-		try:
-			return self.__mime
-		except:
-			try:
-				self.__mime = ncreate('fs.mime.Mime', self.path)
-			except:
-				self.__mime = None
-			return self.__mime
+		return Base.ncreate('fs.mime.Mime', self.path)
 	
 	def exists(self, path=None):
 		return os.path.exists(self.merge(path))
@@ -145,7 +138,6 @@ class Path(Base):
 		else:
 			k.setdefault('encoding', DEF_ENCODE)
 			return self.opener.open(self.path, mode, **k)
-	
 	
 	
 	# READER
@@ -240,9 +232,26 @@ class Stream(object):
 
 
 
+
+
 class Reader(Stream):
+		
+	def __iter__(self):
+		return self.lines
+
 	def read(self, *a):
 		return self.stream.read(*a)
+	
+	@property
+	def lines(self):
+		for line in self.stream:
+			yield line
+	
+	def readline(self): #new - experimental
+		for x in self.lines:
+			return x
+
+
 
 
 
