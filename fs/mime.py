@@ -80,7 +80,7 @@ class Mime(object):
 		elif self.__enc == 'gzip':
 			return Base.ncreate('fs.gzip.Gzip', self.__url, **k)
 		
-		# gzip encoded
+		# bzip2 encoded
 		elif self.__enc == 'bzip2':
 			return Base.ncreate('fs.bzip.Bzip', self.__url, **k)
 		
