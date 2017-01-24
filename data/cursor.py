@@ -19,7 +19,7 @@ for item in cursor.Cursor([[1,2,3], [4,5,6]]).gen:
 
 # FAILS...
 d={'a':1,'b':9,'c':['food!']}
-reload(cursor).TEST(d, where=lambda p: p.v==['food'])
+reload(cursor).TEST(d, use=lambda p: p.v==['food'])
 
 """
 
@@ -70,13 +70,13 @@ class Cursor(Data):
 		# get optional param object
 		self.__param = k.get('param', Param())
 		
-		# get the where method
-		self.__where = k.get('where')
+		# get the use method
+		self.__use = k.get('use')
 		
-		# where must be callable
-		if self.__where and (not callable(self.__where)):
+		# use must be callable
+		if self.__use and (not callable(self.__use)):
 			raise Exception('cursor-create-fail', 
-				xdata(reason='where-not-callable')
+				xdata(reason='callback-not-callable', callback='use')
 			)
 		
 		# create the correct generator for the given data
@@ -109,6 +109,18 @@ class Cursor(Data):
 		if (type(x).__name__ == 'generator'):
 			return x
 		
+		# text input (via file, url, or string) will probably be the most
+		# common *FIRST* thing to be cursored over, then yielding a list
+		# to parse; in such cases, though, the list is probably a list of
+		# lists or dicts which will need to be "recursed", so it might be
+		# best file or string io is lower in the list
+		try:
+			x.readline
+			return self.genlines
+		except AttributeError:
+			print ("It's not a reader")
+			pass
+		
 		# list, dict, and string will probably be the most common types
 		# when recursing; unfortunately, they have to come in the wrong
 		# order; Maybe I can find a way to improve speed here.
@@ -134,18 +146,6 @@ class Cursor(Data):
 			if x == x.__iter__():
 				return self.geniter
 		except Exception:
-			pass
-		
-		# text input (via file, url, or string) will probably be the most
-		# common *FIRST* thing to be cursored over, then yielding a list
-		# to parse; in such cases, though, the list is probably a list of
-		# lists or dicts which will need to be "recursed", so it might be
-		# best file or string io is lower in the list
-		try:
-			x.readline
-			x.tell
-			return self.genlines
-		except AttributeError:
 			pass
 		
 		# uncomment to debug
@@ -181,12 +181,12 @@ class Cursor(Data):
 		Yields each item for list (or list-like object) `x`.
 		"""
 		param = self.__param
-		where = self.__where
-		if where:
+		use = self.__use
+		if use:
 			for i,v in enumerate(x):
 				param.v = v
 				param.i = i
-				if where(param):
+				if use(param):
 					yield param
 		else:
 			for i,v in enumerate(x):
@@ -198,12 +198,12 @@ class Cursor(Data):
 	def genmap(self, x):
 		"""Yields each key for dict (or dict-like object) `x`."""
 		param = self.__param
-		where = self.__where
-		if where:
+		use = self.__use
+		if use:
 			for i,v in enumerate(x):
 				param.i = v
 				param.v = x[v]
-				if where(param):
+				if use(param):
 					yield param
 		else:
 			for i,v in enumerate(x):
@@ -215,14 +215,14 @@ class Cursor(Data):
 	def genlines(self, x):
 		"""Yields lines for stream object `x`."""
 		param = self.__param
-		where = self.__where
+		use = self.__use
 		i = 0
-		if where:
+		if use:
 			for line in x:
 				param.v = line
 				param.i = i
 				i += 1
-				if where(param):
+				if use(param):
 					yield param
 		else:
 			for line in x:
@@ -237,14 +237,14 @@ class Cursor(Data):
 		Yields the next item for iterator.
 		"""
 		param = self.__param
-		where = self.__where
+		use = self.__use
 		i = 0
-		if where:
+		if use:
 			for v in x:
 				param.v = v
 				param.i = i
 				i += 1
-				if where(param):
+				if use(param):
 					yield param
 		else:
 			for v in x:
@@ -252,28 +252,5 @@ class Cursor(Data):
 				param.i = i
 				i += 1
 				yield param
-
-		
-
-
-
-
-def TEST(data=None, **k):
-	if 'file' in k:
-		with open(k['file']) as fp:
-			c = Cursor(fp)
-			for line in c.gen:
-				print ("%s : %s" % (str(line.i), line))
-	
-	else:
-		c = Cursor(data, **k)
-		for line in c.gen:
-			print ("%s : %s" % (str(line.i), line))
-
-def TEST_GRID(r=10, c=3):
-	import random
-	return [
-		[random.random()*10000 for x in range(0,c)] for y in range(0,r)
-	]
 
 
