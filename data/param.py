@@ -60,16 +60,27 @@ class Chain(object):
 	def __call__(self, *a):
 		return type(self)(*a)
 	
-	def set(self, v):
-		self.v = v
-		return self
-
-	def fn(self, fn, *a, **k):
+	def proc(self, fn, *a, **k):
 		"""
 		Set this object's self.v to the result of the callable argument
 		`fn`. All args and kwargs are passed on to the callable.
+		
+		Use this when you want to set self.v to the callable's result.
 		"""
 		self.v = fn(*a, **k)
+		return self
+	
+	def set(self, v):
+		self.v = v
+		return self
+	
+	def split(self, *a, **k):
+		"""
+		Split this value by the string given as the first argument, or
+		by the default, if no arguments are given. Keyword args will be
+		applied to the str.split() method.
+		"""
+		self.v = self.v.split(*a, **k)
 		return self
 
 
@@ -109,19 +120,30 @@ class Param(Chain):
 		"""
 		return v == (a[0] if a else self.v)
 	
-	def lt(self, v, *a):
-		"""Comparison: less than;"""
-		return v < (a[0] if a else self.v)
+	def fn(self, fn, *a, **k):
+		"""
+		Return the result of the callable argument `fn`. All args and 
+		kwargs are passed on to the callable.
+		
+		Use this when you want to return a function result rather than
+		setting self.v to the result.
+		"""
+		return fn(*a, **k)
 	
-	def le(self, v, *a):
-		"""Comparison: less than/equal to;"""
-		return v <= (a[0] if a else self.v)
+	def ge(self, v, *a):
+		"""Comparison: greater than/equal to;"""
+		return v >= (a[0] if a else self.v)
 	
 	def gt(self, v, *a):
 		"""Comparison: greater than;"""
 		return v > (a[0] if a else self.v)
 	
-	def ge(self, v, *a):
-		"""Comparison: greater than/equal to;"""
-		return v >= (a[0] if a else self.v)
+	def le(self, v, *a):
+		"""Comparison: less than/equal to;"""
+		return v <= (a[0] if a else self.v)
+	
+	def lt(self, v, *a):
+		"""Comparison: less than;"""
+		return v < (a[0] if a else self.v)
+
 
