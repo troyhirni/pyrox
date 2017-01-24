@@ -6,8 +6,8 @@ the terms of the GNU Affero General Public License.
 Parse URLs; Retrieve and work with URL content.
 """
 
-from .. import *
-
+# fmt imports * from .. too, so everything's here.
+from ..fmt import *
 from ..data import text
 
 
@@ -48,8 +48,9 @@ except:
 
 
 #
-# CONVENIENCE FUNCTIONS
+# FUNCTIONS
 #
+
 def parse(url):
 	"""Parse url string and return dict containing parts."""
 	return UParse.parse(url)
@@ -61,6 +62,16 @@ def open(url, *a, **k):
 	same as for urllib's urlopen() function.
 	"""
 	return UResponse(url, *a, **k)
+
+
+def head(url):
+	"""
+	Returns a UResponse with just the head for the given url.
+	"""
+	request = urlreq.Request(url)
+	request.get_method = lambda : 'HEAD'
+	return UResponse(request)
+
 
 
 
@@ -125,7 +136,8 @@ class UResponse(object):
 	def charset(self):
 		"""
 		Returns the specified charset as detected from BOM, in HTTP 
-		headers, or a content specification (eg, meta tag).
+		headers, or a content specification (eg, meta tag) - in that
+		order.
 		"""
 		try:
 			return self.__charset
@@ -139,7 +151,10 @@ class UResponse(object):
 				c = bb.detect()
 			self.__charset = e.pythonize(c)
 			return self.__charset
-	
+
+
+
+
 
 #
 # URL - PARSING
