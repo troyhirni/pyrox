@@ -23,7 +23,7 @@ reload(cursor).TEST(d, where=lambda p: p.v==['food'])
 
 """
 
-from . import *
+from .param import *
 
 
 
@@ -252,51 +252,6 @@ class Cursor(Data):
 				param.i = i
 				i += 1
 				yield param
-
-
-
-
-
-
-
-
-
-class Param(object):
-	"""
-	Param methods manipulate data of various types, mostly list,
-	dict, and string. All methods work with either self.v, or in some
-	cases, an optional argument to use instead of self.v.
-	
-	The self.v property must be set directly by generator before it is
-	returned or tested by a `where` callback. (See the CursorGenerators
-	class.)
-	.
-	"""
-	def __init__(self):
-		self.v = None
-		self.k = None
-	
-	def __str__(self):
-		return str(self.v)
-	
-	def __unicode__(self):
-		return str(self.v)
-	
-	def cmp(self, v, *a):
-		return v==a[0] if a else v==self.v
-	
-	
-	# --- RETURN SELF ---
-	def out(self, *a):
-		if a:
-			print (a[0])
-		else:
-			print (self.v)
-		return self
-
-
-
-
 
 		
 
