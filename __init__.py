@@ -65,6 +65,9 @@ except:
 DEF_INDENT = 2
 DEF_ENCODE = 'utf_8'
 
+# EXPERIMENTAL
+DEF_CONFIG = '~/.config/pyro/config'
+DEF_CACHE  = '~/.config/pyro/cache'
 
 
 #
