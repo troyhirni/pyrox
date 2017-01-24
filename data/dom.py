@@ -3,12 +3,12 @@ Copyright 2016-2017 Troy Hirni
 This file is part of the pyrox project, distributed under
 the terms of the GNU Affero General Public License.
 
-DOM   **   UNDER CONSTRUCTION   **   STILL QUITE A WAY TO GO
+DOM - Case-insensitive html parsing into a dom node structure
 
-Will provide an HTML parser with partial DOM implementation.
-The main goal here is to safely gather data from unknown sources
-without being too particular about perfection in their formatting.
-We're here for the data.
+Named `dom` for the (partial) dom implementation, but probably does
+not deserve it since parsing is based on the HTMLParser class and
+therefore is case-insensitive. Despite that, the parse(html) function
+does provide a complete (if somewhat difficult to use) list of nodes.
 """
 
 try:
@@ -27,6 +27,9 @@ DOMString = unicode
 
 
 def parse(html):
+	"""
+	Case-insensitive html parsing. 
+	"""
 	return Parse(unicode(html)).doc
 
 
