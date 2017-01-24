@@ -247,7 +247,7 @@ class Reader(Stream):
 		for line in self.stream:
 			yield line
 	
-	def readline(self): #new - experimental
+	def readline(self):
 		for x in self.lines:
 			return x
 
