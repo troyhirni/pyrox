@@ -5,23 +5,29 @@ Affero General Public License.
 
 DATA - Data Utility
 
-
-  - thinking aobut this... not sure yet...
-
-
+The data package supports the extraction and manipulation of data 
+from a variety of databases and formatted text files, generation of
+random values, and text-scanning based on unicode-related meta-data 
+as well as characters.
 """
 
 from .. import *
 
 
-class DataUtil(Base):
-
-	# this might move to fs or to Base
-	@classmethod
-	def mfile(cls, *a, **k):
-		return Base.ncreate('fs.mime.Mime', *a **k).file()
-	
+class Data(object):
+	"""
+	EXPERIMENTAL - This class may disappear in future versions.
+	I'm playing with this idea; at very least I'll use it to help me
+	test the Cursor class.
+	"""
 	@classmethod
 	def cursor(cls, *a, **k):
-		return Base.ncreate('data.cursor.Cursor', *a **k)
-		
+		return Base.ncreate('data.cursor.Cursor', *a, **k)
+	
+	@classmethod
+	def parsehtml(cls, *a, **k):
+		return Base.ncreate('data.dom.parse', *a, **k)
+	
+
+
+
