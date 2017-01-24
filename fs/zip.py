@@ -119,12 +119,16 @@ class Zip(ImmutablePath):
 	
 	
 	# READER
-	def reader(*a,**k):
-		raise NotImplementedError('maybe-someday')
+	def reader(self, member,**k):
+		"""
+		Reader stream to the specified member within this file.
+		"""
+		with self.open() as z:
+			return Reader(z.open(member, **k))
 	
 	
 	# WRITER
-	def writer(*a,**k):
+	def writer(self, *a, **k):
 		raise NotImplementedError('maybe-someday')
 		
 
