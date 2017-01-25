@@ -104,6 +104,10 @@ class Cursor(Data):
 		"""
 		Return a generator suitable to the type and/or attributes of the
 		argument object `x`.
+		
+		NOTE: This method uses type and various combinations of object
+		      attributes to try to determine which generator to use; it
+		      may take a while before I can work out all the kinks.
 		"""
 		# if it's already a generator, return it
 		if (type(x).__name__ == 'generator'):
@@ -118,7 +122,7 @@ class Cursor(Data):
 			x.readline
 			return self.genlines
 		except AttributeError:
-			print ("It's not a reader")
+			# this object does not have .readline()
 			pass
 		
 		# list, dict, and string will probably be the most common types
@@ -136,6 +140,7 @@ class Cursor(Data):
 			return self.genval
 		
 		# any sequence that doesn't have keys
+		# REM: MUST come after dict
 		try:
 			x.__getitem__
 			return self.genseq
