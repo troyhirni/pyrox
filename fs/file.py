@@ -63,6 +63,13 @@ class TransformFile (File):
 	
 	This class may not be here long; if it remains, it will almost
 	certainly experience lots of changes.
+	
+from px.fs import file
+from px.data import transform
+
+jsonTran = transform.TransformJson()
+jsonfile = file.TransformFile(jsonTran, 'test/test.json')
+jsonfile.write(dict(value1="That's valuable!", x=9))
 	"""
 	def __init__(self, transformer, *a, **k):
 		self.__transform = transformer
@@ -140,7 +147,7 @@ class PseudoReader(object):
 		try:
 			if not self.__data:
 				raise EOFError() # or StopIteration? or what?
-			return self.__fp.read(*a)
+			return self.__data
 		finally:
 			self.__data = None
 	
