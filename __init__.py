@@ -66,8 +66,9 @@ DEF_INDENT = 2
 DEF_ENCODE = 'utf_8'
 
 # EXPERIMENTAL
-DEF_CONFIG = '~/.config/pyro/config'
-DEF_CACHE  = '~/.config/pyro/cache'
+ROOT_PKG   = __name__.split('.')[0]
+DEF_CONFIG = '~/.config/%s/config' % (ROOT_PKG)
+DEF_CACHE  = '~/.config/%s/cache' % (ROOT_PKG)
 
 
 #
