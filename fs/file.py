@@ -72,7 +72,7 @@ class TransformFile (File):
 		"""
 		The read() method's results are transformed using the transformer
 		passed to the constructor. For example, if JSON text describes a
-		dict, the TransformJSON transformer will convert it to a dict and
+		dict, the TransformJson transformer will convert it to a dict and
 		return that dict.
 		"""
 		return self.__transform.fromtext(File.read(self, *a, **k))
@@ -80,7 +80,7 @@ class TransformFile (File):
 	def write(self, data, *a, **k):
 		"""
 		Pass data as expected by this file's transformer. For example, 
-		if the TransformJSON transformer was specified to the constructor
+		if the TransformJson transformer was specified to the constructor
 		then you can pass string, dict, list, or any object parsable by
 		the json.dumps() method and that will be transformed to text then
 		written to this file.
