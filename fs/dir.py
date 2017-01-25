@@ -84,7 +84,7 @@ class Dir(Path):
 	
 	def file(self, path, **k):
 		"""Return a File object to the given path."""
-		return ncreate('fs.file.File', self.merge(path), **k)
+		return Base.ncreate('fs.file.File', self.merge(path), **k)
 	
 	# Pattern-Matching Methods
 	def cp(self, pattern, dst, **k):
