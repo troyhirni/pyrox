@@ -5,9 +5,10 @@ the terms of the GNU Affero General Public License.
 
 ZIP - Covers zip files.
 
-THIS THING IS ***KILLING*** ME.
-I need to read this tomorrow when i'm not so tired.
-https://pymotw.com/2/zipfile/
+Use the Zip class to read, write, and open streams for reading. I'm
+still working on how to write, but for now - sorry - you still have
+to write all in one big block - no stream writing yet. Hopefully
+someday, though.
 """
 
 
@@ -48,12 +49,6 @@ class Zip(ImmutablePath):
 	def names(self):
 		"""Returns self.namelist()"""
 		return self.namelist()
-	
-	
-	# check how tarfile does this
-	#@property
-	#def members(self):
-	#	return self.infolist()
 	
 	
 	# OPEN
