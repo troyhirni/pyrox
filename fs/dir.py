@@ -49,6 +49,10 @@ class Dir(Path):
 		except Exception:
 			raise ValueError('fs-invalid-dir', xdata(path=p)) 
 	
+	def __getitem__(self, key):
+		ls = self.ls()
+		return self.merge(ls[key])
+	
 	# Path-only methods
 	def cd(self, path):
 		"""Change directory the given path."""
