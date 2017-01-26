@@ -40,9 +40,10 @@ def debug_hook(t,v,tb):
 	except BaseException as v:
 		try:
 			print (repr(type(v)))
-			print (json.dumps(
-				v.args, indent=DEF_INDENT, 
-				sort_keys=True
+			print (json.dumps( v.args, 
+				sort_keys = True,
+				indent    = DEF_INDENT, 
+				cls       = JSONDisplay
 			))
 			if Debug.showtb():
 				print ("Traceback:")

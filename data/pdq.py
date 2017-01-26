@@ -159,7 +159,7 @@ class Query(Base):
 		"""
 		Returns a generator of type QRow for matching rows.
 		"""
-		return self.__TRow.paramgen(self.data, self, *a, **k)
+		return self.__TRow.paramgen(self, self.data, *a, **k)
 	
 	
 	#
@@ -259,31 +259,31 @@ class ParamBase(object):
 	"""
 	
 	@classmethod
-	def paramgen(cls, data, caller, *a, **k):
+	def paramgen(cls, caller, value, *a, **k):
 		"""
-		Return a generator suitable for the given data, which must be 
+		Return a generator suitable for the given value, which must be 
 		of the following types:
 		 * sequence - list, set, tupel
 		 * mapping  - dict or dict-like with key:value mapping
 		"""
-		if isinstance(data, (list, set, tuple)):
-			return cls.pgseq(data, caller, *a, **k)
-		elif isinstance(data, dict):
-			return cls.pgdict(data, caller, *a, **k)
+		if isinstance(value, (list, set, tuple)):
+			return cls.pgseq(caller, value, *a, **k)
+		elif isinstance(value, dict):
+			return cls.pgdict(caller, value, *a, **k)
 		
 	@classmethod
-	def pgseq(cls, data, caller, *a, **k):
+	def pgseq(cls, caller, value, *a, **k):
 		where = k.get('where')
-		for i,v in enumerate(data):
+		for i,v in enumerate(value):
 			x = cls(caller, v, i, *a, **k)
 			if (not where) or where(x):
 				yield x
 			
 	@classmethod
-	def pgdict(cls, data, caller, *a, **k):
+	def pgdict(cls, caller, value, *a, **k):
 		where = k.get('where')
-		for key in data.keys():
-			x = cls(caller, data[key], key, *a, **k)
+		for key in value.keys():
+			x = cls(caller, value[key], key, *a, **k)
 			if (not where) or where(x):
 				yield x
 
