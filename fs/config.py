@@ -45,7 +45,7 @@ class Config(Path):
 					path = self.path, pathk = k,
 					ast = {"type" : type(ast_ex), "args" : ast_ex.args},
 					json = {"type" : type(json_ex), "args" : json_ex.args}
-				)
+				))
 
 
 
