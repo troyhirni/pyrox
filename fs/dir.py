@@ -48,10 +48,18 @@ class Dir(Path):
 			Path.__init__(self, p, **k)
 		except Exception:
 			raise ValueError('fs-invalid-dir', xdata(path=p)) 
+		
+		# bypassing more pythonic shenanigans
+		try:
+			self.walk = os.walk
+		except:
+			self.walk = os.path.walk
+	
 	
 	def __getitem__(self, key):
 		ls = self.ls()
 		return self.merge(ls[key])
+	
 	
 	# Path-only methods
 	def cd(self, path):
@@ -61,19 +69,16 @@ class Dir(Path):
 			raise Exception ('fs-not-a-dir', xdata(path=p))
 		self.path = p
 	
+	
 	def ls(self, path=None):
 		"""List directory at path."""
 		return os.listdir(self.merge(path))
 	
-	def mkdir(self, path, *a):
-		"""
-		Create a directory described by path. If appended, additional 
-		argument (mode) is passed on to os.makedirs().
-		"""
-		os.makedirs(self.merge(path), *a)
 	
-	
+	#
 	# Single file operations, path relative to this directory.
+	#
+	
 	def head(self, path, lines=12, **k):
 		"""Return head for existing file at the given path."""
 		return self.file(path).head(lines, **k)
@@ -86,7 +91,11 @@ class Dir(Path):
 		"""Return a File object to the given path."""
 		return Base.ncreate('fs.file.File', self.merge(path), **k)
 	
-	# Pattern-Matching Methods
+	
+	#
+	# Directory contents actions
+	#
+	
 	def cp(self, pattern, dst, **k):
 		"""
 		Copy src to dst; If src is directory, any keyword arguments are 
@@ -99,6 +108,13 @@ class Dir(Path):
 				return shutil.copytree(src, self.merge(dst), **k)
 			else:
 				return shutil.copyfile(src, self.merge(dst))
+	
+	def mkdir(self, path, *a):
+		"""
+		Create a directory described by path. If appended, additional 
+		argument (mode) is passed on to os.makedirs().
+		"""
+		os.makedirs(self.merge(path), *a)
 
 	def mv(self, pattern, dst):
 		"""Move pattern matches to dst."""
@@ -113,45 +129,51 @@ class Dir(Path):
 			else:
 				os.remove(px)
 	
-	
+	#
 	# Pattern Searching - Match, Find
-	def match(self, pattern):
-		"""
-		Return matching directory items for the given pattern.
-		"""
-		return glob.glob(self.merge(pattern))
-		
+	#
 	
-	def find(self, path=".", pattern=None, **k):
+	def match(self, pattern):
+		"""Return matching directory items for the given pattern."""
+		return glob.glob(self.merge(pattern))
+	
+	
+	def search(self, path, pattern=None, **k):
 		"""
-		Walk through directories recursively, starting at path; return 
-		list of full paths matching pattern.
+		Search directories recursively starting at the given `path`; 
+		return list of all paths unless argument `pattern` is specified.
 		
-		Path is optional and defaults to the current directory specified 
-		for this Dir object. Pattern is required, but may be set by name.
-		For example: d.find(pattern="*.pyc")
+		KEYWORD ARGUMENT:
+		 * If `fn` keyword is specified, its value must be callable; this 
+		   callable will be called once for each result path. If args 
+		   keyword exists, it must be an array of values to be passed as 
+		   individual additional arguments to fn.
 		
-		If fn keyword is specified, its value must be callable; it will 
-		be called once for each result path. If args keyword exists, it
-		must be an array of values to be passed as individual additional
-		arguments to fn.
-		
-		WARNING: There is no 'confirm' or 'undo' when passing a 'fn'.     
-						 Always check the find results without a function BEFORE
-						 using it with a function.
+		   WARNING: There is no 'confirm' or 'undo' when passing a 'fn'.     
+						    ALWAYS CHECK the find results *without a function* 
+						    BEFORE using it with a function.
 		"""
 		if not pattern:
 			raise ValueError('fs-pattern-required', xdata())
 		path = self.merge(path)
 		rlist = []
-		for d, dd, ff in os.walk(path):
+		for d, dd, ff in self.walk(path):
 			rlist.extend(self.match(os.path.join(d, pattern)))
 		if 'fn' in k:
 			fn = k['fn']
 			for fpath in rlist:
+				rr = {}
 				aa = k.get('args', [])
 				fn(fpath, *aa)
 		else:
 			return rlist
-
+	
+	
+	def find(self, pattern, **k):
+		"""
+		Calls the .search() method passing this object's path and the 
+		given `pattern` and keyword args. Read the search method help for
+		more information.
+		"""
+		return self.search(self.path, pattern, **k)
 
