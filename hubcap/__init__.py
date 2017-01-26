@@ -72,7 +72,7 @@ def launch(typespec, *a, **k):
 class Hubcap(object):
 	
 	# create log formatter
-	__LFMT = ncreate(HC_DBG_FMT)
+	__LFMT = Base.ncreate(HC_DBG_FMT)
 	
 	# LOG
 	def log(self, *a, **k):
