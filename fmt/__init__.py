@@ -173,11 +173,11 @@ class JSONDisplay(json.JSONEncoder):
 		try:
 			try:
 				return json.JSONEncoder.default(self, obj)
-			except TypeError:
-				return repr(obj)
 			except Exception:
-				return repr(obj)
+				try:
+					return repr(obj)
+				except:
+					return "<%s>" % obj.__class__.__name__
 		except:
-			print (obj)
 			raise
 

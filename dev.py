@@ -37,7 +37,7 @@ def debug(debug=True, showtb=False):
 def debug_hook(t,v,tb):
 	try:
 		raise v
-	except BaseException as v:
+	except Exception as v:
 		try:
 			print (repr(type(v)))
 			print (json.dumps( v.args, 
