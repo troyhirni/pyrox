@@ -23,7 +23,7 @@ if __name__ == '__main__':
 	# remove *.pyc files
 	elif cmd == '--clean':
 		d = Base.ncreate('fs.dir.Dir', *args[1:])
-		d.find('.', '*.pyc', fn=d.rm)
+		d.search('.', '*.pyc', fn=d.rm)
 	
 	# prompt demo
 	elif cmd == '--prompt':
