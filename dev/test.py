@@ -1,0 +1,178 @@
+"""
+Copyright 2014-2017 Troy Hirni
+This file is part of the pyro project, distributed under the terms 
+of the GNU Affero General Public License.
+
+TEST - Test that all modules compile.        *EXPERIMENTAL*
+
+Finds and loads all modules in the project (pyro or pyrox).
+
+import test
+test.report()
+"""
+
+import os
+
+from ..fmt import *
+
+
+def report():
+	"""
+	Loads all modules and prints a report listing modules and a brief
+	error message, if any.
+	"""
+	tt = Test()
+	tt.load()
+	tt.report()
+
+
+
+class Test(object):
+	def __init__(self):
+		
+		# the directory holding the root package (eg, ~/dev, ~, etc...)
+		self.parent = Base.path().path
+		self.parlen = len(self.parent.split('/'))
+		
+		# the start of the import path (eg, dev.pyro, dev.pyrox)
+		self.inpath = Base.innerpath()
+		
+		# path elements within root package (eg, ['dev','pyro'], etc...)
+		inpathlist = self.inpath.split('.')
+		
+		# the name of this package
+		self.package = inpathlist[-1]
+		
+		# path within the root package (eg, dev/pyro, dev/pyrox)
+		self.pkgpath = "/".join(inpathlist)
+		
+		# path to the package being tested (eg, pyro, pyrox)
+		self.path = "%s/%s" % (self.parent, self.pkgpath)
+		
+		# a Dir object to path containing *.py files to test
+		self.dir = Base.ncreate('fs.dir.Dir', self.path)
+		
+		# CURRENTLY LOADED MODULES
+		self.__loaded = {}
+	
+	
+	
+	#
+	# RESULT STORAGE
+	#
+	
+	@property
+	def current(self):
+		return self.__loaded
+	
+	
+	#
+	# MODULE PATHS - eg., "./pyro/fs/dir.py"
+	#
+	
+	@property
+	def paths(self):
+		"""Return list of *.py paths within package."""
+		try:
+			return self.__paths
+		except:
+			self.__paths = sorted(self.dir.find("*.py"))
+			return self.__paths
+	
+	def pathgen(self):
+		"""Generator for module (/full/dir/*.py) paths."""
+		for path in self.paths:
+			yield path
+	
+	
+	#
+	# MODULE SPEC - eg., "pyro.fs.dir"
+	#
+	
+	@property
+	def modules(self):
+		"""Return list of module (python.import.path) sepcifications"""
+		try:
+			return self.__modules
+		except:
+			self.__modules = list(self.modgen())
+			return self.__modules
+			
+	
+	def modgen(self):
+		"""Generator for module (python-import) paths."""
+		plen = self.parlen
+		for path in self.paths:
+			# path from within parent directory
+			r = path.split('/')
+			r = r[plen:] 
+			
+			# ignore init files, import their package path
+			if r[-1] == '__init__.py': 
+				r = r[:-1]
+			
+			# don't test __main__.py
+			elif r[-1] != '__main__.py':
+				
+				# drop the .py where found at the end of module paths
+				r[-1] = r[-1].split('.')[0]
+				
+				# yield the module name!
+				p = '.'.join(r)
+				
+				# don't test a tester!
+				if self.__module__ != r:
+					yield p
+	
+	
+	#
+	# MODULE LOADING
+	#
+	
+	def loadmodule(self, modspec):
+		"""Import the module specified by `modspec`."""
+		
+		L = locals()
+		G = globals()
+
+		try:
+			# for root module
+			if modspec:
+				m = __import__(modspec,G,L,[],0)
+				
+			# import (or reload) the modspec module
+			elif modspec in self.__loaded:
+				m = reload(self.__loaded[modspec])
+			else:
+				m = __import__(modspec,G,L,[],0)
+			
+			# store result
+			self.__loaded[modspec] = dict(modspec=modspec, module=m)
+			
+		except BaseException as ex:
+			self.__loaded[modspec] = dict(modspec=modspec, module=None, 
+				error=xdata()
+			)
+	
+	
+	
+	def load(self):
+		for modspec in self.modgen():
+			self.loadmodule(modspec)
+	
+	
+	
+	def report(self):
+		if not len(self.current):
+			self.load()
+		
+		gg = [["MODULE:", 'RESULT:']]
+		for modspec in self.current:
+			item = self.current[modspec]
+			gg.append([
+				modspec, "Loaded" if item.get('module') else "ERR! %s" % (
+					item['error']['prior']['xargs']
+				)
+			])
+		
+		fmt.grid.Grid().output(gg)

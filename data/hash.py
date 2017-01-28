@@ -12,7 +12,7 @@ configExample = {
 """
 
 from .. import *
-import rand
+from . import rand
 
 import hashlib
 

@@ -19,7 +19,7 @@ except:
 	PY_RELOAD = reload
 
 
-from .fmt import *
+from ..fmt import *
 
 
 
