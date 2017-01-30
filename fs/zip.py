@@ -114,10 +114,12 @@ class Zip(ImmutablePath):
 	
 	
 	# READER
-	def reader(self, member,**k):
+	def reader(self, member=None, **k):
 		"""
 		Reader stream to the specified member within this file.
 		"""
+		mode = k.get('mode', 'r')
+		member = k.get('member', member)
 		with self.open() as z:
 			return Reader(z.open(member, **k))
 	

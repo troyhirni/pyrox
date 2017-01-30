@@ -13,21 +13,17 @@ as well as characters.
 
 from .. import *
 
-
-class Data(object):
-	"""
-	EXPERIMENTAL - This class may disappear in future versions.
-	I'm playing with this idea; at very least I'll use it to help me
-	test the Cursor class.
-	"""
+class Data(Base):
+		
 	@classmethod
-	def cursor(cls, *a, **k):
-		return Base.ncreate('data.cursor.Cursor', *a, **k)
-	
-	@classmethod
-	def parsehtml(cls, *a, **k):
-		return Base.ncreate('data.dom.parse', *a, **k)
-	
-
-
-
+	def mreader(cls, **k):
+		filepath = Base.kpop(k, 'file')
+		member = Base.kpop(k, 'member')
+		mm = Base.ncreate('fs.mime.Mime', filepath)
+		try:
+			return mm.file()
+		except Exception as ex:
+			raise type(ex)('mime-read-fail', xdata(
+					member=member, filepath=filepath, kwargs=k, 
+					mime=mm.guess if mm else None
+				))

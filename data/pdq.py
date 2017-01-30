@@ -17,16 +17,16 @@ format (or output) the data in various other ways. The data property
 returns the data itself, or lets you completely reset the data. There
 is even a one-time undo() method in case you get unexpected results.
 
-Keyword args 'file' and 'gzip' let you specify a text or gzip file
-to import as string data. Use Query.splitlines() to split the data
-into a list of lines. Use Query.update() to split individual lines
-into lists. For example:
+Keyword args 'file' and 'member' let you specify a file or zip/tar
+member to import as string data. Use Query.splitlines() to split the 
+data into a list of lines. Use Query.update() to split individual 
+lines into lists. For example:
 
 # EXAMPLE:
 import pdq
-q = pdq.Query(file="space-separated-values.txt", encoding='ascii')
+q = pdq.Query(file="test.txt", encoding='ascii')
 q.splitlines()
-q.update(lambda o: o.v.split())
+q.update(lambda o: o.v.split(','))
 
 # EXAMPLE 2 - a quick way to get a grid full of floats
 import random
@@ -37,7 +37,7 @@ q = pdq.Query(r)
 from . import *
 
 
-class Query(Base):
+class Query(Data):
 	def __init__(self, data=None, **k):
 		"""
 		Argument 'data' can be text, bytes, or a python list. If data
@@ -47,11 +47,11 @@ class Query(Base):
 		produce encoded byte strings.
 		
 		Additional kwargs:
-		 - file : load text from a file; supports text, zip, bzip2, gzip,
-		          and tar files
-		 - name : zip and tar files require a name kwarg to identify the
-		          item to read from within the file
-		 - row  : a custom row type may be specified to replace QRow
+		 - file  : load text from a file; supports text, zip, bzip2, 
+		           gzip, and tar files
+		 - member: zip and tar files require a name kwarg to identify the
+		           item to read from within the file
+		 - row   : a custom row type may be specified to replace QRow
 		"""
 		# encoding; used only if data is text
 		self.__encoding = k.get('encoding', None)
@@ -64,31 +64,27 @@ class Query(Base):
 		
 		# allow reading of text or gzip files
 		if 'file' in k:
+			self.__data = self.mreader(**k).read()
+			"""
 			mm = Base.ncreate('fs.mime.Mime', k['file'])
 			f = mm.file()
 			if not f:
 				raise Exception('file-not-created')
 			self.__file = f
-			self.__name = n = k.get('name')
+			self.__name = n = k.get('member')
 			self.__data = f.read(n) if n else f.read()
+			"""
 		else:
+			# set data and encoding
 			self.__data = data
-		
-		# decode to unicode string
-		if self.__encoding:
-			self.__data = self.__data.decode(self.__encoding)
+			if self.__encoding:
+				self.__data = self.__data.decode(self.__encoding)
 		
 		# prep undo
 		self.__undo = self.__data
 	
 	def __getitem__(self, key):
 		return self.data[key]
-	
-	
-	@property
-	def file(self):
-		"""Return file, if one was specified to the constructor."""
-		return self.__file
 	
 	
 	@property
@@ -109,6 +105,10 @@ class Query(Base):
 		if d == self: raise ValueError('pdq-data-invalid')
 		self.__undo = self.__data
 		self.__data = d
+	
+	@property
+	def encoding(self):
+		return self.__encoding
 	
 	
 	# UTILITY METHODS

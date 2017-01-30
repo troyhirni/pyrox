@@ -13,8 +13,6 @@ slip data transformation into file read/write methods.
 	
 This module may not be here for long; if it remains, it will almost
 certainly experience lots of changes.
-
-If kept, it will almost certainly move to the .data package.
 """
 
 

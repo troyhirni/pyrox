@@ -75,7 +75,7 @@ class Tar(File):
 			return rr
 	
 	
-	# DIR-LIKE  #X
+	# DIR-LIKE  #X - This is just like glob, but inside the tarfile
 	def filter(self, pattern):
 		return fnmatch.filter(self.names, pattern)
 
@@ -87,22 +87,24 @@ class Tar(File):
 	
 	
 	# FILE-LIKE
-	def reader(self, member, mode='r'):
-		"""Read and return the entire contents of `member`."""
+	def reader(self, **k):
+		"""Read and return a reader for `member`."""
+		mode = k.get('mode', 'r')
+		member = k['member']
 		return Reader(self.open(mode).extractfile(member))
 	
 	#
 	# TO DO: figure out how to implement this!
 	#
-	def write(self, *a):
+	def write(self, *a, **k):
 		raise NotImplementedError()
 	
-	def writer(self, *a):
+	def writer(self, *a, **k):
 		raise NotImplementedError()
 
 
 
-	# Dir-like
+	# EXPERIMENTAL - SDir-like
 	def ls(self):
 		return self.names
 	

@@ -8,7 +8,19 @@ DOM - Case-insensitive html parsing into a dom node structure
 Named `dom` for the (partial) dom implementation, but probably does
 not deserve it since parsing is based on the HTMLParser class and
 therefore is case-insensitive. Despite that, the parse(html) function
-does provide a complete (if somewhat difficult to use) list of nodes.
+does provide a complete (if somewhat difficult to use) list of nodes
+with properties and methods prescribed by the DOM.
+
+I'm considering the possibility of creating a custom parser so that
+xml data can be safely imported. Until then...
+
+PLEASE BE AWARE: Parsing is case-insensitive and DOES NOT enforce 
+                 any DOM rules for closing tags, etc... This is only
+                 a tool for importing HTML data. 
+                 
+                 YOU MUST EXAMINE THE DATA to make sure there are no
+                 tag/attribute names that conflict because of case or
+                 other unenforced DOM rules.
 """
 
 try:
@@ -26,11 +38,93 @@ DOMString = unicode
 
 
 
-def parse(html):
+def parse(html=None, **k):
 	"""
 	Case-insensitive html parsing. 
 	"""
+	if 'file' in k:
+		mm = Base.ncreate('fs.mime.Mime', k['file'])
+		f = mm.file()
+		if not f:
+			raise Exception('file-not-created')
+		n = k.get('name')
+		
+		html = f.read(n) if n else f.read()
+	else:
+		_data = html
+	
+	# decode if 'encoding' kwarg is specified
+	if 'encoding' in k:
+		_data = _data.decode(k['encoding'])
+
 	return Parse(unicode(html)).doc
+
+
+
+
+
+
+class crawler(object):
+	"""
+	what's happening here isn't quite what I want. i want to try to 
+	avoid recursion.
+	
+	THE LIST
+	i want a list that grows, containing each parent - push when 
+	entering a child, again when entering the child's child, again for
+	the grandchild's child... pop when finished with a node's siblings,
+	and stop when the last node's popped from the list.
+	
+	THE FUNCTION
+	I want to pass crawler a function to which each node is applied; 
+	this funciton will have access to the ancestry to help it decide
+	which nodes to select for the result list.
+	
+	THE RESULT LIST
+	A private result list should make its append method available so
+	each time the function matches, a node can be appended. 
+	"""
+	def __init__(self, node):
+		# current node
+		self.__node = node
+		
+		# positions
+		self.__start = node
+		self.__child = node
+		self.__sibling = node
+	
+	
+	# CURRENT
+	@property
+	def node(self):
+		return self.__node
+	
+	@property
+	def info(self):
+		return self.__node._xinfo()
+	
+	# 
+	def next(self):
+		c = self.node.nextChild()
+		if c:
+			self.__node = c
+	
+	def __childcrawl(self):
+		rr = []
+		child = self.__current.firstChild
+		while child:
+			rr.append(child._xinfo())
+			child = child.nextSibling()
+		return rr
+	
+	def crawl(self):
+		if not self.__current:
+			raise StopIteration()
+		rr = [node._xinfo()]
+		rr.extend(self.__childcrawl())
+		self.__siblingcrawl()
+		
+	
 
 
 
@@ -159,13 +253,43 @@ class Node(object):
 	
 	def hasChildNodes(self):
 		return False
+
+	# Are these supposed to be in Node? It sure helps to have them...
+	@property
+	def firstChild(self):
+		return None
 	
+	@property
+	def lastChild(self):
+		return None
+	
+	@property
+	def previousSibling(self):
+		return None
+	
+	@property
+	def nextSibling(self):
+		return None
+	
+	def _prevchild(self, n):
+		return None
+	
+	def _nextchild(self, n):
+		return None
+	
+	# EXPERIMENTAL
+	def _xinfo(self):
+		return dict(T=type(self), type=self.nodeType, name=self.nodeName,
+			attr=self.attributes if self.hasAttributes else {}
+		)
 
 
 
 
 
-
+#
+# E-NODE - For small extra non-DOM features
+#
 class ENode (Node):
 	def __call__(self, tagname):
 		r = []
@@ -173,15 +297,17 @@ class ENode (Node):
 			if c.nodeName == tagname:
 				r.append(c)
 		return r
-				
-	
 
 
 
 
 
+#
+# DOCUMENT - This is what parse() makes
+#
 class Document(ENode):
-	def __init__(self, root=None, decl=None):
+	def __init__(self, root, decl=None):
+		ENode.__init__(self, root)
 		self.__decl = decl
 		self.__root = root
 		self.__root._setdocument(self)
@@ -238,8 +364,9 @@ class Document(ENode):
 
 
 
-
-
+#
+# ELEMENT - Tags
+#
 class Element(ENode):
 	
 	def __init__(self, tag='', attrs=()):
@@ -362,12 +489,19 @@ class Element(ENode):
 
 
 
-
-
+#
+# ROOT ELEMENT
+#  - This is the element with white-space surrounding the html tag.
+#    It's the (only) one containeed by the Document object.
+#
 class RootElement(Element):
 	
+	# this needs an __init__ to for setting doc (as _setdocumet 
+	# currently does. It needs to be passed the Document, anyway,
+	# so as to 
+	
 	def _setdocument(self, doc):
-		self.__doc = doc
+		self.__doc = doc # this is the Document that Parse() makes
 	
 	@property
 	def ownerDocument(self):
@@ -379,13 +513,22 @@ class RootElement(Element):
 	@property
 	def nodeName(self):
 		return "/"
+	
+	@property
+	def nextSibling(self):
+		return None
+	
+	@property
+	def previousSibling(self):
+		return None
+	
+	
 
 
 
-
-
-
-
+#
+# CHARACTER DATA
+#
 class CharacterData(Node):
 	def __init__(self, data):
 		Node.__init__(self)
@@ -442,6 +585,9 @@ class CharacterData(Node):
 
 
 
+#
+# COMMENT
+#
 class Comment (CharacterData):
 	
 	@property
@@ -456,6 +602,9 @@ class Comment (CharacterData):
 
 
 
+#
+# TEXT
+#
 class Text (CharacterData):
 	
 	@property
@@ -473,6 +622,9 @@ class Text (CharacterData):
 
 
 
+#
+# CDATA
+#
 class CDATASection (CharacterData):
 	
 	@property
@@ -487,6 +639,9 @@ class CDATASection (CharacterData):
 
 
 
+#
+# PROCESSING INSTRUCTION
+#
 class ProcessingInstruction (Node):
 	def __init__(self, target, data):
 		Node.__init__(self)
@@ -509,8 +664,9 @@ class ProcessingInstruction (Node):
 
 
 
-
-
+#
+# NODE LIST
+#
 class NodeList(list):
 	
 	@property
@@ -524,6 +680,9 @@ class NodeList(list):
 
 
 
+#
+# NAMED NODE MAP (dom version of a dict)
+#
 class NamedNodeMap(dict):
 	"""
 	Implements DOM NamedNodeMap; based on python dict.
@@ -566,6 +725,9 @@ class NamedNodeMap(dict):
 
 
 
+#
+# ATTRIBUTE
+#
 class Attr(Node):
 	"""A DOM Attribute."""
 	
@@ -599,3 +761,5 @@ class Attr(Node):
 	@property
 	def specified(self):
 		return (self.ownerElement == None) or (self.__value != None)
+
+

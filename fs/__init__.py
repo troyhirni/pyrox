@@ -5,7 +5,10 @@ of the GNU Affero General Public License.
 
 FS - File System Functionality
 
-The base for pyro file system operations.
+The base for pyro file system operations. Defines the Path object,
+Stream Reader and Writer. This constitutes the bare necessities for 
+reading and writing text files and for working with and getting info
+about paths.
 """
 
 from .. import *
@@ -54,6 +57,12 @@ class Path(object):
 	
 	@property
 	def opener(self):
+		"""
+		Return an `opener` object that opens a file stream to a file
+		this path points to. This property is intended for internal use.
+		Use the objects returned by the `reader()` and `writer()` methods
+		to read from and write to files.
+		"""
 		try:
 			return self.__opener
 		except:
@@ -203,6 +212,10 @@ class Path(object):
 
 
 class ImmutablePath(Path):
+	"""
+	The base for file objects that should not allow their path to
+	change.
+	"""
 	def setpath(self, path):
 		raise ValueError('fs-immutable-path', xdata())
 
@@ -238,14 +251,14 @@ class Reader(Stream):
 		
 	def __iter__(self):
 		return self.lines
-
-	def read(self, *a):
-		return self.stream.read(*a)
 	
 	@property
 	def lines(self):
 		for line in self.stream:
 			yield line
+
+	def read(self, *a):
+		return self.stream.read(*a)
 	
 	def readline(self):
 		for x in self.lines:
@@ -256,6 +269,12 @@ class Reader(Stream):
 
 
 class Writer(Stream):
+	
 	def write(self, data):
 		return self.stream.write(data)
+	
+	def writeline(self, data):
+		return self.stream.writeline(data)
+
+
 

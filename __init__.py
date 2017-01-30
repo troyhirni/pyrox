@@ -107,8 +107,34 @@ class Base(object):
 		return Factory(conf, *a, **k).create()
 	
 	@classmethod
+	def kcopy(cls, obj, keys):
+		"""
+		EXPERIMENTAL
+		This method creats a subset of dict keys in order to select only
+		desired (or allowed) keyword args before passing to functions and
+		methods. Argument `keys` may be passed as a space-separated
+		string or as a list of dict keys (if you need non-string keys).
+		"""
+		try:
+			keys=keys.split()
+		except:
+			pass
+		return dict([[k,obj[k]] for k in keys if k in obj])
+	
+	@classmethod
+	def kpop(cls, obj, key):
+		"""
+		Remove and returns one `key` value from the given dict `obj`.
+		"""
+		if key in obj:
+			r = obj[key]
+			del(obj[key])
+			return r
+	
+	@classmethod
 	def innerpath(cls, innerPath=None):
 		"""
+		EXPERIMENTAL
 		Return the full Factory type descriptor string given the path to
 		an object from within the pyro module. Don't prefix the innerPath
 		argument with "pyro." as that is automatically prepended by this

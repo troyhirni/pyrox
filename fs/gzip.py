@@ -5,18 +5,14 @@ the terms of the GNU Affero General Public License.
 
 GZIP - Covers gzip files.
 
-
-
-
-
 """
+
 
 from .file import *
 
 
-
 class Gzip(File):
-	"""Gzip file support; EXPERIMENTAL."""
+	"""Gzip file support."""
 	@property
 	def gzfactory(self):
 		try:
@@ -27,8 +23,5 @@ class Gzip(File):
 	
 	def open(self, mode='rb', **k):
 		return self.gzfactory(self.path, mode, **k)
-
-
-
 
 

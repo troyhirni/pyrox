@@ -13,7 +13,8 @@ test.report()
 
 import os
 
-from ..fmt import *
+from .. import *
+from .. import fmt
 
 
 def report():
@@ -171,7 +172,7 @@ class Test(object):
 			item = self.current[modspec]
 			gg.append([
 				modspec, "Loaded" if item.get('module') else "ERR! %s" % (
-					item['error']['prior']['xargs']
+					str(item.get('error',{}).get('prior',{}).get('xargs', '?'))
 				)
 			])
 		

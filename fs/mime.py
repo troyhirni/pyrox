@@ -9,6 +9,7 @@ Mime is a one-time-use object in which all values are set in the
 constructor. Properties make results available.
 
    UNDER CONSTRUCTION! - This module is under construction!
+                         Some portions (lower) are experimental.
 """
 
 from .. import *
@@ -64,7 +65,14 @@ class Mime(object):
 	def subtype(self):
 		return self.__subtype
 	
+	
+	#
+	# EXPERIMENTAL.
+	# The following methods seem a bit bulky or possibly ill-placed.
+	# It's possible this functionality should be relocated/reorganized.
+	#
 	def file(self, **k):
+		## Return a suitable fs file object.
 		
 		# set this object as a keyword argument
 		k['mime']=self
@@ -75,6 +83,11 @@ class Mime(object):
 				return Base.ncreate('fs.zip.Zip', self.__url, **k)
 			elif self.__subtype == 'x-tar':
 				return Base.ncreate('fs.tar.Tar', self.__url, **k)
+			elif self.__subtype == 'json':
+				transform = Base.ncreate('data.transform.TransformJson', **k)
+				return Base.ncreate(
+					'fs.file.TransformFile', transform, self.__url, **k
+				)
 		
 		# gzip encoded
 		elif self.__enc == 'gzip':
@@ -84,6 +97,53 @@ class Mime(object):
 		elif self.__enc == 'bzip2':
 			return Base.ncreate('fs.bzip.Bzip', self.__url, **k)
 		
+		# text/csv (or tsv)
+		elif self.__type == 'text':
+			if self.__subtype in ['csv', 'tab-separated-values']:
+				return Base.ncreate('fs.csv.CSV', self.__url, **k)
+		
 		# last resort: any kind of file
 		return Base.ncreate('fs.file.File', self.__url, **k)
+	
+	
+
+	# something's not going right here. try again some other way.
+	# it works for 
+	"""
+	#
+	# READER (Class-method)
+	#  - Select the correct reader for tar and zip file members (or 
+	#    for regular files.
+	#
+	def reader(self, **k):
+		## Return a suitable stream reader.
+		
+		# a member is specified
+		if 'member' in k:
+			member = k['member']
+			
+			# get the member's mime info
+			mm = type(self)(member)
+			
+			# if it's text/csv, create and return a CSVReader using the
+			# tar or zip file's reader
+			if mm.type == 'text':
+				if mm.subtype in ['csv', 'tab-separated-values']:
+					return Base.ncreate(
+						'fs.csv.CSVReader', self.file().reader(member)
+					)
+			
+			# if it's application/json, return a data reader
+			elif mm.type == 'application':
+				if mm.subtype == 'json':
+					return Base.ncreate(
+						'fs.tfile.DataReader', self.file().reader(member)
+					)
+		
+		# if none of the above (or if there's no member kwarg), then just
+		# return a normal reader
+		return self.file().reader()
+		
+	"""
+
 
