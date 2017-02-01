@@ -15,7 +15,7 @@ from .file import *
 class Tar(File):
 	"""Tar file support; EXPERIMENTAL."""
 	
-	def __init__(self, path, **k):
+	def __init__(self, path, mode='r', **k):
 		File.__init__(self, path, **k)
 		self.__innerdir = '/' #X
 	
@@ -73,25 +73,28 @@ class Tar(File):
 					)
 			self.__meminfo = rr
 			return rr
-	
-	
-	# DIR-LIKE  #X - This is just like glob, but inside the tarfile
-	def filter(self, pattern):
-		return fnmatch.filter(self.names, pattern)
 
 	
 	# OPEN TAR FILE
 	def open(self, mode="r", **k):
 		"""Open the tarfile; return the TarFile object."""
-		return tarfile.open(self.path, mode="r", **k)
+		return tarfile.open(self.path, mode, **k)
 	
 	
 	# FILE-LIKE
 	def reader(self, **k):
 		"""Read and return a reader for `member`."""
-		mode = k.get('mode', 'r')
-		member = k['member']
-		return Reader(self.open(mode).extractfile(member))
+		if 'stream' in k:
+			return Reader(k['stream'])
+		elif 'member' in k:
+			mode = k.get('mode', 'r')
+			member = k['member']
+			return Reader(self.open(mode).extractfile(member))
+		else:
+			raise ValueError('create-reader-fail', xdata( k=k,
+				reason='missing-required-arg', requires=['stream','member'],
+				detail=self.__class__.__name__
+			))
 	
 	#
 	# TO DO: figure out how to implement this!
@@ -101,11 +104,19 @@ class Tar(File):
 	
 	def writer(self, *a, **k):
 		raise NotImplementedError()
-
-
-
-	# EXPERIMENTAL - SDir-like
-	def ls(self):
-		return self.names
 	
+	
+	
+	"""
+	#
+	# EXPERIMENTAL
+	#
+	"""
+	
+	# FILTER - glob-like pattern matching of member names
+	def filter(self, pattern):
+		"""
+		Glob-like pattern matching of member names. Eg, *.txt, etc...
+		"""
+		return fnmatch.filter(self.names, pattern)
 

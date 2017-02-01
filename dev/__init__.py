@@ -48,6 +48,15 @@ def debug_hook(t,v,tb):
 			if Debug.showtb():
 				print ("Traceback:")
 				traceback.print_tb(tb)
+		
+		except UnicodeDecodeError as uex:
+			print ("Unicode Error")
+			for x in uex.args:
+				print (x)
+			if Debug.showtb():
+				print ("Traceback:")
+				traceback.print_tb(tb)
+		
 		except BaseException as ex:
 			print ("WARNING: DEBUG HOOK FAILED!")
 			try:

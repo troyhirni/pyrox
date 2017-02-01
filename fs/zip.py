@@ -16,7 +16,7 @@ import zipfile
 from .file import *
 
 
-class Zip(ImmutablePath):
+class Zip(File):
 	"""
 	Read and write .zip files.
 	
@@ -114,18 +114,33 @@ class Zip(ImmutablePath):
 	
 	
 	# READER
-	def reader(self, member=None, **k):
+	def reader(self, **k):
 		"""
 		Reader stream to the specified member within this file.
 		"""
-		mode = k.get('mode', 'r')
-		member = k.get('member', member)
-		with self.open() as z:
-			return Reader(z.open(member, **k))
+		if 'stream' in k:
+			return Reader(k['stream'])
+		elif 'member' in k:
+			mode = k.get('mode', 'r')
+			member = k.get('member')
+			with self.open() as z:
+				return Reader(z.open(member, **k))
+		else:
+			raise ValueError('create-reader-fail', xdata( k=k,
+				reason='missing-required-arg', requires=['stream','member'],
+				detail=self.__class__.__name__
+			))
 	
 	
 	# WRITER
-	def writer(self, *a, **k):
+	def writer(self, **k):
 		raise NotImplementedError('maybe-someday')
 		
+
+
+
+
+
+
+
 

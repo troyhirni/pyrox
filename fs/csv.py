@@ -18,8 +18,19 @@ from .file import *
 
 class CSV(File):
 	
-	def reader(self, mode='r', *a, **k):
-		return CSVReader(self.open(mode='r'), *a, **k)
+	def reader(self, **k):
+		"""
+		Default mode is 'rt'
+		"""
+		mode = Base.kpop(k, 'mode')
+		stream = Base.kpop(k, 'stream')
+		#encoding = 
+		
+		if stream:
+			return CSVReader(stream, **k)
+		else:
+			# remove mode from kwargs so CSVReader doesn't receive it
+			return CSVReader(self.open(mode or 'rt'), **k)
 
 
 
@@ -28,6 +39,11 @@ class CSV(File):
 class CSVReader(Reader):
 	
 	def __init__(self, stream, *a, **k):
+		
+		#stream = Base.create('csv.reader', stream, *a, **k)
+		#Reader.__init__(self, stream)
+		
+		# why would i do this?
 		Reader.__init__(self, stream)
 		self.__csvreader = Base.create('csv.reader', stream, *a, **k)
 	
@@ -36,36 +52,38 @@ class CSVReader(Reader):
 	
 	@property
 	def lines(self):
-		csvr = Base.create('csv.reader', self.stream)
-		for line in csvr:
+		#csvr = Base.create('csv.reader', 'rt', self.stream)
+		csvr = self.__csvreader
+		for line in self.__csvreader:
 			yield line
 
 	def read(self, *a):
 		return [r for r in self.lines]
 	
+	# TODO: speed enhancement
 	def readline(self):
+		return next(self.lines)
+		
+		"""
 		self.__lines = self.lines
-		#self.__next = self.lines.next
 		try:
 			return next(self.__lines)  # python3
 		except:
 			return self.__lines.next() # python2
+		"""
 
-"""
->>> q = pdq.Query(file='test/test.csv.tar.gz', member='test.csv')
-<class '_csv.Error'>
-[
-  "iterator should return strings, not bytes (did you open the file in text mode?)"
-]
-Traceback:
-  File "<stdin>", line 1, in <module>
-  File "/home/nine/dev/pyrox/data/pdq.py", line 67, in __init__
-    self.__data = self.mreader(**k).read()
-  File "/home/nine/dev/pyrox/fs/csv.py", line 40, in read
-    return [r for r in self.lines]
-  File "/home/nine/dev/pyrox/fs/csv.py", line 40, in <listcomp>
-    return [r for r in self.lines]
-  File "/home/nine/dev/pyrox/fs/csv.py", line 36, in lines
-    for line in csvr:
->>> 
-"""
+
+
+
+class CSVWriter(Writer):
+	
+	def __init__(self, stream, *a, **k):
+		Reader.__init__(
+				Base.create('csv.writer', stream, *a, **k)
+			)
+	
+	def write(self, data):
+		self.stream.write(data)
+
+
+
