@@ -51,21 +51,3 @@ class CSVReader(Reader):
 		except:
 			return self.__lines.next() # python2
 
-"""
->>> q = pdq.Query(file='test/test.csv.tar.gz', member='test.csv')
-<class '_csv.Error'>
-[
-  "iterator should return strings, not bytes (did you open the file in text mode?)"
-]
-Traceback:
-  File "<stdin>", line 1, in <module>
-  File "/home/nine/dev/pyrox/data/pdq.py", line 67, in __init__
-    self.__data = self.mreader(**k).read()
-  File "/home/nine/dev/pyrox/fs/csv.py", line 40, in read
-    return [r for r in self.lines]
-  File "/home/nine/dev/pyrox/fs/csv.py", line 40, in <listcomp>
-    return [r for r in self.lines]
-  File "/home/nine/dev/pyrox/fs/csv.py", line 36, in lines
-    for line in csvr:
->>> 
-"""
