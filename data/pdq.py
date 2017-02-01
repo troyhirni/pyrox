@@ -54,7 +54,7 @@ class Query(Data):
 		 - row   : a custom row type may be specified to replace QRow
 		"""
 		# encoding; used only if data is text
-		self.__encoding = k.get('encoding', None)
+		self.__encoding = Base.kpop(k, 'encoding')
 		
 		# type specification for row object
 		self.__TRow = k.get('row', QueryRow)
@@ -64,16 +64,9 @@ class Query(Data):
 		
 		# allow reading of text or gzip files
 		if 'file' in k:
-			self.__data = self.mreader(**k).read()
-			"""
-			mm = Base.ncreate('fs.mime.Mime', k['file'])
-			f = mm.file()
-			if not f:
-				raise Exception('file-not-created')
-			self.__file = f
-			self.__name = n = k.get('member')
-			self.__data = f.read(n) if n else f.read()
-			"""
+			filepath = Base.kpop(k, 'file')
+			reader = Base.ncreate('fs.Path', filepath).reader(**k)
+			self.__data = reader.read()
 		else:
 			# set data and encoding
 			self.__data = data
