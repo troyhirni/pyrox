@@ -11,14 +11,6 @@ Debugging -	Call dev.debug() to turn on an exception that displays
 """
 
 
-# easier to reload
-try:
-	PY_RELOAD = reload
-except:
-	from imp import reload
-	PY_RELOAD = reload
-
-
 from ..fmt import *
 
 

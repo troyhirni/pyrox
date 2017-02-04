@@ -85,7 +85,7 @@ class Tar(File):
 	def reader(self, **k):
 		"""Read and return a reader for `member`."""
 		if 'stream' in k:
-			return Reader(k['stream'])
+			return Reader(k) # pass k, NOT k['stream']!
 		elif 'member' in k:
 			mode = k.get('mode', 'r')
 			member = k['member']

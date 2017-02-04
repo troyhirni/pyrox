@@ -60,6 +60,9 @@ def open(url, *a, **k):
 	"""
 	Returns a UResponse object for the given url. Arguments are the 
 	same as for urllib's urlopen() function.
+	
+	from net import url
+	r = url.open(someUrl)
 	"""
 	return UResponse(url, *a, **k)
 
@@ -67,6 +70,10 @@ def open(url, *a, **k):
 def head(url):
 	"""
 	Returns a UResponse with just the head for the given url.
+	
+	from net import url
+	h = url.head(someUrl.)
+	print (h.info())
 	"""
 	request = urlreq.Request(url)
 	request.get_method = lambda : 'HEAD'

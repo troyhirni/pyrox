@@ -25,144 +25,6 @@ import os, os.path as ospath
 class Path(object):
 	"""Represents file system paths."""
 	
-	#  --- UNDER CONSTRUCTION ---
-	
-	#
-	# WRAPPER
-	#
-	def wrapper(self, **k):
-		"""
-		Returns a fs.File-based object wrapping the fs object at this
-		pasth. The default for files whose mime type can't be matched 
-		here is fs.file.File.
-		"""
-		mm = self.mime
-		if self.isdir() or self.ismount():
-			raise Exception('open-fail', xdata(
-				path=self.path, reason='file-required', k=k
-			))
-		
-		# APPLICATION
-		if mm.type == 'application':
-			
-			# tar, tar.bz2, tar.gz, tgz
-			if mm.subtype == 'x-tar':
-				return Base.ncreate('fs.tar.Tar', self.path, **k)
-			
-			# zip
-			elif mm.subtype == 'zip':
-				return Base.ncreate('fs.zip.Zip', self.path, **k)
-			
-			elif mm.subtype == 'json':
-				tj = Base.ncreate('data.transform.TransformJson')
-				return Base.ncreate(
-					'fs.tfile.TransformFile', tj, self.path, **k
-				)
-		
-		# TEXT/ENC 
-		elif mm.type == 'text':
-			
-			# bz2 (plain, csv)
-			if mm.enc == 'bzip2':
-				if mm.subtype == 'plain':
-					return Base.ncreate('fs.bzip.Bzip', self.path, **k)
-				elif mm.subtype in ['csv', 'tab-separated-values']:
-					return Base.ncreate('fs.csv.CSV', self.path, **k)
-			
-			# gzip
-			elif mm.enc == 'gzip':
-				if mm.subtype == 'plain':
-					return Base.ncreate('fs.gzip.Gzip', self.path, **k)
-				elif mm.subtype in ['csv', 'tab-separated-values']:
-					return Base.ncreate('fs.csv.CSV', self.path, **k)
-			
-			# text csv	
-			elif mm.subtype in ['csv', 'tab-separated-values']:
-				return Base.ncreate('fs.csv.CSV', self.path, **k)
-		
-		# DEFAULT - for plain text or, as a default, any kind of file
-		return Base.ncreate('fs.file.File', self.path, **k)
-	
-	
-	
-	
-	def reader(self, **k):
-		"""
-		Return a reader for this object's path based on the mime type of
-		the file there.
-		"""
-		# Files with members will need to create a different kind of
-		# object from what gets returned. Pop that key out of kwargs
-		# before calling `wrapper`.
-		member = Base.kpop(k, 'member')
-		
-		# now get the file wrapper object and return a reader
-		wrapper = self.wrapper(**k)
-		#'print ("wrapper %s" % repr(wrapper))
-		
-		
-		# -- CONTAINER WRAPPER HANDLING (TAR/ZIP) --
-		
-		# check for member
-		if member:
-			try:
-				wrapper.names
-			except Exception as ex:
-				raise type(ex)('fs-reader-fail', xdata(k=k, path=self.path,
-						reason='fs-non-container', member=member, wrapper=wrapper
-					))
-		
-			# make sure the specified member exists in the tar/zip file
-			if not member in wrapper.names:
-				raise KeyError('fs-reader-fail', xdata(k=k, path=self.path,
-						reason='fs-non-member', member=member, wrapper=wrapper
-					))
-			
-			# get correct file class by calling wrapper on member
-			mpath = Path(member, affirm=None)
-				
-			# get a wrapper suitable to the member's filename
-			mwrap = mpath.wrapper()
-			
-			#
-			# CAN (SOMETHING LIKE) THIS BE MADE TO WORK?
-			#  - Call reader, which in turn will call wrapper to get a file
-			#    wrapper covering the given `member`...
-			#  - If it's a tar or zip wrapper, it will wind up right here
-			#    again and call reader again recursively. 
-			#  - Eventually, we'll end up at a member that doesn't contain
-			#    a tar/zip file, and the reader will be returned from
-			#    the code below.
-			#
-			# mwrap = mpath.reader(member=member)
-			#
-			# I just don't see how to make the stream come out right.
-			# Maybe a special StreamWrapper class that chains the reads
-			# from the final stream back through previous Stream objects
-			# until the reads end up where they should?
-			#
-			
-			# Return the resulting wrapper's Reader, created with
-			# this wrapper's stream. (Detatch nullifies it's own copy of
-			# the stream and returns a live copy.)
-			ownerstream = wrapper.reader(member=member).detatch()
-			
-			#print ("mwrap %s" % repr(mwrap))
-			return mwrap.reader(stream=ownerstream)
-		
-		
-		
-		# -- NON-CONTANER HANDLING --
-		return wrapper.reader()
-
-
-
-
-	#
-	# --- EXISTING METHODS ---
-	#
-	
-	
 	# INIT
 	def __init__(self, path=None, **k):
 		"""
@@ -247,6 +109,111 @@ class Path(object):
 			return ospath.abspath(ospath.normpath(p))
 	
 	
+	# WRAPPER
+	def wrapper(self, **k):
+		"""
+		Returns a fs.File-based object wrapping the fs object at this
+		pasth. The default for files whose mime type can't be matched 
+		here is fs.file.File.
+		"""
+		mm = self.mime
+		if self.isdir() or self.ismount():
+			raise Exception('open-fail', xdata(
+				path=self.path, reason='file-required', k=k
+			))
+		
+		# Application
+		if mm.type == 'application':
+			
+			# tar, tar.bz2, tar.gz, tgz
+			if mm.subtype == 'x-tar':
+				return Base.ncreate('fs.tar.Tar', self.path, **k)
+			
+			# zip
+			elif mm.subtype == 'zip':
+				return Base.ncreate('fs.zip.Zip', self.path, **k)
+			
+			elif mm.subtype == 'json':
+				tj = Base.ncreate('data.transform.TransformJson')
+				return Base.ncreate(
+					'fs.tfile.TransformFile', tj, self.path, **k
+				)
+		
+		# Text/enc 
+		elif mm.type == 'text':
+			
+			# bz2 (plain, csv)
+			if mm.enc == 'bzip2':
+				if mm.subtype == 'plain':
+					return Base.ncreate('fs.bzip.Bzip', self.path, **k)
+				elif mm.subtype in ['csv', 'tab-separated-values']:
+					return Base.ncreate('fs.csv.CSV', self.path, **k)
+			
+			# gzip
+			elif mm.enc == 'gzip':
+				if mm.subtype == 'plain':
+					return Base.ncreate('fs.gzip.Gzip', self.path, **k)
+				elif mm.subtype in ['csv', 'tab-separated-values']:
+					return Base.ncreate('fs.csv.CSV', self.path, **k)
+			
+			# text csv	
+			elif mm.subtype in ['csv', 'tab-separated-values']:
+				return Base.ncreate('fs.csv.CSV', self.path, **k)
+		
+		# Default - for plain text or, as a default, any kind of file
+		return Base.ncreate('fs.file.File', self.path, **k)
+	
+	
+	# READER
+	def reader(self, **k):
+		"""
+		Return a reader for this object's path based on the mime type of
+		the file there.
+		"""
+		
+		# Files with members will need to create a different kind of
+		# object from what gets returned. Pop that key out of kwargs
+		# before calling `wrapper`.
+		member = Base.kpop(k, 'member')
+		
+		# now get the file wrapper object and return a reader
+		wrapper = self.wrapper(**k)
+		
+		
+		# -- container wrapper handling (tar/zip) --
+		
+		# If member is passed, it is required; the file type wrapper must
+		# have a 'names' property.
+		if member:
+			try:
+				wrapper.names
+			except Exception as ex:
+				raise type(ex)('fs-reader-fail', xdata(k=k, path=self.path,
+						reason='fs-non-container', member=member, wrapper=wrapper
+					))
+			
+			# make sure the specified member exists in the tar/zip file
+			if not member in wrapper.names:
+				raise KeyError('fs-reader-fail', xdata(k=k, path=self.path,
+						reason='fs-non-member', member=member, wrapper=wrapper
+					))
+			
+			# get correct file class by calling wrapper on member
+			mpath = Path(member, affirm=None)
+				
+			# get a wrapper suitable to the member's filename
+			mwrap = mpath.wrapper()
+			
+			# get the original 'owner' stream for the memberwrapper to use
+			ownerstream = wrapper.reader(member=member).detatch()
+			
+			return mwrap.reader(stream=ownerstream, **k)
+		
+		
+		# -- non-contaner handling --
+		return wrapper.reader(**k)
+	
+	
 	@classmethod
 	def expand(cls, path=None, **k): # EXPAND
 		"""
@@ -318,10 +285,15 @@ class ImmutablePath(Path):
 
 
 
+
+
 #
 # STREAM, READER, WRITER
 #
 class Stream(object):
+	
+	def __init__(self, stream):
+		self.__stream = stream
 	
 	def __del__(self):
 		try:
@@ -342,33 +314,74 @@ class Stream(object):
 		finally:
 			self.__stream = None
 	
-	
 	def close(self):
+		"""
+		Closes the `self.__stream` stream object. Overriding classes that
+		do not work with stream objects should replace this method with
+		cleanup suitable to their own non-stream "producer".
+		"""
 		if self.__stream:
 			self.__stream.close()
-	
-	def __init__(self, stream):
-		self.__stream = stream
 
 
 
 
 
 class Reader(Stream):
+	
+	def __init__(self, stream, **k):
+		"""
+		Pass the required `stream` object. If the optional `encoding`
+		keyword argument is specified, it will be used to decode the 
+		result for readline(), read(), and each value returned by the
+		`lines` property.
+		"""
+		Stream.__init__(self, stream)
+		self.__encoding = k.get('encoding')
 		
+		# this should speed things up when encoding is not specified
+		if not self.__encoding:
+			self.read = self.stream.read
+			self.readline = self.stream.readline
+	
+	
 	def __iter__(self):
 		return self.lines
 	
+	
+	@property
+	def encoding(self):
+		return self.__encoding
+	
 	@property
 	def lines(self):
-		for line in self.stream:
-			yield line
-
-	def read(self, *a):
-		return self.stream.read(*a)
+		if self.__encoding:
+			enc = self.__encoding
+			for line in self.stream:
+				yield (line.decode(enc))
+		else:
+			for line in self.stream:
+				yield line
 	
 	def readline(self):
-		return self.stream.readline()
+		"""
+		Read a line decoding as specified by `encoding` passed to the
+		constructor. 
+		
+		NOTE: If no encoding was specified, this method is replaced by
+		      a direct all to self.stream.readline()
+		"""
+		return self.stream.readline().decode(self.__encoding)
+
+	def read(self, *a):
+		"""
+		Read stream, decoding as specified by `encoding` passed to the
+		constructor. 
+		
+		NOTE: If no encoding was specified, this method is replaced by
+		      a direct all to self.stream.read()
+		"""
+		return self.stream.read(*a).decode(self.__encoding)
 
 
 

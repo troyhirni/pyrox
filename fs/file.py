@@ -10,6 +10,7 @@ FILE - File Object, for reading normal files.
 from . import *
 
 
+
 class File(ImmutablePath):
 	"""Represents a file."""
 	
@@ -67,7 +68,7 @@ class File(ImmutablePath):
 		"""
 		stream = Base.kpop(k, 'stream')
 		if stream:
-			return Reader(stream)
+			return Reader(stream, **k)
 		else:
 			k.setdefault('mode', 'r')
 			return Reader(self.open(**k))

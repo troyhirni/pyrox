@@ -20,11 +20,18 @@ class CSV(File):
 	
 	def reader(self, **k):
 		"""
-		Default mode is 'rt'
+		Returns a reader for the file this object represents (self.path)
+		
+		Pass keyword arguments:
+		 - encoding = encoding with which to decode binary to unicode
+		 - mode     = optional mode (default, 'rt') 
+
+		To create with a stream, pass keyword argument:
+		 - stream = A byte or text stream
 		"""
+		# pop all these so csv reader can have the rest of the kwargs
 		mode = Base.kpop(k, 'mode')
 		stream = Base.kpop(k, 'stream')
-		#encoding = 
 		
 		if stream:
 			return CSVReader(stream, **k)
@@ -40,37 +47,32 @@ class CSVReader(Reader):
 	
 	def __init__(self, stream, *a, **k):
 		
-		#stream = Base.create('csv.reader', stream, *a, **k)
-		#Reader.__init__(self, stream)
+		enc = Base.kpop(k, 'encoding') or DEF_ENCODE
+		Reader.__init__(self, stream, encoding=enc)
 		
-		# why would i do this?
-		Reader.__init__(self, stream)
-		self.__csvreader = Base.create('csv.reader', stream, *a, **k)
+		self.__dec = Base.create('codecs.iterdecode', stream, enc)
+		self.__csv = Base.create('csv.reader', self.__dec, *a, **k)
 	
 	def __iter__(self):
 		return self.lines
 	
 	@property
 	def lines(self):
-		#csvr = Base.create('csv.reader', 'rt', self.stream)
-		csvr = self.__csvreader
-		for line in self.__csvreader:
+		csvr = self.__csv
+		for line in csvr:
 			yield line
-
+	
+	# READ
 	def read(self, *a):
 		return [r for r in self.lines]
 	
-	# TODO: speed enhancement
+	# READLINE
 	def readline(self):
-		return next(self.lines)
-		
-		"""
-		self.__lines = self.lines
 		try:
-			return next(self.__lines)  # python3
+			return next(self.lines)
 		except:
-			return self.__lines.next() # python2
-		"""
+			return self.lines.next()
+
 
 
 

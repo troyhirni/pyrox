@@ -70,8 +70,10 @@ class Query(Data):
 		else:
 			# set data and encoding
 			self.__data = data
-			if self.__encoding:
-				self.__data = self.__data.decode(self.__encoding)
+		
+		# if 'encoding' is specified, decode bytes only
+		if self.__encoding and isinstance(self.__data, pxbytes):
+			self.__data = self.__data.decode(self.__encoding)
 		
 		# prep undo
 		self.__undo = self.__data

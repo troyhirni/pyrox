@@ -58,7 +58,22 @@ except:
 	basestring = unicode = str
 	unichr = chr
 	if AUTO_DEBUG:
-		from imp import reload
+		try:
+			from imp import reload
+		except:
+			from importlib import reload
+
+
+# This supports python versions before 2.6 when the bytes type was 
+# introduced; The value is used in support of python 3, to check 
+# whether decoding has been applied in situations where results may
+# be (unicode) strings or byte strings.
+try:
+	pxbytes = bytes
+except:
+	# this only happens pre-version 2.6
+	pxbytes = str
+
 
 
 # default global values

@@ -74,7 +74,6 @@ class Dir(Path):
 		"""List directory at path."""
 		return os.listdir(self.merge(path))
 	
-	
 	#
 	# Single file operations, path relative to this directory.
 	#
@@ -101,6 +100,19 @@ class Dir(Path):
 		Copy src to dst; If src is directory, any keyword arguments are 
 		passed to shutil.copytree().
 		"""
+		try:
+			for src in self.match(pattern):
+				print (src)
+				curDest = self.merge(dst)
+				if os.path.isdir(src):
+					shutil.copytree(src, curDest, **k)
+				else:
+					shutil.copy(src, curDest)
+		except Exception as ex:
+			raise type(ex)('copy-fail', xdata(
+				src=src, dst=curDest, err=ex.args
+			))
+		"""HOLD ON TO THIS A SEC...
 		for src in self.match(pattern):
 			if self.exists(dst):
 				raise Exception('fs-path-exists',  xdata(dest=dst))
@@ -108,6 +120,7 @@ class Dir(Path):
 				return shutil.copytree(src, self.merge(dst), **k)
 			else:
 				return shutil.copyfile(src, self.merge(dst))
+		"""
 	
 	def mkdir(self, path, *a):
 		"""
@@ -128,6 +141,7 @@ class Dir(Path):
 				shutil.rmtree(px)
 			else:
 				os.remove(px)
+	
 	
 	#
 	# Pattern Searching - Match, Find
