@@ -80,7 +80,22 @@ class Dir(Path):
 	
 	def head(self, path, lines=12, **k):
 		"""Return head for existing file at the given path."""
-		return self.file(path).head(lines, **k)
+		
+		# get the path to `path` relative to this directory
+		p = Path(self.merge(path))
+		
+		# get a reader for that file
+		r = p.reader(**k)
+		
+		# iterate, collecting `head` results
+		rr = []
+		for line in r.lines:
+			rr.append(line.strip())
+			lines -= 1
+			if lines < 1:
+				break
+		return rr
+		#return self.file(path).head(lines, **k)
 	
 	def read(self, path, **k):
 		"""Return contents of file at path."""
