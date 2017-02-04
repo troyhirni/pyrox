@@ -133,6 +133,11 @@ class Path(object):
 			elif mm.subtype == 'zip':
 				return Base.ncreate('fs.zip.Zip', self.path, **k)
 			
+			# xlsx - for now, just use zip
+			elif mm.subtype == 'vnd.openxmlformats-officedocument.spreadsheetml.sheet':
+				return Base.ncreate('fs.zip.Zip', self.path, **k)
+			
+			# json
 			elif mm.subtype == 'json':
 				tj = Base.ncreate('data.transform.TransformJson')
 				return Base.ncreate(
@@ -389,12 +394,11 @@ class Reader(Stream):
 
 class Writer(Stream):
 	
-	def write(self, data, *a, **k):
+	def write(self, data):
 		return self.stream.write(data)
 	
-	def writeline(self, data):
-		return self.stream.writeline(data)
-
+	def writelines(self, datalist):
+		return self.stream.writelines(data)
 
 
 

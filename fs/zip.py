@@ -121,10 +121,11 @@ class Zip(File):
 		if 'stream' in k:
 			return Reader(k['stream'])
 		elif 'member' in k:
-			mode = k.get('mode', 'r')
-			member = k.get('member')
+			member = Base.kpop(k, 'member')
+			mode = Base.kpop(k, 'mode') or 'r'
+			pwd = Base.kpop(k, 'pwd')
 			with self.open() as z:
-				return Reader(z.open(member, **k))
+				return Reader(z.open(member, mode, pwd), **k)
 		else:
 			raise ValueError('create-reader-fail', xdata( k=k,
 				reason='missing-required-arg', requires=['stream','member'],

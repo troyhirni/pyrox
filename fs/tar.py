@@ -13,7 +13,7 @@ from .file import *
 
 
 class Tar(File):
-	"""Tar file support; EXPERIMENTAL."""
+	"""Tar file support."""
 	
 	def __init__(self, path, mode='r', **k):
 		File.__init__(self, path, **k)
