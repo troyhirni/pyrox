@@ -95,10 +95,19 @@ class Format(FormatBase):
 		When passed text, this object's format() method will convert it
 		to
 		"""
-		FormatBase.__init__(self, formatString)
+		FormatBase.__init__(self)
+		self.__formatstr = formatString
+	
 	
 	def format(self, *a, **k):
-		return self.args[0].format(*a, **k)
+		"""
+		Pass args and kwargs - the values to be formatted into the format
+		method of the `formatString` given to the constructor.
+		
+		f = Format('{0}, {1}, {2}')
+		print (f.format('a', 'b', 'c'))
+		"""
+		return self.self.__formatstr.format(*a, **k)
 
 
 
