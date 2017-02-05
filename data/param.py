@@ -111,7 +111,6 @@ class Param(Chain):
 	def __unicode__(self):
 		return str(self.v)
 	
-	
 	# COMPARISON
 	def eq(self, v, *a):
 		"""
@@ -145,5 +144,12 @@ class Param(Chain):
 	def lt(self, v, *a):
 		"""Comparison: less than;"""
 		return v < (a[0] if a else self.v)
-
+	
+	@property
+	def true(self):
+		return True
+	
+	@property
+	def false(self):
+		return False
 
