@@ -34,7 +34,7 @@ class Zip(File):
 		
 		Keywords apply as to base.Path.expand().
 		"""
-		ImmutablePath.__init__(self, k.get('zip', path), **k)
+		File.__init__(self, k.get('zip', path), **k)
 		
 		# store password
 		self.__pass = pwd
@@ -42,7 +42,7 @@ class Zip(File):
 		self.__b64 = b64
 		
 		# force creation of the file
-		with self.open() as z:
+		with self.open(mode='a') as z:
 			z.close()
 	
 	@property
@@ -93,9 +93,27 @@ class Zip(File):
 	
 	# READ
 	def read(self, member, **k):
+		"""
+		Read `member`.
+		
+		Argument `member` is required, to specify which member to read.
+		
+		If optional keyword arg `mode` is specified, it replaces the 
+		default read mode 'r'.
+		
+		If optional kwarg `pwd` is specified, it's applied.
+		
+		If optional kwarg 'encoding' is supplied, result is decoded after
+		being read. Optional kwarg 'errors' is also applied if given.
+		"""
+		ek = Base.kcopy(k, 'encoding errors')
+		rk = Base.kcopy(k, 'mode pwd')
 		with self.open() as z:
 			try:
-				return z.read(member, **k)
+				if 'encoding' in ek:
+					return z.read(member, **rk).decode(**ek)
+				else:
+					return z.read(member, **rk)
 			finally:
 				z.close()
 	
@@ -105,10 +123,18 @@ class Zip(File):
 		"""
 		Write data to member (zip path) within the zip file. Default mode
 		is 'a'. (To overwrite all contents, use mode='w'.)
+		
+		If optional keyword arg 'encoding' is supplied, data is encoded
+		before being written.
 		"""
-		with self.open(mode) as z:
+		ek = Base.kcopy(k, 'encoding errors')
+		rk = Base.kcopy(k, 'mode pwd')
+		with self.open(mode, **k) as z:
 			try:
-				z.writestr(member, data, **k)
+				if 'encoding' in ek:
+					z.writestr(member, data.encode(**ek), **rk)
+				else:
+					z.writestr(member, data, **rk)
 			finally:
 				z.close()
 	
@@ -116,7 +142,8 @@ class Zip(File):
 	# READER
 	def reader(self, **k):
 		"""
-		Reader stream to the specified member within this file.
+		Returns a Reader for the member specified member (or stream). All
+		args are given by keyword.
 		"""
 		if 'stream' in k:
 			return Reader(k['stream'])

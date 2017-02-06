@@ -12,9 +12,11 @@ from .file import *
 import bz2
 
 
-class Bzip(File):
+class Bzip(ByteFile):
 	"""bzip2 file support."""
-	def open(self, mode='r', **k):
+	def open(self, mode='rb', **k):
+		#don't copy 'filepath', open() passes path
+		k = Base.kcopy(k, 'buffering compresslevel')
 		return bz2.BZ2File(self.path, mode, **k)
 
 

@@ -11,7 +11,7 @@ GZIP - Covers gzip files.
 from .file import *
 
 
-class Gzip(File):
+class Gzip(ByteFile):
 	"""Gzip file support."""
 	@property
 	def gzfactory(self):
@@ -22,6 +22,7 @@ class Gzip(File):
 			return self.__gzfactory
 	
 	def open(self, mode='rb', **k):
-		return self.gzfactory(self.path, mode, **k)
+		ok = Base.kcopy(k, 'mode compresslevel fileobj mtime')
+		return self.gzfactory(self.path, mode, **ok)
 
 

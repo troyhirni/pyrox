@@ -11,13 +11,16 @@ from . import *
 
 
 
+#
+# FILE
+#
 class File(ImmutablePath):
 	"""Represents a file."""
 	
 	def __init__(self, path, **k):
 		"""Pass path to file. Keywords apply as to Path.expand()."""
 		try:
-			Path.__init__(self, k.get('file', path), **k)
+			ImmutablePath.__init__(self, k.get('file', path), **k)
 		except:
 			raise ValueError('fs-invalid-path', xdata(path=path, k=k))
 
@@ -71,14 +74,14 @@ class File(ImmutablePath):
 			return Reader(stream, **k)
 		else:
 			k.setdefault('mode', 'r')
-			return Reader(self.open(**k))
-	
+			return Reader(self.open(**k), **k)
+		
 	
 	# WRITER
 	def writer(self, **k):
 		"""
 		Just like `reader` except that its default `mode` keyword value 
-		is "w" instead of "r", so it writes instead of reads.
+		defaults to "w" instead of "r", so it writes instead of reads.
 		
 		r = File('infile.txt').reader()
 		w = File('outfile.txt').writer()
@@ -90,7 +93,6 @@ class File(ImmutablePath):
 		else:
 			k.setdefault('mode', 'w')
 			return Writer(self.open(**k))
-		
 	
 	
 	# OPEN
@@ -117,7 +119,7 @@ class File(ImmutablePath):
 		"""
 		# binary
 		if 'b' in mode:
-			return open(self.path, mode, **k)
+			return self.opener.open(self.path, mode, **k)
 		
 		# text
 		else:
@@ -139,12 +141,13 @@ class File(ImmutablePath):
 			try:
 				fp.write(data)
 			except TypeError:
-				fp.write(unicode(data))
+				k = Base.kcopy(k, 'encoding errors') or {}
+				fp.write(unicode(data, **k))
 	
 	
 	# HEAD
 	def head(self, lines=12, **k):
-		"""Top lines of file. Any kwargs apply to codecs.open()."""
+		"""Top lines of file. Any kwargs apply to opener.open()."""
 		a = []
 		k.setdefault('mode', 'r')
 		k.setdefault('encoding', DEF_ENCODE)
@@ -152,4 +155,48 @@ class File(ImmutablePath):
 			for i in range(0, lines):
 				a.append(fp.readline())
 		return ''.join(a)
+
+
+
+
+
+#
+# BYTE FILE - BZ2, GZIP, TAR, ZIP
+#
+class ByteFile(File):
+	
+	def __init__(self, *a, **k):
+		File.__init__(self, *a, **k)
+	
+	# WRITE
+	def write(self, data, mode='wb', **k):
+		"""Open and write data to file at self.path."""
+		k = Base.kcopy(k, 'encoding errors')
+		with self.open(mode) as fp:
+			fp.write(data.encode(**k) if k else data)
+	
+	
+	# READ
+	def read(self, mode='rb', **k):
+		"""Open and read file at self.path. Default mode is 'r'."""
+		k = Base.kcopy(k, 'encoding errors') if k else {}
+		with self.open(mode) as fp:
+			return fp.read().decode(**k) if k else fp.read()
+
+	"""
+	def reader(self, **k):
+		k.setdefault('mode', 'rb')
+		return File.reader(self.open(**ok), **k)
+	"""
+
+
+
+
+#
+# MEMBER FILE - TAR, ZIP
+#
+class MemberFile(File):
+	pass
+
+
 
