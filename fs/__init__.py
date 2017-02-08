@@ -32,7 +32,8 @@ class Path(object):
 		will apply to the Path.expand() method, which is always called on
 		this path immediately.
 		"""
-		self.__p = self.expand(k.get('path', path), **k)
+		self.__p = self.expand(k.get('path', path or '.'), **k)
+		self.__n = ospath.normpath(self.__p).split(os.sep)[-1]
 	
 	
 	# STR
@@ -61,6 +62,11 @@ class Path(object):
 		"""Return or set this path."""
 		return self.getpath()
 	
+	@property
+	def name(self):
+		"""Return current path's last element."""
+		return self.__n
+	
 	@path.setter
 	def path(self, path):
 		self.setpath(path)
@@ -76,6 +82,7 @@ class Path(object):
 	
 	def setpath(self, path):
 		self.__p = path
+		self.__n = ospath.normpath(path).split(os.sep)[-1]
 	
 	def isfile(self, path=None):
 		return ospath.isfile(self.merge(path))
@@ -95,7 +102,17 @@ class Path(object):
 		"""Touch file at path. Arg times applies to os.utime()."""
 		p = self.merge(path)
 		with open(p, 'a'):
-			os.utime(p, times)  
+			os.utime(p, times)
+		"""
+		try:
+			Path(p).wrapper().touch()
+			#wrapper = Path(p).wrapper()
+			#print ("WRAPPER! %s" % repr(wrapper))
+		except Exception as ex:
+			#print ("OPEN! %s" % str(ex))
+			with open(p, 'a'):
+				os.utime(p, times)
+		"""
 	
 	def merge(self, path):
 		"""Returns the given path relative to self.path."""
@@ -113,7 +130,7 @@ class Path(object):
 	def wrapper(self, **k):
 		"""
 		Returns a fs.File-based object wrapping the fs object at this
-		pasth. The default for files whose mime type can't be matched 
+		path. The default for files whose mime type can't be matched 
 		here is fs.file.File.
 		"""
 		mm = self.mime
@@ -210,7 +227,7 @@ class Path(object):
 			mwrap = mpath.wrapper()
 			
 			# get the original 'owner' stream for the memberwrapper to use
-			ownerstream = wrapper.reader(member=member).detatch()
+			ownerstream = wrapper.reader(member=member).detach()
 			
 			return mwrap.reader(stream=ownerstream, **k)
 		
@@ -297,8 +314,9 @@ class ImmutablePath(Path):
 #
 class Stream(object):
 	
-	def __init__(self, stream):
+	def __init__(self, stream, **k):
 		self.__stream = stream
+		self.__ek = Base.kcopy(k, 'encoding errors')
 	
 	def __del__(self):
 		try:
@@ -307,10 +325,25 @@ class Stream(object):
 			self.__stream = None
 	
 	@property
+	def encoding(self):
+		"""Encoding specified to constructor."""
+		return self.__ek.get('encoding')
+	
+	@property
+	def ek(self):
+		"""
+		Internal support for subclasses; A dict that provides any given
+		`encoding` and/or `errors` values related to encoding/decoding
+		read and written stream data. Returns an empty dict if no such
+		values were specified to the Stream constructor.
+		"""
+		return self.__ek
+	
+	@property
 	def stream(self):
 		return self.__stream
 	
-	def detatch(self):
+	def detach(self):
 		"""
 		Return a good copy of this stream, nullifying the internal copy.
 		"""
@@ -341,11 +374,10 @@ class Reader(Stream):
 		result for readline(), read(), and each value returned by the
 		`lines` property.
 		"""
-		Stream.__init__(self, stream)
-		self.__encoding = k.get('encoding')
+		Stream.__init__(self, stream, **k)
 		
 		# this should speed things up when encoding is not specified
-		if not self.__encoding:
+		if not self.encoding:
 			self.read = self.stream.read
 			self.readline = self.stream.readline
 	
@@ -355,51 +387,148 @@ class Reader(Stream):
 	
 	
 	@property
-	def encoding(self):
-		return self.__encoding
-	
-	@property
 	def lines(self):
-		if self.__encoding:
-			enc = self.__encoding
+		k = self.ek
+		if k:
 			for line in self.stream:
-				yield (line.decode(enc))
+				yield (line.decode(**k))
 		else:
 			for line in self.stream:
 				yield line
+	
 	
 	def readline(self):
 		"""
 		Read a line decoding as specified by `encoding` passed to the
 		constructor. 
 		
-		NOTE: If no encoding was specified, this method is replaced by
-		      a direct all to self.stream.readline()
+		NOTE: If no encoding was specified to the constructor, this 
+		      method is replaced by a direct all to the stream's 
+		      readline() method.
 		"""
-		return self.stream.readline().decode(self.__encoding)
-
+		return self.stream.readline().decode(**self.ek)
+	
+	
 	def read(self, *a):
 		"""
 		Read stream, decoding as specified by `encoding` passed to the
 		constructor. 
 		
-		NOTE: If no encoding was specified, this method is replaced by
-		      a direct all to self.stream.read()
+		NOTE: If no encoding was specified to the constructor, this 
+		      method is replaced by a direct all to the stream's 
+		      readline() method.
 		"""
-		return self.stream.read(*a).decode(self.__encoding)
+		return self.stream.read(*a).decode(**self.ek)
 
 
 
 
 
 class Writer(Stream):
+
+	def __init__(self, stream, **k):
+		"""
+		Pass the required `stream` object.
+		
+		If the optional `encoding` keyword argument is given, it will be
+		used to decode the result for writelines() and write().
+		"""
+		Stream.__init__(self, stream, **k)
+		
+		# this should speed things up when encoding is not specified
+		k = self.ek
+		if not k:
+			self.write = self.stream.write
+			self.writelines = self.stream.writelines
 	
+	
+	def close(self):
+		"""
+		Closes the `self.__stream` stream object. Overriding classes that
+		do not work with stream objects should replace this method with
+		cleanup suitable to their own non-stream "producer".
+		"""
+		if self.stream:
+			self.flush()
+			self.stream.close()
+	
+	#
+	# WRITE / WRITE-LINES
+	#  - Don't check for k here because if none was passed, this
+	#    method will have been replaced in the constructor by a direct
+	#    call to the stream's corresponding methods
+	#
 	def write(self, data):
-		return self.stream.write(data)
+		return self.stream.write(data.encode(**self.ek))
 	
 	def writelines(self, datalist):
-		return self.stream.writelines(data)
+		return self.stream.writelines(data.encode(**self.ek))
+	
+	def flush(self):
+		"""Flush the contained stream."""
+		if self.stream:
+			try:
+				self.stream.flush
+				self.stream.flush()
+			except:
+				pass
 
 
 
+
+
+#
+# EXPERIMENTAL
+#
+
+
+class Buffer(Writer):
+	"""
+	Buffer's constructor creates a StringIO or BytesIO stream to store
+	all data written to it. When finished writing, call the reader()
+	method to receive a Reader that will read from the (detached)
+	buffer stream.
+	"""
+	def __init__(self, **k):
+		try:
+			try:
+				strm = Base.create('io.StringIO')
+			except:
+				strm = Base.create('io.BytesIO')
+		except:
+			strm = Base.create('StringIO.StringIO')
+		
+		# send this stream to Writer so it can be written to
+		Writer.__init__(self, strm, **k)
+	
+	def reader(self):
+		self.stream.seek(0)
+		return Reader(self.detach())
+
+
+
+class Filter(Stream):
+	"""
+	Filter's various read methods read from a stream and returns the 
+	result after passing it through the callable `fn` argument.
+	
+	Filter implements Reader methods, but need not (and *must* not)
+	inherit from Reader because Reader replaces the read and write 
+	methods for non-unicode streams with the corresponding method from
+	the actual stream it's covering.
+	"""
+	def __init__(self, stream, fn, **k):
+		Stream.__init__(self, stream, **k)
+		self.__fn = fn
+	
+	@property
+	def lines(self):
+		for line in self.stream.lines:
+			yield self.__fn(line)
+	
+	def read(self, *a):
+		return self.__fn(self.stream.read(*a))
+	
+	def readline(self):
+		return self.__fn(self.stream.readline())
 
