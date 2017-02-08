@@ -12,7 +12,7 @@ import tarfile, fnmatch
 from .file import *
 
 
-class Tar(File):
+class Tar(ByteFile):
 	"""Tar file support."""
 	
 	def __init__(self, path, mode='r', **k):
@@ -47,7 +47,9 @@ class Tar(File):
 				rr[m.name] = m
 		self.__members = rr
 	
-	def memberinfo(self, name):
+	
+	
+	def memberinfo(self):
 		"""
 		Return a dict with member names as keys; each value is a dict 
 		containing information on the corresponding member.
@@ -59,18 +61,22 @@ class Tar(File):
 			with self.open('r|*') as f:
 				mm = f.getmembers()
 				for m in mm:
-					rr[name] = dict(
-						size = m.size,
-						mtime = m.mtime,
-						mode = m.mode,
-						type = m.type,
-						linkname = m.linkname,
-						uid = m.uid,
-						gid = m.gid,
-						uname = m.uname,
-						gname = m.gname,
-						pax = m.pax_headers	
-					)
+					try:
+						rr[m.name] = dict(
+							name = m.name,
+							size = m.size,
+							mtime = m.mtime,
+							mode = m.mode,
+							type = m.type,
+							linkname = m.linkname,
+							uid = m.uid,
+							gid = m.gid,
+							uname = m.uname,
+							gname = m.gname #,pax = m.pax_headers	
+						)
+					except:
+						raise
+						
 			self.__meminfo = rr
 			return rr
 
@@ -81,42 +87,56 @@ class Tar(File):
 		return tarfile.open(self.path, mode, **k)
 	
 	
-	# FILE-LIKE
+	# READING
+	def read(self, member, **k):
+		k['member'] = member
+		r = self.reader(**k)
+		return r.read()
+	
+	
+	# WRITE
+	def write(self, member, data, mode="a", **k):
+		
+		# create tarinfo object
+		mem = tarfile.TarInfo(member)
+		mem.size = len(data)
+		
+		# create a stream
+		try:
+			strm = Base.create('io.StringIO', data)
+		except:
+			strm = Base.create('cStringIO.StringIO', data)
+		
+		# add the member
+		with self.open(mode) as fp:
+			fp.addfile(mem, strm)
+	
+	
+	# READER
 	def reader(self, **k):
-		"""Read and return a reader for `member`."""
+		"""
+		Return a `Reader` object for `member`. If reading unicode, an 
+		`encoding` keyword must be specified so that the data can be 
+		decoded to unicode.
+		"""
 		if 'stream' in k:
 			return Reader(k) # pass k, NOT k['stream']!
 		elif 'member' in k:
 			mode = k.get('mode', 'r')
 			member = k['member']
-			return Reader(self.open(mode).extractfile(member))
+			return Reader(self.open(mode).extractfile(member), **k)
 		else:
 			raise ValueError('create-reader-fail', xdata( k=k,
 				reason='missing-required-arg', requires=['stream','member'],
 				detail=self.__class__.__name__
 			))
 	
-	#
-	# TO DO: figure out how to implement this!
-	#
-	def write(self, *a, **k):
-		raise NotImplementedError()
 	
+	# WRITER - Maybe someday... maybe soon :-)
 	def writer(self, *a, **k):
-		raise NotImplementedError()
-	
-	
-	
-	"""
-	#
-	# EXPERIMENTAL
-	#
-	"""
-	
-	# FILTER - glob-like pattern matching of member names
-	def filter(self, pattern):
-		"""
-		Glob-like pattern matching of member names. Eg, *.txt, etc...
-		"""
-		return fnmatch.filter(self.names, pattern)
+		raise NotImplementedError('maybe-someday')
 
+
+
+	
+	

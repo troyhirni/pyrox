@@ -47,7 +47,7 @@ class Zip(File):
 	
 	@property
 	def names(self):
-		"""Returns self.namelist()"""
+		"""This file's `member` names."""
 		return self.namelist()
 	
 	
@@ -75,6 +75,7 @@ class Zip(File):
 	
 	# NAME LIST
 	def namelist(self):
+		"""This file's `member` names."""
 		with self.open() as z:
 			try:
 				return z.namelist()
