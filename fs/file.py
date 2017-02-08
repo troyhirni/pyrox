@@ -198,5 +198,3 @@ class ByteFile(File):
 class MemberFile(File):
 	pass
 
-
-
