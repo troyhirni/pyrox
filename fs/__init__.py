@@ -40,6 +40,10 @@ class Path(object):
 	def __str__(self):
 		return self.path
 	
+	# REPR
+	def __repr__(self):
+		return str(type(self))
+	
 	# UNICODE
 	def __unicode__(self):
 		return self.path

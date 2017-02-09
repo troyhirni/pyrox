@@ -20,7 +20,7 @@ class File(ImmutablePath):
 	def __init__(self, path, **k):
 		"""Pass path to file. Keywords apply as to Path.expand()."""
 		try:
-			ImmutablePath.__init__(self, k.get('file', path), **k)
+			ImmutablePath.__init__(self, path, **k)
 		except:
 			raise ValueError('fs-invalid-path', xdata(path=path, k=k))
 
@@ -74,8 +74,13 @@ class File(ImmutablePath):
 			return Reader(stream, **k)
 		else:
 			k.setdefault('mode', 'r')
+			enc = Base.kpop(k, 'encoding')
+			err = Base.kpop(k, 'errors')
+			if enc:
+				ok = dict(encoding=enc)
+				if err:
+					ok['errors']=err
 			return Reader(self.open(**k), **k)
-		
 	
 	# WRITER
 	def writer(self, **k):
@@ -92,7 +97,13 @@ class File(ImmutablePath):
 			return Writer(stream)
 		else:
 			k.setdefault('mode', 'w')
-			return Writer(self.open(**k))
+			enc = Base.kpop(k, 'encoding')
+			err = Base.kpop(k, 'errors')
+			if enc:
+				ok = dict(encoding=enc)
+				if err:
+					ok['errors']=err
+			return Writer(self.open(**k), **ok)
 	
 	
 	# OPEN
@@ -130,6 +141,8 @@ class File(ImmutablePath):
 	# READ
 	def read(self, mode='r', **k):
 		"""Open and read file at self.path. Default mode is 'r'."""
+		if 'mode' in k:
+			raise Exception('YIKES!')
 		with self.open(mode, **k) as fp:
 			return fp.read()
 	
@@ -161,34 +174,47 @@ class File(ImmutablePath):
 
 
 #
-# BYTE FILE - BZ2, GZIP, TAR, ZIP
+# BYTE FILE - BZ2, GZIP
 #
 class ByteFile(File):
 	
 	def __init__(self, *a, **k):
 		File.__init__(self, *a, **k)
+		self.__encoding = k.get('encoding')
 	
 	# WRITE
 	def write(self, data, mode='wb', **k):
 		"""Open and write data to file at self.path."""
+		if self.__encoding:
+			k.setdefault('encoding', self.__encoding)
 		k = Base.kcopy(k, 'encoding errors')
 		with self.open(mode) as fp:
 			fp.write(data.encode(**k) if k else data)
 	
-	
 	# READ
 	def read(self, mode='rb', **k):
 		"""Open and read file at self.path. Default mode is 'r'."""
+		if self.__encoding:
+			k.setdefault('encoding', self.__encoding)
 		k = Base.kcopy(k, 'encoding errors') if k else {}
 		with self.open(mode) as fp:
 			return fp.read().decode(**k) if k else fp.read()
-
-	"""
+	
+	# READER
 	def reader(self, **k):
-		k.setdefault('mode', 'rb')
-		return File.reader(self.open(**ok), **k)
-	"""
+		#k.setdefault('mode', 'rb')
+		if self.__encoding:
+			k.setdefault('encoding', self.__encoding)
+		return File.reader(self, **k)
+	
+	# WRITER
+	def writer(self, **k):
+		#k.setdefault('mode', 'rb')
+		if self.__encoding:
+			k.setdefault('encoding', self.__encoding)
+		return File.writer(self, **k)
 
+		
 
 
 

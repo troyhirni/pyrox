@@ -109,6 +109,7 @@ class Zip(File):
 		"""
 		ek = Base.kcopy(k, 'encoding errors')
 		rk = Base.kcopy(k, 'mode pwd')
+		rk.setdefault('mode', 'r')
 		with self.open() as z:
 			try:
 				if 'encoding' in ek:

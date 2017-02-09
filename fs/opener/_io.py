@@ -16,5 +16,8 @@ class Opener(object):
 		kk = Base.kcopy(
 			k, "mode buffering encoding errors newline closefd"
 		)
-		return io.open(*a, **kk)
+		try:
+			return io.open(*a, **kk)
+		except Exception as ex:
+			raise type(ex)('open-fail', xdata(a=a, k=k, opener=Opener))
 

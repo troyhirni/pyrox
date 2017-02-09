@@ -119,16 +119,6 @@ class Param(Chain):
 		"""
 		return v == (a[0] if a else self.v)
 	
-	def fn(self, fn, *a, **k):
-		"""
-		Return the result of the callable argument `fn`. All args and 
-		kwargs are passed on to the callable.
-		
-		Use this when you want to return a function result rather than
-		setting self.v to the result.
-		"""
-		return fn(*a, **k)
-	
 	def ge(self, v, *a):
 		"""Comparison: greater than/equal to;"""
 		return v >= (a[0] if a else self.v)
@@ -152,4 +142,15 @@ class Param(Chain):
 	@property
 	def false(self):
 		return False
-
+	
+	
+	
+	def fn(self, fn, *a, **k):
+		"""
+		Return the result of the callable argument `fn`. All args and 
+		kwargs are passed on to the callable.
+		
+		Use this when you want to return a function result rather than
+		setting self.v to the result.
+		"""
+		return fn(*a, **k)

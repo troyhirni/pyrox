@@ -117,7 +117,7 @@ class Dir(Path):
 		"""
 		try:
 			for src in self.match(pattern):
-				print (src)
+				#print (src)
 				curDest = self.merge(dst)
 				if os.path.isdir(src):
 					shutil.copytree(src, curDest, **k)

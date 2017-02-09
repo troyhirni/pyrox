@@ -17,7 +17,8 @@ class Tar(ByteFile):
 	
 	def __init__(self, path, mode='r', **k):
 		File.__init__(self, path, **k)
-		self.__innerdir = '/' #X
+		if 'encoding' in k:
+			self.__encoding = k['encoding']
 	
 	@property
 	def names(self):
@@ -90,6 +91,8 @@ class Tar(ByteFile):
 	# READING
 	def read(self, member, **k):
 		k['member'] = member
+		if self.__encoding:
+			k.setdefault(self.__encoding)
 		r = self.reader(**k)
 		return r.read()
 	
@@ -101,10 +104,26 @@ class Tar(ByteFile):
 		mem = tarfile.TarInfo(member)
 		mem.size = len(data)
 		
+		if self.__encoding:
+			k.setdefault('encoding', self.__encoding)
+		
+		if 'encoding' in k:
+			data=data.encode(k['encoding'])
+		
 		# create a stream
 		try:
-			strm = Base.create('io.StringIO', data)
-		except:
+			try:
+				# This is a tar file, so it should be bytes...
+				strm = Base.create('io.BytesIO', data)
+			except:
+				# ...but in python 2, it might be thought of as a string
+				# even if it's really bytes. 
+				# 
+				# TO-DO: Look into this further; this might not be necessary 
+				# (or if it is, might not be the best solution).
+				strm = Base.create('io.StringIO', data)
+		except ImportError:
+			# for early python 2
 			strm = Base.create('cStringIO.StringIO', data)
 		
 		# add the member
@@ -119,6 +138,8 @@ class Tar(ByteFile):
 		`encoding` keyword must be specified so that the data can be 
 		decoded to unicode.
 		"""
+		if self.__encoding:
+			k.setdefault('encoding', self.__encoding)
 		if 'stream' in k:
 			return Reader(k) # pass k, NOT k['stream']!
 		elif 'member' in k:

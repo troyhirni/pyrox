@@ -17,17 +17,176 @@ from .. import *
 from .. import fmt
 
 
-def report():
+TESTDIR = os.path.normpath("%s/../test/testfiles"%str(__file__))
+
+
+def report(debug=False):
 	"""
 	Loads all modules and prints a report listing modules and a brief
 	error message, if any.
 	"""
+	
+	#
+	# TEST - IMPORT ALL
+	#
+	print ("\nDEV TEST: Import all modules:\n")
 	tt = Test()
 	tt.load()
 	tt.report()
+	
+	#
+	# TEST - FS WRAPPER IO
+	#
+	print ("\nDEV TEST: fs.wrapper() write/read:\n")
+	tt = TestFS(debug)
+	
+	#print (" * filenames: %s" % '; '.join(tt.filenames()))
+	grid = Base.ncreate('fmt.grid.Grid')
+	
+	print ("\nMake Files...")
+	grid.output(tt.makefiles())
+	
+	print ("\nRead Files...")
+	grid.output(tt.readfiles())
 
 
 
+
+# -------------------------------------------------------------------
+#
+# TEST-FS - Test File Wrappers, Readers and write methods.
+#
+# -------------------------------------------------------------------
+class TestFS(object):
+	
+	def __init__(self, debug=False):
+		self.debug = debug
+	
+	DATA = "1, 2, 3\n4, 5, 6\n7, 8, 9\n"	
+	
+	def filenames(self):
+		
+		f = ['test.txt','test.csv']
+		c = ['gz','bz2']
+		b = ['tar', 'zip']
+		
+		rr = []
+		rr.extend(f)
+		rr.extend([
+			'.'.join([x,y]) for x in f for y in c
+		])
+		
+		r = []
+		r.extend(rr)
+		r.extend([
+			'.'.join([x,y]) for x in rr for y in b
+		])
+				
+		return r
+	
+	
+	
+	def readfiles(self, debug=False):
+		
+		# work with a Dir object
+		d = Base.ncreate('fs.dir.Dir', TESTDIR, affirm='makedirs')
+		rr = [['FILE:','MEMBER:','WRAPPER:','READER:','READLINE:']]
+		for fname in self.filenames():
+			
+			p = Base.ncreate('fs.Path', d.merge(fname))
+			
+			xl = fname.split('.')
+			mem = '.'.join(xl[:2])
+			
+			try:
+				# look for wrappers that require a `member`
+				if xl[-1] in ['tar','zip','tgz']:
+					w = p.wrapper(encoding=DEF_ENCODE)
+					r = w.reader(member=mem)
+					rr.append([
+						fname, mem, type(w).__name__, type(r).__name__, 
+						str(r.readline()).strip()
+					])
+				
+				# wrappers that don't want `member`
+				else:
+					mem = None
+					w = p.wrapper(encoding=DEF_ENCODE)
+					r = w.reader()
+					rr.append([
+						fname, mem, type(w).__name__, type(r).__name__, 
+						str(r.readline()).strip()
+					])
+					
+			except Exception as ex:
+				rr.append([
+					fname, mem, type(w).__name__, type(r).__name__, 
+					str("ERROR! %s" % str(ex))
+				])
+				if self.debug:
+					raise type(ex)('test-fail', xdata(detail='readfiles',
+						file=fname, member=mem, wrapper=w, reader=r
+					))
+		
+		return rr
+	
+	
+	
+	
+	
+	
+	def makefiles(self, debug=False):
+		
+		# work with a Dir object
+		d = Base.ncreate('fs.dir.Dir', TESTDIR, affirm='makedirs')
+		
+		# remove any existing files before testing
+		d.search(".", "*.*", fn=d.rm)
+		
+		# loop through each filename writing data
+		rr = [["FILENAME:", 'MEMBER:', 'RESULT:', 'ERROR:']]
+		for fname in self.filenames():
+			p = Base.ncreate('fs.Path', d.merge(fname))
+			
+			try:
+				xl = fname.split('.')
+				
+				# look for wrappers that require a `member`
+				if xl[-1] in ['tar','zip','tgz']:
+					mem = '.'.join(xl[:2])
+					wrap = p.wrapper(encoding=DEF_ENCODE)
+					wrap.write(mem, self.DATA)
+					rr.append([fname, mem, 'OK.', ''])
+				
+				# wrappers that don't want `member`
+				else:
+					mem = None
+					print ("wrapper utf8 %s" % fname)
+					wrap = p.wrapper(encoding=DEF_ENCODE)
+					print (repr(wrap))
+					wrap.write(self.DATA)
+					rr.append([fname, mem, 'OK.', ''])
+			
+			except Exception as ex:
+				rr.append([fname, mem, "ERROR!", str(ex)])
+				if self.debug:
+					raise type(ex)('test-fail', xdata(
+						detail='test.TestFS.readfiles',
+						file=fname, member=mem, wrapper=wrap
+					))
+		
+		return rr
+
+
+
+
+
+
+# -------------------------------------------------------------------
+#
+# TEST - LOAD ALL MODULES
+#
+# -------------------------------------------------------------------
 class Test(object):
 	def __init__(self):
 		

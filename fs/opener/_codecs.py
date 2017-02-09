@@ -14,5 +14,8 @@ import codecs
 class Opener(object):
 	def open(self, *a, **k):
 		kk = Base.kcopy(k, "mode buffering encoding errors buffering")
-		return codecs.open(*a, **kk)
+		try:
+			return codecs.open(*a, **kk)
+		except Exception as ex:
+			raise type(ex)('open-fail', xdata(a=a, k=k, opener=Opener))
 
