@@ -25,7 +25,14 @@ if __name__ == '__main__':
 		d = Base.ncreate('fs.dir.Dir', *args[1:])
 		d.search('.', '*.pyc', fn=d.rm)
 	
-	# prompt demo
+	# prompt demo - ftp
+	elif cmd == '--ftp':
+		print (args)
+		d = Base.create('ftplib.FTP', *args)
+		p = Base.ncreate('intf.prompt.Prompt', d)
+		p.prompt()
+	
+	# prompt demo - *
 	elif cmd == '--prompt':
 		d = Base.ncreate(args[0], *args[1:])
 		p = Base.ncreate('intf.prompt.Prompt', d)
