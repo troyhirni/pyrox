@@ -35,6 +35,9 @@ class Path(object):
 		self.__p = self.expand(k.get('path', path or '.'), **k)
 		self.__n = ospath.normpath(self.__p).split(os.sep)[-1]
 	
+	# CALL - EXPERIMENTAL
+	def __call__(self, path):
+		return Path(self.merge(path))
 	
 	# STR
 	def __str__(self):
@@ -377,6 +380,20 @@ class Reader(Stream):
 		keyword argument is specified, it will be used to decode the 
 		result for readline(), read(), and each value returned by the
 		`lines` property.
+		
+		BE AWARE!
+		When subclassing reader, you have to really understand what's 
+		happening with self.read and self.readline!
+		
+		When encoding is specified, the self.readline() and self.read()
+		methods execute normally. WHEN THERE IS NO ENCODING, however, the
+		two methods are replaced with the `stream` methods so as to speed
+		up reading.
+		
+		THIS NEEDS TO CHANGE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+		
+		- TOMORROW, REWRITE so that self.readline is always set to return
+		                    __next__(self)
 		"""
 		Stream.__init__(self, stream, **k)
 		
@@ -384,10 +401,16 @@ class Reader(Stream):
 		if not self.encoding:
 			self.read = self.stream.read
 			self.readline = self.stream.readline
+		
+		# p2/p3
+		self.next = self.__next__
 	
 	
 	def __iter__(self):
 		return self.lines
+	
+	def __next__(self):
+		return next(self.lines)
 	
 	
 	@property
@@ -401,18 +424,6 @@ class Reader(Stream):
 				yield line
 	
 	
-	def readline(self):
-		"""
-		Read a line decoding as specified by `encoding` passed to the
-		constructor. 
-		
-		NOTE: If no encoding was specified to the constructor, this 
-		      method is replaced by a direct all to the stream's 
-		      readline() method.
-		"""
-		return self.stream.readline().decode(**self.ek)
-	
-	
 	def read(self, *a):
 		"""
 		Read stream, decoding as specified by `encoding` passed to the
@@ -423,6 +434,18 @@ class Reader(Stream):
 		      readline() method.
 		"""
 		return self.stream.read(*a).decode(**self.ek)
+	
+	
+	def readline(self):
+		"""
+		Read a line decoding as specified by `encoding` passed to the
+		constructor. 
+		
+		NOTE: If no encoding was specified to the constructor, this 
+		      method is replaced by a direct all to the stream's 
+		      readline() method.
+		"""
+		return self.stream.readline().decode(**self.ek)
 
 
 
@@ -472,9 +495,10 @@ class Writer(Stream):
 		"""Flush the contained stream."""
 		if self.stream:
 			try:
-				self.stream.flush
 				self.stream.flush()
-			except:
+			except (ValueError, AttributeError):
+				# ignore errors where the stream is already closed (or just
+				# doesn't have a 'flush' method).
 				pass
 
 

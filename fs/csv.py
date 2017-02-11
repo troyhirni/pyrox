@@ -14,6 +14,7 @@ not really sure what it is, but it's not that. I may trash it.
 
 from .file import *
 
+from ..ext.ext_csv import *
 
 
 class CSV(File):
@@ -63,47 +64,113 @@ class CSV(File):
 			w = CSVWriter(self.open(**k), **k).write(data)
 			w.write(data)
 
-
+	
 
 
 
 class CSVReader(Reader):
 	
-	def __init__(self, stream, *a, **k):
+	def __init__(self, stream, dialect=None, *a, **k):
+		"""
+		Pass a `stream` to text data.
 		
+		* PARSING OPTIONS *
+		Pass a dialect (or string dialect selector) to select the exact
+		dialect you want to use. The default is None, which will leave
+		CSVReader free to "sniff" the stream text for the best chance of
+		successful parsing. See below for details.
+		
+		When dialect is None (the default for CSVReader) the csv.Sniff
+		class is used to "sniff" text from the csv stream to determine
+		dialect settings that will likely produce valid results.
+		
+		Optionally, pass keyword argument `sniff`=False to disable the
+		sniffer that's automatically triggered by this constructor. If
+		not disabled (by sniff=False), sniff results are set as defaults
+		for keywords passed to the reader.
+		
+		Set `sniff` to a positive integer if you want to control how many
+		bytes are sniffed. (The default is 1024.)
+		
+		Optionally, pass keyword arguments matching a Dialect object's 
+		attributes. These are passed directly to the csv.reader as 
+		keyword arguments. Keyword arguments you specify overrule any
+		results of an automatic sniff.
+		
+		DIALECT KEY:      DEFAULT:
+		delimiter         ','
+		doublequote       1
+		escapechar        None
+		lineterminator    '\r\n'
+		quotechar         '"'
+		quoting           0
+		skipinitialspace  0
+		strict            0
+		
+		Pass sniff=False and no csv-related keyword arguments if you want
+		the default csv.reader action.
+		"""
+		
+		#
+		# Pass stuff up first - not sure what will happen below, but the
+		# encoding gets popped before sending to csv.reader() and I don't
+		# want to miss storing that (if only for reference).
+		#
 		Reader.__init__(self, stream, **k)
 		
-		# get rid of encoding-related stuff csv reader doesn't want
+		#
+		# Get rid of encoding-related stuff csv reader doesn't want.
+		# Probably won't need the return values here, but I'll leave it
+		# for now, just in case.
+		#
 		enc = Base.kpop(k, 'encoding')
 		err = Base.kpop(k, 'errors')
 		
-		self.__dec = Base.create('codecs.iterdecode', stream, enc)
-		self.__csv = Base.create('csv.reader', self.__dec, *a, **k)
+		# If dialect is specified, ignore all dialect-related keywords.
+		if not dialect:
+			
+			# If sniff is disabled (sniff=None) then.. well.. don't sniff!
+			# Otherwise, do.
+			k.setdefault('sniff', 1024)
+			sniff = Base.kpop(k, 'sniff') or None
+			if sniff:
+				dialect = Sniffer().sniff(stream.read(1024))
+				stream.seek(0)
+		
+		# make the csv reader
+		self.__csv = reader(stream, *a, **k)
+		
+		# p2/p3
+		self.next = self.__next__
+		
+		# replace read, readline
+		self.read = self.readlist
+		self.readline = self.__next__ # this needs to move to fs.Reader
+		
+		# REMOVE ME (after debugging)!!!
+		self.cr = self.__csv
+		
 	
 	def __iter__(self):
 		return self.lines
 	
+	def __next__(self):
+		return next(self.lines)
+	
 	@property
 	def lines(self):
 		csvr = self.__csv
-		if self.encode:
+		if self.ek:
 			for line in csvr:
-				yield line.encode(self.encode)
+				yield line.encode(**self.ek)
 		else:
 			for line in csvr:
-				yield line.encode(self.encode)
+				yield line
 	
 	# READ
-	def read(self, *a):
-		return [r for r in self.lines]
-	
-	# READLINE
-	def readline(self):
-		try:
-			return next(self.lines)
-		except AttributeError:
-			return self.lines.next()
-
+	def readlist(self, *a):
+		return [r for r in self]
+		
 
 
 
