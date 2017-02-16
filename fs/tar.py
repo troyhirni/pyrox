@@ -9,16 +9,11 @@ The Tar class is currently read-only.
 """
 
 import tarfile, fnmatch
-from .file import *
+from .bfile import *
 
 
 class Tar(ByteFile):
 	"""Tar file support."""
-	
-	def __init__(self, path, mode='r', **k):
-		File.__init__(self, path, **k)
-		if 'encoding' in k:
-			self.__encoding = k['encoding']
 	
 	@property
 	def names(self):
@@ -85,15 +80,24 @@ class Tar(ByteFile):
 	# OPEN TAR FILE
 	def open(self, mode="r", **k):
 		"""Open the tarfile; return the TarFile object."""
-		return tarfile.open(self.path, mode, **k)
+		try:
+			return tarfile.open(self.path, mode, **k)
+		except Exception as ex:
+			raise type(ex)('tar-open-fail', xdata(path=self.path, k=k, 
+					mode=mode,exists=self.exists(), mime=self.mime.guess
+				))
 	
 	
 	# READING
 	def read(self, member, **k):
+		"""
+		Return bytes of the given member.
+		"""
 		k['member'] = member
-		if self.__encoding:
-			k.setdefault(self.__encoding)
-		r = self.reader(**k)
+		
+		# REM: The reader method separates the kwargs (ek from k) and
+		#      lets it's read method handle encoding, if specified.
+		r = self.reader(**k) 
 		return r.read()
 	
 	
@@ -104,27 +108,40 @@ class Tar(ByteFile):
 		mem = tarfile.TarInfo(member)
 		mem.size = len(data)
 		
-		if self.__encoding:
-			k.setdefault('encoding', self.__encoding)
-		
-		if 'encoding' in k:
-			data=data.encode(k['encoding'])
+		ek = self.extractEncoding(k)
+		if ek:
+			# always encode to bytes if encoding is provided
+			data = data.encode(ek)
 		
 		# create a stream
 		try:
 			try:
 				# This is a tar file, so it should be bytes...
+				#print (1)
 				strm = Base.create('io.BytesIO', data)
+				#print (2)
 			except:
+				
+				#
 				# ...but in python 2, it might be thought of as a string
 				# even if it's really bytes. 
 				# 
+				# CHECK THIS!
+				#
 				# TO-DO: Look into this further; this might not be necessary 
 				# (or if it is, might not be the best solution).
+				#
+				
+				#print (3)
 				strm = Base.create('io.StringIO', data)
+				#print (4)
+				
 		except ImportError:
 			# for early python 2
+			#print (5)
 			strm = Base.create('cStringIO.StringIO', data)
+			#print (6)
+		
 		
 		# add the member
 		with self.open(mode) as fp:
@@ -138,16 +155,15 @@ class Tar(ByteFile):
 		`encoding` keyword must be specified so that the data can be 
 		decoded to unicode.
 		"""
-		if self.__encoding:
-			k.setdefault('encoding', self.__encoding)
+		ek = self.extractEncoding(k)
 		if 'stream' in k:
-			return Reader(k) # pass k, NOT k['stream']!
+			return Reader(**ek)
 		elif 'member' in k:
 			mode = k.get('mode', 'r')
 			member = k['member']
-			return Reader(self.open(mode).extractfile(member), **k)
+			return Reader(self.open(mode).extractfile(member), **ek)
 		else:
-			raise ValueError('create-reader-fail', xdata( k=k,
+			raise ValueError('create-reader-fail', xdata( k=k, ek=ek,
 				reason='missing-required-arg', requires=['stream','member'],
 				detail=self.__class__.__name__
 			))

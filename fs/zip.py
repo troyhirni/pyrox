@@ -34,7 +34,7 @@ class Zip(File):
 		
 		Keywords apply as to base.Path.expand().
 		"""
-		File.__init__(self, k.get('zip', path), **k)
+		File.__init__(self, path, **k)
 		
 		# store password
 		self.__pass = pwd
@@ -56,13 +56,18 @@ class Zip(File):
 		"""Returns a ZipFile object."""
 		try:
 			return zipfile.ZipFile(self.path, mode, self.__comp, self.__b64)
-		except RuntimeError:
+		except Exception as ex:
+			raise type(ex)('zip-open-fail', xdata(path=self.path, 
+					mode=mode, comp=self.__comp, b64=self.__b64, k=k
+				))
+			"""
 			try:
 				self.__comp = zipfile.ZIP_DEFLATED
 				return zipfile.ZipFile(self.path, mode, self.__comp, self.__b64)
 			except:
 				self.__comp = zipfile.ZIP_STORED
 				return zipfile.ZipFile(self.path, mode, self.__comp, self.__b64)
+			"""
 	
 	# TEST
 	def test(self):
@@ -107,7 +112,7 @@ class Zip(File):
 		If optional kwarg 'encoding' is supplied, result is decoded after
 		being read. Optional kwarg 'errors' is also applied if given.
 		"""
-		ek = Base.kcopy(k, 'encoding errors')
+		ek = self.extractEncoding(k)
 		rk = Base.kcopy(k, 'mode pwd')
 		rk.setdefault('mode', 'r')
 		with self.open() as z:
@@ -129,7 +134,7 @@ class Zip(File):
 		If optional keyword arg 'encoding' is supplied, data is encoded
 		before being written.
 		"""
-		ek = Base.kcopy(k, 'encoding errors')
+		ek = self.extractEncoding(k)
 		rk = Base.kcopy(k, 'mode pwd')
 		with self.open(mode, **k) as z:
 			try:
@@ -147,16 +152,17 @@ class Zip(File):
 		Returns a Reader for the member specified member (or stream). All
 		args are given by keyword.
 		"""
+		ek = self.extractEncoding(k)
 		if 'stream' in k:
-			return Reader(k['stream'])
+			return Reader(k['stream'], **ek)
 		elif 'member' in k:
-			member = Base.kpop(k, 'member')
-			mode = Base.kpop(k, 'mode') or 'r'
-			pwd = Base.kpop(k, 'pwd')
+			member = k.pop('member')
+			mode = k.pop('mode', None) or 'r'
+			pwd = k.pop('pwd', None)
 			with self.open() as z:
-				return Reader(z.open(member, mode, pwd), **k)
+				return Reader(z.open(member, mode, pwd), **ek)
 		else:
-			raise ValueError('create-reader-fail', xdata( k=k,
+			raise ValueError('create-reader-fail', xdata( k=k, ek=ek,
 				reason='missing-required-arg', requires=['stream','member'],
 				detail=self.__class__.__name__
 			))

@@ -8,7 +8,7 @@ GZIP - Covers gzip files.
 """
 
 
-from .file import *
+from .bfile import *
 
 
 class Gzip(ByteFile):

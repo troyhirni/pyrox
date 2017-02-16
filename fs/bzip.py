@@ -8,14 +8,13 @@ BZIP - Covers bzip2 files.
 """
 
 
-from .file import *
+from .bfile import *
 import bz2
 
 
 class Bzip(ByteFile):
 	"""bzip2 file support."""
 	def open(self, mode='rb', **k):
-		#don't copy 'filepath', open() passes path
 		k = Base.kcopy(k, 'buffering compresslevel')
 		return bz2.BZ2File(self.path, mode, **k)
 

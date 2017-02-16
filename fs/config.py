@@ -9,28 +9,43 @@ CONFIG - Read/Write config files
 
 
 import ast, json
-from . import *
+from .file import *
 from ..fmt import JSONDisplay
 
 
-class Config(Path):
+class Config(File):
+	"""
+	Json config files.
+	"""
 	
 	def __init__(self, path, **k):
-		Path.__init__(self, path)
-		self.__k = k
+		
+		# EXPERIMENTAL:
+		# I'm thinking it may be best to apply a default encoding here;
+		# Config files are kind of an internal matter; Whatever default
+		# is set to is almost certainly what people will want. We'll see
+		# how it goes. For now I'll label this matter "EXPERIMENTAL".
+		k.setdefault('encoding', DEF_INDENT)
+		File.__init__(self, path, **k)
 	
 	
+	# WRITE
 	def write(self, data, **k):
-		"""Write data to this object's file path as JSON."""
+		"""Write config data to this object's file path as JSON."""
 		k.setdefault('cls', JSONDisplay)
 		k.setdefault('indent', DEF_INDENT)
-		k.setdefault('encoding', DEF_ENCODE)
-		self.writer("w").write(unicode(json.dumps(data, **self.__k)))
+		
+		# json doesn't like encoding-related kwargs
+		ek = self.extractEncoding(k)
+		
+		# write the data
+		File.write(self, json.dumps(data, **k), **ek)
 	
 	
+	# READ
 	def read(self):
 		"""Read config from this object's file path."""
-		txt = self.reader("r", **self.__k).read()
+		txt = self.reader().read()
 		try:
 			try:
 				return ast.literal_eval(txt)

@@ -5,10 +5,19 @@ the terms of the GNU Affero General Public License.
 
 CSV - File and Reader for CSV        *** EXPERIMENTAL ***
 
-The CSV class is supposed to be a File class with a different reader.
-All other methods are the same, but the reader returns each row as a
-list instead of text. UNFORTUNATELY.... that's not what it is. I'm 
-not really sure what it is, but it's not that. I may trash it.
+CSV works pretty well, but has some quirks that need to be worked 
+out. Write doesn't work; csv has to be written as text; Read works 
+great, but in python 2 it reads bytes, while in python 3 it reads 
+unicode strings. So far all attempts to unify the results have 
+failed. I'll keep trying.
+
+NOTE: This module imports * from python's csv module, so all the
+      csv constants are available.
+
+ALSO: For now, CSV.writer() falls back to the default File.writer,
+      so csv has to be written as text. Once I figure out how to make
+      it work, CSVWriter will probably handle either text or list as
+      arguments to write() and writelines().
 """
 
 
@@ -32,43 +41,37 @@ class CSV(File):
 		 - stream = A byte or text stream
 		"""
 		# pop all these so csv reader can have the rest of the kwargs
-		mode = Base.kpop(k, 'mode')
-		stream = Base.kpop(k, 'stream')
+		mode = k.pop('mode', None)
+		stream = k.pop('stream', None)
 		
 		if stream:
 			return CSVReader(stream, **k)
 		else:
 			return CSVReader(self.open(mode or 'rt'), **k)
-
 	
 	def write(self, data=None, mode='w', **k):
-		"""
-		If a `text` keyword argument is given, the `data` argument is
-		ignored and the value of the `text` kwarg is written as-is, as
-		text.
-		
-		If the `data` argument is given as a string type, its value is
-		written as-is, as text.
-		
-		If the `data` argument type is anything other than a string, it
-		must be something acceptable to python's csv.writer constructor.
-		The csv.writer will write the data to this file as it sees fit.
-		(See python's csv module documentation.)
-		"""
 		if 'text' in k:
-			text = Base.kpop(k, 'text')
+			text = k.pop('text')
 			File.write(self, k['text'], mode, **k)
 		elif isinstance(data, basestring):
 			File.write(self, data, mode, **k)
 		else:
 			w = CSVWriter(self.open(**k), **k).write(data)
 			w.write(data)
-
 	
 
 
 
 class CSVReader(Reader):
+	
+	"""
+	# I need some way in python 2 to get the bytes to unicode before 
+	# they're read. I want both p2 and p3 to get unicode values in the
+	# strings contained by each line's array.
+	def filterstream(self, stream, *a, **k):
+		ek = self.extractEncoding(k)
+		return Filter(stream, pxbytes.decode, **ek)
+	"""
 	
 	def __init__(self, stream, dialect=None, *a, **k):
 		"""
@@ -78,13 +81,13 @@ class CSVReader(Reader):
 		Pass a dialect (or string dialect selector) to select the exact
 		dialect you want to use. The default is None, which will leave
 		CSVReader free to "sniff" the stream text for the best chance of
-		successful parsing. See below for details.
+		successful parsing.
 		
 		When dialect is None (the default for CSVReader) the csv.Sniff
 		class is used to "sniff" text from the csv stream to determine
 		dialect settings that will likely produce valid results.
 		
-		Optionally, pass keyword argument `sniff`=False to disable the
+		Optionally, pass keyword argument sniff=False to disable the
 		sniffer that's automatically triggered by this constructor. If
 		not disabled (by sniff=False), sniff results are set as defaults
 		for keywords passed to the reader.
@@ -106,25 +109,17 @@ class CSVReader(Reader):
 		quoting           0
 		skipinitialspace  0
 		strict            0
-		
-		Pass sniff=False and no csv-related keyword arguments if you want
-		the default csv.reader action.
 		"""
 		
 		#
-		# Pass stuff up first - not sure what will happen below, but the
-		# encoding gets popped before sending to csv.reader() and I don't
-		# want to miss storing that (if only for reference).
+		# INIT - most of the time this will be the only init, but in the
+		#        case of streams that can't "seek", a buffer stream is
+		#        created (and the entire source stream is read into it)
+		#        so that the file can be sniffed then set back to zero.
+		#        NOTE: This happens for zip.Zip readers, seem unable to 
+		#              be unable seek().
 		#
 		Reader.__init__(self, stream, **k)
-		
-		#
-		# Get rid of encoding-related stuff csv reader doesn't want.
-		# Probably won't need the return values here, but I'll leave it
-		# for now, just in case.
-		#
-		enc = Base.kpop(k, 'encoding')
-		err = Base.kpop(k, 'errors')
 		
 		# If dialect is specified, ignore all dialect-related keywords.
 		if not dialect:
@@ -132,23 +127,44 @@ class CSVReader(Reader):
 			# If sniff is disabled (sniff=None) then.. well.. don't sniff!
 			# Otherwise, do.
 			k.setdefault('sniff', 1024)
-			sniff = Base.kpop(k, 'sniff') or None
-			if sniff:
-				dialect = Sniffer().sniff(stream.read(1024))
-				stream.seek(0)
+			sniff = int(k.pop('sniff', None) or 0)
+			if sniff and sniff >= 1:
+				try:
+					stream.seek(0) # throws an error for zip (which can't seek)
+					dialect = Sniffer().sniff(stream.read(sniff))
+					stream.seek(0)
+				except:
+					# if the stream can't seek, it's read completely into a 
+					# BytesIO and that stream is used instead to sniff.
+					try:
+						bstream = Base.create('io.BytesIO', stream.read())
+					except:
+						bstream = Base.create('io.StringIO', stream.read())
+					
+					# Store the source in an fs.Stream object so it will be
+					# closed when this object is done.
+					self.__source = Stream(stream)
+					stream = bstream
+					
+					# Finally, get the dialect and reset the stream to the
+					# start of the file.
+					dialect = Sniffer().sniff(stream.read(sniff))
+					stream.seek(0)
+					
+					#
+					# RE-INIT!
+					#  - Now there's a new stream object (bstream) so the 
+					#    superclass needs to hold on to that instead of the
+					#    original source stream.
+					#
+					Reader.__init__(self, stream, **k)
+		
 		
 		# make the csv reader
 		self.__csv = reader(stream, *a, **k)
 		
-		# p2/p3
-		self.next = self.__next__
-		
-		# replace read, readline
-		self.read = self.readlist
-		self.readline = self.__next__ # this needs to move to fs.Reader
-		
-		# REMOVE ME (after debugging)!!!
-		self.cr = self.__csv
+		# replace readline
+		self.readline = self.__next__
 		
 	
 	def __iter__(self):
@@ -157,24 +173,21 @@ class CSVReader(Reader):
 	def __next__(self):
 		return next(self.lines)
 	
+	# LINES
 	@property
 	def lines(self):
 		csvr = self.__csv
-		if self.ek:
-			for line in csvr:
-				yield line.encode(**self.ek)
-		else:
-			for line in csvr:
-				yield line
+		for line in csvr:
+			yield line
 	
 	# READ
-	def readlist(self, *a):
+	def read(self, *a):
 		return [r for r in self]
 		
 
 
 
-
+"""
 class CSVWriter(Writer):
 	
 	def __init__(self, stream, *a, **k):
@@ -183,7 +196,7 @@ class CSVWriter(Writer):
 			)
 	
 	def write(self, data):
-		self.stream.write(data)
-
+		self.stream.writerow(data)
+"""
 
 
