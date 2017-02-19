@@ -111,7 +111,7 @@ class Tar(ByteFile):
 		ek = self.extractEncoding(k)
 		if ek:
 			# always encode to bytes if encoding is provided
-			data = data.encode(ek)
+			data = data.encode(**ek)
 		
 		# create a stream
 		try:

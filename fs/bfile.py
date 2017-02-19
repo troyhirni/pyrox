@@ -46,7 +46,8 @@ class ByteFile(File):
 		ek = self.extractEncoding(k)
 		with self.open(mode, **k) as fp:
 			if 'b' in mode:
-				fp.write(data)
+				#fp.write(data) # feb19
+				fp.write(data.encode(**ek) if ek else data) # feb19
 			else:
 				fp.write(data.encode(**ek) if ek else data)
 	

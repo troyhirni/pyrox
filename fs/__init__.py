@@ -22,7 +22,7 @@ import os, os.path as ospath
 #  - Base for fs module's classes.
 #
 class Path(object):
-	"""Represents file system paths."""
+	"""Represents a file system path."""
 	
 	# INIT
 	def __init__(self, path=None, **k):
@@ -38,20 +38,20 @@ class Path(object):
 	def __call__(self, path):
 		return Path(self.merge(path))
 	
-	# STR
-	def __str__(self):
-		"""The path as a string."""
-		return self.path
-	
 	# REPR
 	def __repr__(self):
 		"""Object representation."""
 		return str(type(self))
 	
+	# STR
+	def __str__(self):
+		"""The path as a string."""
+		return self.path
+	
 	# UNICODE
 	def __unicode__(self):
 		"""The path as a unicode string (python 2 support)"""
-		return self.path
+		return unicode(self.path)
 	
 	
 	# PROPERTIES
@@ -117,16 +117,6 @@ class Path(object):
 		p = self.merge(path)
 		with open(p, 'a'):
 			os.utime(p, times)
-		"""
-		try:
-			Path(p).wrapper().touch()
-			#wrapper = Path(p).wrapper()
-			#print ("WRAPPER! %s" % repr(wrapper))
-		except Exception as ex:
-			#print ("OPEN! %s" % str(ex))
-			with open(p, 'a'):
-				os.utime(p, times)
-		"""
 	
 	def merge(self, path):
 		"""Returns the given path relative to self.path."""
@@ -205,20 +195,38 @@ class Path(object):
 		return Base.ncreate('fs.file.File', self.path, **k)
 	
 	
+	
 	# READER
 	def reader(self, **k):
 		"""
 		Return a reader for this object's path based on the mime type of
-		the file there.
+		the file there. If this Path object points to a tar or zip file,
+		a member keyword must specify the member to read. In such cases,
+		the returned Reader object will be suitable to the mime type of
+		the specified member - as far as is supported by the fs package.
+		Currently that equates to: A csv reader for csv test, a JSON
+		DataReader for json, or a plain `Reader` for all others.
+		
+		Encoding-related kwargs are extracted and sent to the reader when
+		it's created. All other (not encoding-related) kwargs are used to
+		create any wrappers that may be needed to create this reader. 
+		
+		NOTE: Do not specify a 'mode'; this method must always rely on
+		      the default mode for the type of wrapper that represents 
+		      the file at this path.
 		"""
+		
+		# Wrapper gets no encoding-related kwargs - send them to the 
+		# reader only (along with everything else).
+		sk = EncodingHelper().sansEncoding(k)
 		
 		# Files with members will need to create a different kind of
 		# object from what gets returned. Pop that key out of kwargs
 		# before calling `wrapper`.
-		member = k.pop('member')
+		member = k.get('member')
 		
 		# now get the file wrapper object and return a reader
-		wrapper = self.wrapper(**k)
+		wrapper = self.wrapper(**sk)
 		
 		
 		# -- container wrapper handling (tar/zip) --
@@ -255,6 +263,7 @@ class Path(object):
 		
 		
 		# -- non-contaner handling --
+		#print (k) #DEBUG; REMOVE!
 		return wrapper.reader(**k)
 	
 	
@@ -370,6 +379,20 @@ class EncodingHelper(object):
 		fp1 = openFile('test.txt', encoding='ascii')
 		"""
 		return self.__ek
+	
+	
+	# SANS-ENCODING
+	def sansEncoding(self, k):
+		"""
+		Return a new dict with all keys except 'encoding' and 'errors'.
+		This is useful if you need to pass kwargs that contain everything
+		*except* the encoding and errors keys.
+		"""
+		r = {}
+		for key in k:
+			if key not in 'encoding errors':
+				r[key] = k[key]
+		return r
 	
 	
 	# EXTRACT ENCODING
@@ -531,7 +554,17 @@ class Stream(EncodingHelper):
 		"""
 		if self.__stream:
 			self.__stream.close()
-
+	
+	def seek(self, *a, **k):
+		"""
+		Performs seek on the contained stream using any given args and
+		kwargs.
+		
+		NOTE: Not all streams have seek; for example, zip file objects
+		      don't seem to have a seek method. You have to account for
+		      this manually wherever you use seek.
+		"""
+		self.__stream.seek(*a, **k)
 
 
 
@@ -647,7 +680,8 @@ class Writer(Stream):
 		else:
 			self.writelines = self._writelines
 		return self.writelines(data)
-		
+	
+	
 	def _writelines(self, datalist):
 		"""Write a list of lines, `datalist`."""
 		return self.stream.writelines(data.encode(**self.ek))

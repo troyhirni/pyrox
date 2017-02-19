@@ -35,7 +35,7 @@ class CSV(File):
 		Pass keyword arguments:
 		 - encoding = encoding with which to decode binary to unicode
 		 - errors   = optional - how to handle encoding errors
-		 - mode     = optional - mode (default, 'rt') 
+		 - mode     = optional - mode (default 'rt') 
 
 		To create with a stream, pass keyword argument:
 		 - stream = A byte or text stream
@@ -71,7 +71,16 @@ class CSVReader(Reader):
 	def filterstream(self, stream, *a, **k):
 		ek = self.extractEncoding(k)
 		return Filter(stream, pxbytes.decode, **ek)
+	
+	NO - I need to give up on trying to import csv from non-text files.
+	     This is a waste of time for now. I'm missing something about 
+	     it and I don't want to spend another month trying to make it
+	     work. It's not worth it.
+	     
+	     Someday the answer may come to me. Until then, CSVReader only
+	     works with text files.
 	"""
+	
 	
 	def __init__(self, stream, dialect=None, *a, **k):
 		"""
@@ -161,7 +170,10 @@ class CSVReader(Reader):
 		
 		
 		# make the csv reader
-		self.__csv = reader(stream, *a, **k)
+		if dialect:
+			self.__csv = reader(stream, dialect, *a, **k)
+		else:
+			self.__csv = reader(stream, *a, **k)
 		
 		# replace readline
 		self.readline = self.__next__
