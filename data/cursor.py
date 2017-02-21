@@ -30,7 +30,7 @@ from .param import *
 #
 # CURSOR
 #
-class Cursor(Data):
+class Cursor(object):
 	"""
 	Cursor objects are for one-time iteration through a list, dict, 
 	iterators, generators, text or file streams (line by line), or even
