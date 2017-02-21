@@ -249,8 +249,32 @@ class QRow(Param): #ParamData
 	"""
 	The parameter object passed to callback functions/lambdas.
 	"""
+	
+	@classmethod
+	def paramgen(cls, data, caller, *a, **k):
+		if isinstance(data, (list, set, tuple)):
+			return cls.pgseq(data, caller, *a, **k)
+		elif isinstance(data, dict):
+			return cls.pgdict(data, caller, *a, **k)
+		
+	@classmethod
+	def pgseq(cls, data, caller, *a, **k):
+		where = k.get('where')
+		for i,v in enumerate(data):
+			x = cls(caller, v, i, *a, **k)
+			if (not where) or where(x):
+				yield x
+			
+	@classmethod
+	def pgdict(cls, data, caller, *a, **k):
+		where = k.get('where')
+		for key in data.keys():
+			x = cls(caller, data[key], key, *a, **k)
+			if (not where) or where(x):
+				yield x
+
 	def __init__(self, query, value, item, *a, **k):
-		ParamData.__init__(self, query, value, item, *a, **k)
+		Param.__init__(self, value, item, *a, **k)
 		self.q = query # same as self.c
 	
 	def qq(self, v=None, **k):

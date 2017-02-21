@@ -105,11 +105,35 @@ class Param(Chain):
 		self.v = v
 		self.i = i
 	
+	def __getitem__(self, key):
+		return self.c[self.i][key]
+	
 	def __str__(self):
 		return str(self.v)
 	
 	def __unicode__(self):
-		return str(self.v)
+		try:
+			return unicode(self.v)
+		except:
+			return self.v.decode(DEF_ENCODE)
+	
+	@property
+	def type(self):
+		"""Return the type of the current value."""
+		return type(self.v)
+	
+	@property
+	def len(self):
+		"""Return the length of the current value."""
+		return len(self.v)
+	
+	@property
+	def re(self):
+		try:
+			return self.__re
+		except:
+			self.__re = __import__('re')
+			return self.__re
 	
 	# COMPARISON
 	def eq(self, v, *a):
