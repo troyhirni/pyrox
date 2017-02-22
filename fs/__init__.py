@@ -518,17 +518,14 @@ class Stream(EncodingHelper):
 	def __del__(self):
 		"""Flush and close the contained stream (if open)."""
 		try:
-			self.close()
-		finally:
-			try:
-				self.__stream = None
-			except:
-				# It's possible a subclass could except out before calling
-				# Stream.__init__, which could hide the error that caused 
-				# the exception; If we get here, I wan't the reason setting
-				# self.__stream failed... NOT a report of the effect of that
-				# failure.
-				pass
+			# Don't try to close if self.__stream was never set.
+			self.__stream
+		except:
+			self.__stream = None
+		
+		# Now we can close without hiding meaningful errors that might be
+		# self.__stream being undefined.
+		self.close()
 	
 	
 	@property
@@ -552,15 +549,22 @@ class Stream(EncodingHelper):
 		do not work with stream objects should replace this method with
 		cleanup suitable to their own non-stream "producer".
 		"""
+		# don't raise an exception here if the stream was never set
+		try:
+			self.__stream
+		except:
+			return
+		
 		if self.__stream:
 			self.__stream.close()
+	
 	
 	def seek(self, *a, **k):
 		"""
 		Performs seek on the contained stream using any given args and
 		kwargs.
 		
-		NOTE: Not all streams have seek; for example, zip file objects
+		NOTE: Not all streams support seek! For example, zip file objects
 		      don't seem to have a seek method. You have to account for
 		      this manually wherever you use seek.
 		"""
@@ -628,23 +632,11 @@ class Reader(Stream):
 			self.readline = self.__next__ #self._readline
 		return self.readline()
 
-	#def _readline(self):
-	#	"""Read the next line. """
-	#	return self.stream.readline().decode(**self.ek)
-
 
 
 
 
 class Writer(Stream):
-
-	def __init__(self, stream, **k):
-		"""
-		Pass the required `stream` object and optional `encoding` and
-		`errors` keyword arguments.
-		"""
-		Stream.__init__(self, stream, **k)
-	
 	
 	# CLOSE
 	def close(self):
@@ -679,12 +671,14 @@ class Writer(Stream):
 			self.writelines = self.stream.writelines
 		else:
 			self.writelines = self._writelines
-		return self.writelines(data)
+		return self.writelines(datalist)
 	
 	
 	def _writelines(self, datalist):
 		"""Write a list of lines, `datalist`."""
-		return self.stream.writelines(data.encode(**self.ek))
+		for i, v in datalist:
+			datalist[i] = v.encode(**self.ek)
+		return self.stream.writelines(datalist)
 	
 	
 	# FLUSH
@@ -710,30 +704,89 @@ class Writer(Stream):
 
 class Buffer(Writer):
 	"""
-	Buffer's constructor creates a StringIO or BytesIO stream to store
-	all data written to it. When finished writing, call the reader()
-	method to receive a Reader that will read from the (detached)
-	buffer stream.
+	Buffer's constructor stores any keyword arguments and later (on the
+	first call to a write method) uses them to create a StringIO or 
+	BytesIO stream where written data will be stored.
+	
+	When finished writing, use the reader() method to create a Reader 
+	that will read from the (detached) buffer stream.
+	
+	BUFFER IS UNDER CONSTRUCTION!
+	 - Still needs some fine-tuning on unicode vs bytes issues. The
+	   way StringIO vs BytesIO is selected doesn't account for any
+	   encoding specified to the constructor, and that needs to be
+	   fixed.
+	 - I want to post it now, though, because i'm riding a lot on my
+	   motorcycle with this laptop straped to the passenger seat and
+	   I don't want to risk having to rewrite this class from the last
+	   push.
 	"""
 	def __init__(self, **k):
-		try:
-			# TO-DO: This needs serious attention! It needs to move to a
-			#        common place where a buffer can be created... it needs
-			#        some way to determine whether to do a BytesIO... OMG
-			#        OMG OMG.
-			try:
-				strm = Base.create('io.StringIO')
-			except:
-				strm = Base.create('io.BytesIO')
-		except:
-			strm = Base.create('StringIO.StringIO')
-		
-		# send this stream to Writer so it can be written to
-		Writer.__init__(self, strm, **k)
+		self.__k = k
+		#
+		# DO NOT CALL Writer.__init__ HERE!
+		#  - Writer.__init__ gets called on first write.
+		#
+	
 	
 	def reader(self):
+		"""
+		This method returns a Reader of the previously written data.
+		
+		Call reader() only after you've finished writing to the buffer.
+		The buffer will no longer be writable after creating a reader
+		from it.
+		"""
 		self.stream.seek(0)
 		return Reader(self.detach())
+	
+	
+	def write(self, data):
+		"""Write `data`."""
+		
+		# Here's how a stream is created using the data given on the
+		# first call to write():
+		try:
+			try:
+				# expect unicode...
+				strm = Base.create('io.StringIO', type(data)())
+			except:
+				# accept bytes...
+				strm = Base.create('io.BytesIO', type(data)())
+		except:
+			# Let it work for python versions before 2.6, though apparently
+			# this is pretty slow.
+			strm = Base.create('StringIO.StringIO')
+		
+		# Send this stream to Writer so it can be written to;
+		# Note that the write method is replaced in Writer in some cases,
+		# to speed up future writes to `strm`.
+		Writer.__init__(self, strm, **self.__k)
+		
+		# Now write the data; Calling Writer.write both writes the data
+		# and replaces the write function so that the _write() method is
+		# used for subsequent calls. Buffer subclasses could use this to
+		# their advantage.
+		return Writer.write(self, data)
+	
+	
+	def writelines(self, datalist):
+		"""Write a list of lines, `datalist`."""
+		
+		# On first call to self.writelines, make sure to write the first
+		# line by calling self.write - that way, if the stream will be
+		# created (if it hasn't yet).
+		self.write(datalist[0])
+		
+		# use the Writer.writelines method to write any remaining list
+		# items (as well as any future calls to writelines).
+		if len(datalist) > 1:
+			Writer.writelines(self, datalist[1:])
+		
+		# It's ok if only one line was passed... it will still work, just
+		# maybe a little more slowly until multiple lines are sent to 
+		# this writelines method.
+
 
 
 
