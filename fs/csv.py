@@ -26,8 +26,41 @@ from .file import *
 from ..ext.ext_csv import *
 
 
+CSV_SNIFF_MIN = 1024
+
+
+
+
+
+
+
+
+
 class CSV(File):
+	"""
+	EXPERIMENTAL
 	
+	
+	"""
+	
+	# READ
+	def read(self, data=None, mode='r', **k):
+		return CSVReader(self.open(mode, **k)).read()
+	
+	
+	# WRITE
+	def write(self, data=None, mode='w', **k):
+		if 'text' in k:
+			text = k.pop('text')
+			File.write(self, k['text'], mode, **k)
+		elif isinstance(data, basestring):
+			File.write(self, data, mode, **k)
+		else:
+			w = CSVWriter(self.open(mode, **k), **k).write(data)
+			w.write(data)
+	
+	
+	# READER
 	def reader(self, **k):
 		"""
 		Returns a reader for the file this object represents (self.path)
@@ -35,7 +68,7 @@ class CSV(File):
 		Pass keyword arguments:
 		 - encoding = encoding with which to decode binary to unicode
 		 - errors   = optional - how to handle encoding errors
-		 - mode     = optional - mode (default 'rt') 
+		 - mode     = optional - mode (default 'rb') 
 
 		To create with a stream, pass keyword argument:
 		 - stream = A byte or text stream
@@ -47,143 +80,128 @@ class CSV(File):
 		if stream:
 			return CSVReader(stream, **k)
 		else:
-			return CSVReader(self.open(mode or 'rt'), **k)
+			return CSVReader(self.open(mode or 'rb'), **k)
 	
-	def write(self, data=None, mode='w', **k):
-		if 'text' in k:
-			text = k.pop('text')
-			File.write(self, k['text'], mode, **k)
-		elif isinstance(data, basestring):
-			File.write(self, data, mode, **k)
+	
+	# WRITER
+	def writer(self, **k):
+		"""
+		Return a CSVWriter object pointing to this file.
+		"""
+		mode = k.pop('mode', None)
+		stream = k.pop('stream', None)
+		
+		if stream:
+			return CSVReader(stream, **k)
 		else:
-			w = CSVWriter(self.open(**k), **k).write(data)
-			w.write(data)
-	
+			return CSVReader(self.open(mode or 'wb'), **k)
+
 
 
 
 class CSVReader(Reader):
-	
 	"""
-	# I need some way in python 2 to get the bytes to unicode before 
-	# they're read. I want both p2 and p3 to get unicode values in the
-	# strings contained by each line's array.
-	def filterstream(self, stream, *a, **k):
-		ek = self.extractEncoding(k)
-		return Filter(stream, pxbytes.decode, **ek)
+	EXPERIMENTAL
 	
-	NO - I need to give up on trying to import csv from non-text files.
-	     This is a waste of time for now. I'm missing something about 
-	     it and I don't want to spend another month trying to make it
-	     work. It's not worth it.
-	     
-	     Someday the answer may come to me. Until then, CSVReader only
-	     works with text files.
+	The CSVReader is very sensitive to encoding across python 2/3. It
+	currently yields string results for every field - bytes in python 2
+	and unicode strings for python 3.
 	"""
 	
-	
-	def __init__(self, stream, dialect=None, *a, **k):
+	def __init__(self, stream, **k):
 		"""
-		Pass a `stream` to text data.
+		Pass a stream that produces lines of csv data. The stream may
+		produce text as bytes or unicode.
 		
-		* PARSING OPTIONS *
-		Pass a dialect (or string dialect selector) to select the exact
-		dialect you want to use. The default is None, which will leave
-		CSVReader free to "sniff" the stream text for the best chance of
-		successful parsing.
+		ALWAYS PASS AN ENCODING!
+		Always pass the correct encoding so that bytes may be converted
+		to unicode if necessary, or so that unicode text may be converted
+		to bytes if necessary.
 		
-		When dialect is None (the default for CSVReader) the csv.Sniff
-		class is used to "sniff" text from the csv stream to determine
-		dialect settings that will likely produce valid results.
+		 * When the stream produces bytes, the encoding may be necessary 
+		 to if the csv.reader object requires unicode.
 		
-		Optionally, pass keyword argument sniff=False to disable the
-		sniffer that's automatically triggered by this constructor. If
-		not disabled (by sniff=False), sniff results are set as defaults
-		for keywords passed to the reader.
+		 * When the stream produces unicode characters, the encoding may 
+		   be necessary to encode the bytes if the csv.reader object 
+		   requires bytes.
 		
-		Set `sniff` to a positive integer if you want to control how many
-		bytes are sniffed. (The default is 1024.)
-		
-		Optionally, pass keyword arguments matching a Dialect object's 
-		attributes. These are passed directly to the csv.reader as 
-		keyword arguments. Keyword arguments you specify overrule any
-		results of an automatic sniff.
-		
-		DIALECT KEY:      DEFAULT:
-		delimiter         ','
-		doublequote       1
-		escapechar        None
-		lineterminator    '\r\n'
-		quotechar         '"'
-		quoting           0
-		skipinitialspace  0
-		strict            0
+		Passing the encoding gives CSVReader what it needs to work in 
+		either python 2 or 3.
 		"""
 		
+		# Extract encoding kwargs first! They MUST NOT reach the reader.
+		ek = EncodingHelper(encoding='utf8').extractEncoding(k)
+		
+		# make sure we have a seekable stream
+		try:
+			stream.seek(0)
+		except:
+			# I don't want to extract to a tempfile - at least not yet -
+			# so if it's a zip file (or some stream that can't seek) then 
+			# we need to read the whole file up front.
+			buf = Buffer()
+			buf.write(stream.read())
+			stream = buf.reader()
+		
+		
+		# --- if we reach this point, stream is seekable ---
+		
+		
+		# default sniff can be overridden with values > 1024
+		try:
+			sniff = k.pop('sniff')
+			if sniff < CSV_SNIFF_MIN:
+				sniff = CSV_SNIFF_MIN
+		except:
+			sniff = CSV_SNIFF_MIN
+		
+		# sniff for a Dialect object and to detect stream data type
+		dialect = None
+		try:
+			# first assume it's a unicode stream
+			stream.seek(0)
+			coder = ReadCoder(stream, encode=k.get('encoding', DEF_ENCODE))
+			dialect = Sniffer().sniff(coder.read(sniff))
+			stream.seek(0)
+			self.__csv = reader(coder, dialect, **k)
+			x = self.__next__()#test
+		except TypeError as eencode:
+			"""
+			eencode = xdata(
+				stream=stream, coder=coder, dialect=dict(dialect.__dict__)
+			)
+			"""
+			# if that fails, try it as a byte stream
+			stream.seek(0)
+			coder = ReadCoder(stream, decode=k.get('encoding', DEF_ENCODE))
+			dialect = Sniffer().sniff(coder.read(sniff))
+			stream.seek(0)
+			self.__csv = reader(coder, dialect, **k)
+			try:
+				x=self.__next__()#test
+			except Exception as ex:
+				raise type(ex)('create-reader-fail', xdata(
+					stream=stream, coder=coder, dialect=dialect.__dict__
+				))
+		
+		# ALWAYS RESET TO ZERO
+		stream.seek(0)
+		
 		#
-		# INIT - most of the time this will be the only init, but in the
-		#        case of streams that can't "seek", a buffer stream is
-		#        created (and the entire source stream is read into it)
-		#        so that the file can be sniffed then set back to zero.
-		#        NOTE: This happens for zip.Zip readers, seem unable to 
-		#              be unable seek().
+		# replace some methods (for speed)
 		#
-		Reader.__init__(self, stream, **k)
-		
-		# If dialect is specified, ignore all dialect-related keywords.
-		if not dialect:
-			
-			# If sniff is disabled (sniff=None) then.. well.. don't sniff!
-			# Otherwise, do.
-			k.setdefault('sniff', 1024)
-			sniff = int(k.pop('sniff', None) or 0)
-			if sniff and sniff >= 1:
-				try:
-					stream.seek(0) # throws an error for zip (which can't seek)
-					dialect = Sniffer().sniff(stream.read(sniff))
-					stream.seek(0)
-				except:
-					# if the stream can't seek, it's read completely into a 
-					# BytesIO and that stream is used instead to sniff.
-					try:
-						bstream = Base.create('io.BytesIO', stream.read())
-					except:
-						bstream = Base.create('io.StringIO', stream.read())
-					
-					# Store the source in an fs.Stream object so it will be
-					# closed when this object is done.
-					self.__source = Stream(stream)
-					stream = bstream
-					
-					# Finally, get the dialect and reset the stream to the
-					# start of the file.
-					dialect = Sniffer().sniff(stream.read(sniff))
-					stream.seek(0)
-					
-					#
-					# RE-INIT!
-					#  - Now there's a new stream object (bstream) so the 
-					#    superclass needs to hold on to that instead of the
-					#    original source stream.
-					#
-					Reader.__init__(self, stream, **k)
-		
-		
-		# make the csv reader
-		if dialect:
-			self.__csv = reader(stream, dialect, *a, **k)
-		else:
-			self.__csv = reader(stream, *a, **k)
-		
-		# replace readline
 		self.readline = self.__next__
-		
+		self.next = self.__next__
 	
+	
+	# ITER
 	def __iter__(self):
 		return self.lines
 	
+	# NEXT
 	def __next__(self):
 		return next(self.lines)
+	
 	
 	# LINES
 	@property
@@ -192,6 +210,7 @@ class CSVReader(Reader):
 		for line in csvr:
 			yield line
 	
+	
 	# READ
 	def read(self, *a):
 		return [r for r in self]
@@ -199,16 +218,115 @@ class CSVReader(Reader):
 
 
 
-"""
+
 class CSVWriter(Writer):
+	"""
+	EXPERIMENTAL
+	
+	Use writeline (alias to writerow) to write individual lines (rows)
+	into a csv stream.
+	
+	Use write (alias to writelines) to write a list of lists to the 
+	stream.
+	"""
 	
 	def __init__(self, stream, *a, **k):
-		Writer.__init__(
-				Base.create('csv.writer', stream, *a, **k)
-			)
+		Writer.__init__(self, stream)
+		self.__csv = Base.create('csv.writer', stream, *a, **k)
+		self.writeline = self.writerow
+		self.writelines = self.write
+	
 	
 	def write(self, data):
-		self.stream.writerow(data)
-"""
+		for row in data:
+			self.__csv.writerow(data)
+	
+		
+	def writerow(self, data):
+		self.__csv.writerow(data)
+		
+
+
+
+
+class ReadCoder(Reader):
+	"""
+	EXPERIMENTAL!
+	
+	This class was written to allow CSVReader to work at least somewhat
+	usefully across python versions 2/3.
+	
+	ReadCoder objects read byte or unicode text streams flexibly. The
+	CSVReader needs to provide bytes in python 2 and unicode text in
+	python 3, so it just trys both and uses whichever works.
+	
+	The end effect is that row data is given as byte string values in
+	python 2 and unicode values in python 3.
+	
+	For now, that's the best I can achieve. Hopefully the future will
+	bring better quality. For now this class (and, so, the CSVReader)
+	must remain 'experimental'.
+	
+	NOTE:
+	The name of this class may change. If kept, this class will likely
+	move to the fs.__init__ module (or wherever the ever-growing list
+	of stream utility objects ends up being placed).
+	"""
+	
+	# INIT
+	def __init__(self, stream, **k):
+		Reader.__init__(self, stream)
+		
+		# if you need bytes...
+		if 'encode' in k:
+			if 'decode' in k:
+				raise Exception('conflicting-kwargs', xdata(
+						krequire1=['encode','decode']
+					))
+			
+			self.__encoding = k['encode']
+			self.__operator = unicode.encode #p2 needs this to be `unicode`
+		
+		# if you need unicode...
+		elif 'decode' in k:
+			self.__encoding = k['decode']
+			self.__operator = pxbytes.decode #early p2 needs `pxbytes`
+		
+		else:
+			raise Exception('missing-required-kwarg', xdata(
+					krequire1=['encode','decode']
+				))
+		
+		self.readline = self.__next__
+	
+	
+	# LINES
+	@property
+	def lines(self):
+		"""Line generator."""
+		try:
+			for line in self.stream:
+				yield (self.__operator(line, self.__encoding))
+		
+		# if the above fails, it will fail on the first line, so yield
+		# that line, then enter a new loop that doesn't apply encoding
+		# or decoding (that is, self.__operator).
+		except TypeError:
+			yield line
+		
+		for line in self.stream:
+			yield line
+			
+	
+	# READ
+	def read(self, *a):
+		try:
+			x = self.stream.read(*a)
+			return self.__operator(x, self.__encoding)
+		except TypeError:
+			self.read = self.stream.read
+			return x
+
+
 
 

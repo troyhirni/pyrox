@@ -629,7 +629,7 @@ class Reader(Stream):
 		if not self.ek:
 			self.readline = self.stream.readline
 		else:
-			self.readline = self.__next__ #self._readline
+			self.readline = self.__next__
 		return self.readline()
 
 
@@ -716,10 +716,7 @@ class Buffer(Writer):
 	   way StringIO vs BytesIO is selected doesn't account for any
 	   encoding specified to the constructor, and that needs to be
 	   fixed.
-	 - I want to post it now, though, because i'm riding a lot on my
-	   motorcycle with this laptop straped to the passenger seat and
-	   I don't want to risk having to rewrite this class from the last
-	   push.
+	
 	"""
 	def __init__(self, **k):
 		self.__k = k
@@ -729,7 +726,7 @@ class Buffer(Writer):
 		#
 	
 	
-	def reader(self):
+	def reader(self, **k):
 		"""
 		This method returns a Reader of the previously written data.
 		
@@ -738,14 +735,14 @@ class Buffer(Writer):
 		from it.
 		"""
 		self.stream.seek(0)
-		return Reader(self.detach())
+		return Reader(self.detach(), **k)
 	
 	
 	def write(self, data):
 		"""Write `data`."""
 		
-		# Here's how a stream is created using the data given on the
-		# first call to write():
+		# The stream is first created based on the type of data given on
+		# the first call to write().
 		try:
 			try:
 				# expect unicode...
@@ -760,7 +757,8 @@ class Buffer(Writer):
 		
 		# Send this stream to Writer so it can be written to;
 		# Note that the write method is replaced in Writer in some cases,
-		# to speed up future writes to `strm`.
+		# to speed up future writes to `strm` (and handle any encoding-
+		# related tasks!)
 		Writer.__init__(self, strm, **self.__k)
 		
 		# Now write the data; Calling Writer.write both writes the data
