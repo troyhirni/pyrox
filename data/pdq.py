@@ -16,11 +16,11 @@ current data in various formats, and fmt() is available to help you
 format (or output) the data in various other ways. The data property
 returns the data itself, or lets you completely reset the data. There
 is even a one-time undo() method in case you get unexpected results.
+Calling undo() repeatedly toggles self.data between the previous and
+current values.
 
-Keyword args 'file' and 'gzip' let you specify a text or gzip file
-to import as string data. Use Query.splitlines() to split the data
-into a list of lines. Use Query.update() to split individual lines
-into lists. For example:
+Use keyword arg `file` to specify a text file to import as string 
+data.
 
 # EXAMPLE:
 import pdq
@@ -28,17 +28,19 @@ q = pdq.Query(file="space-separated-values.txt", encoding='ascii')
 q.splitlines()
 q.update(lambda o: o.v.split())
 
-# EXAMPLE 2 - a quick way to get a table full of integers
-from ..data import rand
-rowct = 7 # row count
-fldct = 6 # field count
-intsz = 5 # integer length
-q = pdq.Query([list(rand.randgen(fldct, rand.randi, intsz))
-	for x in range(0,rowct)])
+The `file` path's mime type determines the type of reader to be
+returned, so `file` may specify gzip, bzip, etc..
 
-# EXAMPLE 2 NOTES:
-#  - Change 'rand.randi' to .randf for floats;
-#  - You can use a lambda instead of rand.randi;
+If reading from a zip or tar file, use the `member` keyword to 
+specify the file within the archive.
+
+When specfiying a csv file, rows are read from the file as lists of
+string values.
+
+# EXAMPLE:
+import pdq
+q = pdq.Query(file="myarchive.zip", member="some.csv")
+q.peek()
 """
 
 from .param import *
@@ -86,12 +88,6 @@ class Query(Base):
 	
 	def __getitem__(self, key):
 		return self.data[key]
-	
-	
-	@property
-	def file(self):
-		"""Return file, if one was specified to the constructor."""
-		return self.__file
 	
 	
 	@property
@@ -245,7 +241,7 @@ class Query(Base):
 
 
 
-class QRow(Param): #ParamData
+class QRow(Param):
 	"""
 	The parameter object passed to callback functions/lambdas.
 	"""
@@ -274,8 +270,8 @@ class QRow(Param): #ParamData
 				yield x
 
 	def __init__(self, query, value, item, *a, **k):
-		Param.__init__(self, value, item, *a, **k)
-		self.q = query # same as self.c
+		Param.__init__(self, value, item)# no args/kwargs! #, *a, **k)
+		self.q = query
 	
 	def qq(self, v=None, **k):
 		"""
