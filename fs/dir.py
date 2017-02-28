@@ -203,6 +203,8 @@ class Dir(Path):
 		Calls the .search() method passing this object's path and the 
 		given `pattern` and keyword args. Read the search method help for
 		more information.
+		
+		NOTE ESPECIALLY the warning concerning the `fn` keyword argument.
 		"""
 		return self.search(self.path, pattern, **k)
 
