@@ -1,10 +1,22 @@
-import pyrox as px
-h = px.ncreate('hubcap.hub.Hub')
+
+from pyrox import Base
+
+# create and start the hub ojbect
+h = Base.ncreate('hubcap.hub.Hub')
 h.start()
+
+# launch the demo task `Add1`
 h.tasklaunch(1, 'pyrox.hubcap.task.add1.Add1')
 
-h.put(1, c='status')
-h.taskexit(1)
+# get the task's status
 h.put(1, c='status')
 
+# now tell the task to exit
+h.taskexit(1)
+
+# this is meant to raise an error
+h.put(1, c='status')
+
+# tell the hub to exit
 h.exit()
+
