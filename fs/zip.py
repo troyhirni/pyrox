@@ -3,7 +3,7 @@ Copyright 2016-2017 Troy Hirni
 This file is part of the pyro project, distributed under
 the terms of the GNU Affero General Public License.
 
-ZIP - Covers zip files.
+ZIP - Zip file wrapper.
 
 Use the Zip class to read, write, and open streams for reading. I'm
 still working on how to write, but for now - sorry - you still have
@@ -16,7 +16,7 @@ import zipfile
 from .file import *
 
 
-class Zip(File):
+class Zip(MemberFile):
 	"""
 	Read and write .zip files.
 	
@@ -47,8 +47,13 @@ class Zip(File):
 	
 	@property
 	def names(self):
-		"""This file's `member` names."""
+		"""EXPERIMENTAL - This file's member names."""
 		return self.namelist()
+	
+	@property
+	def members(self):
+		"""EXPERIMENTAL - This file's member info objects."""
+		return self.infolist()
 	
 	
 	# OPEN
@@ -61,6 +66,7 @@ class Zip(File):
 					mode=mode, comp=self.__comp, b64=self.__b64, k=k
 				))
 			"""
+			# TO-DO: Figure this stuff out!
 			try:
 				self.__comp = zipfile.ZIP_DEFLATED
 				return zipfile.ZipFile(self.path, mode, self.__comp, self.__b64)
@@ -80,7 +86,7 @@ class Zip(File):
 	
 	# NAME LIST
 	def namelist(self):
-		"""This file's `member` names."""
+		"""This file's member names, as returned by the zipfile class."""
 		with self.open() as z:
 			try:
 				return z.namelist()
@@ -90,6 +96,7 @@ class Zip(File):
 	
 	# INFO LIST
 	def infolist(self):
+		"""This file's member names, as returned by the zipfile class."""
 		with self.open() as z:
 			try:
 				return z.infolist()
@@ -113,9 +120,9 @@ class Zip(File):
 		being read. Optional kwarg 'errors' is also applied if given.
 		"""
 		ek = self.extractEncoding(k)
-		rk = Base.kcopy(k, 'mode pwd')
-		rk.setdefault('mode', 'r')
-		with self.open() as z:
+		rk = Base.kcopy(k, 'pwd')
+		ok = Base.kcopy(k, 'mode')
+		with self.open(**ok) as z:
 			try:
 				if 'encoding' in ek:
 					return z.read(member, **rk).decode(**ek)
@@ -135,13 +142,14 @@ class Zip(File):
 		before being written.
 		"""
 		ek = self.extractEncoding(k)
-		rk = Base.kcopy(k, 'mode pwd')
-		with self.open(mode, **k) as z:
+		wk = Base.kcopy(k, 'pwd')
+		ok = Base.kcopy(k, 'mode')
+		with self.open(mode, **ok) as z:
 			try:
 				if 'encoding' in ek:
-					z.writestr(member, data.encode(**ek), **rk)
+					z.writestr(member, data.encode(**ek), **wk)
 				else:
-					z.writestr(member, data, **rk)
+					z.writestr(member, data, **wk)
 			finally:
 				z.close()
 	
@@ -163,7 +171,7 @@ class Zip(File):
 				return Reader(z.open(member, mode, pwd), **ek)
 		else:
 			raise ValueError('create-reader-fail', xdata( k=k, ek=ek,
-				reason='missing-required-arg', requires=['stream','member'],
+				reason='missing-required-arg', krequire1=['stream','member'],
 				detail=self.__class__.__name__
 			))
 	

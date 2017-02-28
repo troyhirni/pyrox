@@ -223,7 +223,7 @@ class Path(object):
 		# Files with members will need to create a different kind of
 		# object from what gets returned. Pop that key out of kwargs
 		# before calling `wrapper`.
-		member = k.get('member')
+		member = k.pop('member', None)
 		
 		# now get the file wrapper object and return a reader
 		wrapper = self.wrapper(**sk)
@@ -253,17 +253,15 @@ class Path(object):
 			# get a wrapper suitable to the member's filename
 			mwrap = mpath.wrapper()
 			
-			# DEBUG; REMOVE THIS!
-			#print (self.path, mwrap)
-			
 			# get the original 'owner' stream for the memberwrapper to use
 			ownerstream = wrapper.reader(member=member).detach()
 			
+			# REM: Readers can be sensitive to certain kwargs, especially
+			#      for the CSVReader!
 			return mwrap.reader(stream=ownerstream, **k)
 		
 		
 		# -- non-contaner handling --
-		#print (k) #DEBUG; REMOVE!
 		return wrapper.reader(**k)
 	
 	

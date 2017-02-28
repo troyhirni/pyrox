@@ -161,3 +161,29 @@ class File(FileBase):
 			return Writer(self.open(**k), **ek)
 
 
+
+
+
+#
+# MEMBER FILE - Base class for Tar and Zip file wrappers.
+#
+class MemberFile(File):
+	"""
+	Abstract class defines required `names` and `members` properties,
+	which must be implemented by subclasses. 
+	
+	MemberFile is the base for tar.Tar and zip.Zip file wrappers.
+	"""
+	
+	@property
+	def names(self):
+		"""EXPERIMENTAL"""
+		raise NotImplementedError("abstract-method-required")
+	
+	@property
+	def members(self):
+		"""EXPERIMENTAL"""
+		raise NotImplementedError("abstract-method-required")
+
+
+

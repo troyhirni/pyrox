@@ -32,7 +32,7 @@ class ByteFile(File):
 		# to the data AFTER reading.
 		ek = self.extractEncoding(k)
 		with self.open(mode) as fp:
-			return fp.read(mode, **k).decode(**ek) if ek else fp.read()
+			return fp.read(**k).decode(**ek) if ek else fp.read()
 	
 	
 	# WRITE
@@ -40,16 +40,16 @@ class ByteFile(File):
 		"""
 		Open and write byte data to file at self.path. Default mode is 
 		"wb", but can be overridden (typically by subclasses) if needed.
+		
+		Regardless of arguments, any encoding arguments cause the given
+		data to be encoded before writing (so don't pass both bytes as 
+		data AND an encoding - you'll only get an error.
 		"""
 		# If any encoding-related arguments were provided, apply them
 		# to the data BEFORE writing; do NOT let them go to open()!
 		ek = self.extractEncoding(k)
 		with self.open(mode, **k) as fp:
-			if 'b' in mode:
-				#fp.write(data) # feb19
-				fp.write(data.encode(**ek) if ek else data) # feb19
-			else:
-				fp.write(data.encode(**ek) if ek else data)
+			fp.write(data.encode(**ek) if ek else data)
 	
 	
 	# READER
@@ -71,14 +71,3 @@ class ByteFile(File):
 		k.setdefault('mode', 'wb')
 		self.applyEncoding(k)
 		return File.writer(self, **k)
-
-
-
-
-
-#
-# MEMBER FILE - TAR, ZIP
-#
-class MemberFile(File):
-	pass
-

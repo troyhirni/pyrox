@@ -3,32 +3,30 @@ Copyright 2016-2017 Troy Hirni
 This file is part of the pyrox project, distributed under
 the terms of the GNU Affero General Public License.
 
-TAR - Covers tar files.
-
-The Tar class is currently read-only.
+TAR - Tar file wrapper.
 """
 
+
 import tarfile, fnmatch
-from .bfile import *
+from .file import *
 
 
-class Tar(ByteFile):
+class Tar(MemberFile):
 	"""Tar file support."""
 	
 	@property
 	def names(self):
+		"""EXPERIMENTAL"""
 		try:
 			return self.__names
 		except:
-			self.__loadnames()
+			with self.open('r|*') as f:
+				self.__names = f.getnames()
 			return self.__names
 	
-	def __loadnames(self):
-		with self.open('r|*') as f:
-			self.__names = f.getnames()
-
 	@property
 	def members(self):
+		"""EXPERIMENTAL"""
 		try:
 			return self.__members
 		except:
@@ -47,6 +45,8 @@ class Tar(ByteFile):
 	
 	def memberinfo(self):
 		"""
+		EXPERIMENTAL
+		
 		Return a dict with member names as keys; each value is a dict 
 		containing information on the corresponding member.
 		"""
@@ -102,46 +102,23 @@ class Tar(ByteFile):
 	
 	
 	# WRITE
-	def write(self, member, data, mode="a", **k):
+	def write(self, member, data, mode="w", **k):
 		
 		# create tarinfo object
 		mem = tarfile.TarInfo(member)
 		mem.size = len(data)
 		
+		# always encode to bytes if encoding is provided
 		ek = self.extractEncoding(k)
 		if ek:
-			# always encode to bytes if encoding is provided
 			data = data.encode(**ek)
 		
 		# create a stream
 		try:
-			try:
-				# This is a tar file, so it should be bytes...
-				#print (1)
-				strm = Base.create('io.BytesIO', data)
-				#print (2)
-			except:
-				
-				#
-				# ...but in python 2, it might be thought of as a string
-				# even if it's really bytes. 
-				# 
-				# CHECK THIS!
-				#
-				# TO-DO: Look into this further; this might not be necessary 
-				# (or if it is, might not be the best solution).
-				#
-				
-				#print (3)
-				strm = Base.create('io.StringIO', data)
-				#print (4)
-				
-		except ImportError:
+			strm = Base.create('io.BytesIO', data)
+		except Exception:
 			# for early python 2
-			#print (5)
 			strm = Base.create('cStringIO.StringIO', data)
-			#print (6)
-		
 		
 		# add the member
 		with self.open(mode) as fp:
