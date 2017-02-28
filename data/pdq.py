@@ -56,11 +56,16 @@ class Query(Base):
 		produce encoded byte strings.
 		
 		Additional kwargs:
-		 - file   : load text from a file; supports text, zip, bzip2, 
-		            gzip, and tar files
-		 - member : zip and tar files require a name kwarg to identify 
-		            the you'item within the file to read
 		 - row    : a custom row type may be specified to replace QRow
+		 
+		Additional kwarg sets:
+		 * stream
+		   - stream  : any object with a read() method that will read its
+		               contents into the Query object's data.
+		 * file (and member, if applicable)
+		   - file    : load text from a file; supports all file wrappers.
+		   - member  : zip and tar files require a `member` kwarg to 
+		               identify the item within the file to read
 		"""
 		# encoding; used only if data is text
 		self.__encoding = k.get('encoding', None)
@@ -75,8 +80,9 @@ class Query(Base):
 		if 'file' in k:
 			reader = Base.path(k.pop('file')).reader(**k)
 			self.__data = reader.read()
+		elif 'stream' in k:
+			self.__data = k['stream'].read()
 		else:
-			# set data and encoding
 			self.__data = data
 		
 		# if 'encoding' is specified, decode bytes only
