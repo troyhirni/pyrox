@@ -32,7 +32,7 @@ class Hub(Runner):
 		self.factory = conf.get('factory', {})
 		
 		# debug formatting
-		self.fout = ncreate('fmt.JDisplay')
+		self.fout = Base.ncreate('fmt.JDisplay')
 	
 	
 	def __del__(self):
@@ -52,7 +52,7 @@ class Hub(Runner):
 		"""
 		Launch all preconfigured tasks.
 		"""
-		Runner.open()
+		Runner.open(self)
 		for k in self.auto:
 			if k in self.factory:
 				self.tasklaunch(k, self.factory[k])

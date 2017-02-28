@@ -62,7 +62,7 @@ def launch(typespec, *a, **k):
 	will be received as specified in the factory configuration dict.
 	"""
 	# create and run the task
-	t = create(typespec, *a, **k)
+	t = Base.create(typespec, *a, **k)
 	t.run()
 
 

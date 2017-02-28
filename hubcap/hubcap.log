@@ -3146,3 +3146,275 @@
   "proc": "MainProcess", 
   "type": "Hub"
 }
+1488166517.847375: {
+  "pid": 15196,
+  "args": [
+    "START"
+  ],
+  "type": "Hub",
+  "proc": "MainProcess"
+}
+1488166574.3383732: {
+  "proc": "MainProcess",
+  "args": [
+    "OPEN"
+  ],
+  "type": "Hub",
+  "pid": 15204
+}
+1488166574.33903: {
+  "proc": "MainProcess",
+  "args": [
+    "RUN"
+  ],
+  "type": "Hub",
+  "pid": 15204
+}
+1488166574.4385307: {
+  "proc": "MainProcess",
+  "args": [
+    "START"
+  ],
+  "type": "Hub",
+  "pid": 15204
+}
+1488168940.222128: {
+  "proc": "MainProcess",
+  "args": [
+    "TASK-ADD",
+    {
+      "name": "hubcap-1",
+      "taskid": 1,
+      "pid": 15333
+    }
+  ],
+  "type": "Hub",
+  "pid": 15204
+}
+1488168940.2229764: {
+  "proc": "MainProcess",
+  "args": [
+    "TASKS:",
+    "dict_keys([1])"
+  ],
+  "type": "Hub",
+  "pid": 15204
+}
+1488169051.2439454: {
+  "proc": "MainProcess",
+  "args": [
+    "STOP",
+    "running=False"
+  ],
+  "type": "Hub",
+  "pid": 15204
+}
+1488169051.2803013: {
+  "proc": "MainProcess",
+  "args": [
+    "RUN-STOP"
+  ],
+  "type": "Hub",
+  "pid": 15204
+}
+1488169107.853121: {
+  "type": "Hub",
+  "args": [
+    "OPEN"
+  ],
+  "pid": 15359,
+  "proc": "MainProcess"
+}
+1488169107.8537724: {
+  "type": "Hub",
+  "args": [
+    "RUN"
+  ],
+  "pid": 15359,
+  "proc": "MainProcess"
+}
+1488169107.953932: {
+  "type": "Hub",
+  "args": [
+    "START"
+  ],
+  "pid": 15359,
+  "proc": "MainProcess"
+}
+1488169114.2964344: {
+  "type": "Hub",
+  "args": [
+    "TASK-ADD",
+    {
+      "pid": 15361,
+      "taskid": 1,
+      "name": "hubcap-1"
+    }
+  ],
+  "pid": 15359,
+  "proc": "MainProcess"
+}
+1488169114.2969482: {
+  "type": "Hub",
+  "args": [
+    "TASKS:",
+    "dict_keys([1])"
+  ],
+  "pid": 15359,
+  "proc": "MainProcess"
+}
+1488169114.3013566: {
+  "type": "Add1",
+  "args": [
+    "task init ok"
+  ],
+  "pid": 15361,
+  "proc": "hubcap-1"
+}
+1488169114.3015275: {
+  "type": "Add1",
+  "args": [
+    "OPEN"
+  ],
+  "pid": 15361,
+  "proc": "hubcap-1"
+}
+1488169114.3016396: {
+  "type": "Add1",
+  "args": [
+    "RUN"
+  ],
+  "pid": 15361,
+  "proc": "hubcap-1"
+}
+1488169380.4696026: {
+  "type": "Hub",
+  "args": [
+    "TASK-ADD",
+    {
+      "pid": 15400,
+      "taskid": 2,
+      "name": "hubcap-2"
+    }
+  ],
+  "pid": 15359,
+  "proc": "MainProcess"
+}
+1488169380.4703398: {
+  "type": "Hub",
+  "args": [
+    "TASKS:",
+    "dict_keys([1, 2])"
+  ],
+  "pid": 15359,
+  "proc": "MainProcess"
+}
+1488169380.4722815: {
+  "type": "Add1",
+  "args": [
+    "task init ok"
+  ],
+  "pid": 15400,
+  "proc": "hubcap-2"
+}
+1488169380.4724987: {
+  "type": "Add1",
+  "args": [
+    "OPEN"
+  ],
+  "pid": 15400,
+  "proc": "hubcap-2"
+}
+1488169380.4726286: {
+  "type": "Add1",
+  "args": [
+    "RUN"
+  ],
+  "pid": 15400,
+  "proc": "hubcap-2"
+}
+1488169546.7688618: {
+  "type": "Hub",
+  "args": [
+    "TASK-EXIT",
+    {
+      "taskid": 1
+    }
+  ],
+  "pid": 15359,
+  "proc": "MainProcess"
+}
+1488169546.77087: {
+  "type": "Add1",
+  "args": [
+    "STOP",
+    "running=False"
+  ],
+  "pid": 15361,
+  "proc": "hubcap-1"
+}
+1488169546.7715468: {
+  "type": "Add1",
+  "args": [
+    "CLOSE"
+  ],
+  "pid": 15361,
+  "proc": "hubcap-1"
+}
+1488169546.7722971: {
+  "type": "Add1",
+  "args": [
+    "processed message",
+    {
+      "c": "exit",
+      "r": "exiting"
+    }
+  ],
+  "pid": 15361,
+  "proc": "hubcap-1"
+}
+1488169546.8728669: {
+  "type": "Hub",
+  "args": [
+    "WAIT-FOR-TASK-EXIT",
+    {
+      "taskid": 1
+    }
+  ],
+  "pid": 15359,
+  "proc": "MainProcess"
+}
+1488169546.873554: {
+  "type": "Add1",
+  "args": [
+    "RUN-STOP"
+  ],
+  "pid": 15361,
+  "proc": "hubcap-1"
+}
+1488169548.1264389: {
+  "type": "Hub",
+  "args": [
+    "TASKS:",
+    "dict_keys([2])"
+  ],
+  "pid": 15359,
+  "proc": "MainProcess"
+}
+1488169609.5227509: {
+  "type": "Add1",
+  "args": [
+    "processed message",
+    {
+      "c": "status",
+      "r": {
+        "running": true,
+        "active": true,
+        "time": 1488169609.5221007,
+        "threaded": null
+      }
+    }
+  ],
+  "pid": 15400,
+  "proc": "hubcap-2"
+}
