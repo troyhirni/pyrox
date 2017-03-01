@@ -29,7 +29,7 @@ def report(debug=False):
 	# TEST - IMPORT ALL
 	#
 	print ("\n\n*\n* DEV TEST: Import all modules:\n*\n")
-	tt = Test()
+	tt = Test(debug)
 	tt.load()
 	tt.report()
 	
@@ -241,7 +241,9 @@ class TestFS(object):
 #
 # -------------------------------------------------------------------
 class Test(object):
-	def __init__(self):
+	def __init__(self, debug=False):
+		
+		self.debug = debug
 		
 		# the directory holding the root package (eg, ~/dev, ~, etc...)
 		self.parent = Base.path().path
@@ -308,7 +310,7 @@ class Test(object):
 		try:
 			return self.__modules
 		except:
-			self.__modules = list(self.modgen())
+			self.__modules = sorted(self.modgen())
 			return self.__modules
 			
 	
@@ -366,11 +368,14 @@ class Test(object):
 			self.__loaded[modspec] = dict(modspec=modspec, module=None, 
 				error=xdata()
 			)
+			if self.debug:
+				print ("modspec = %s" % modspec)
+				raise
 	
 	
 	
 	def load(self):
-		for modspec in self.modgen():
+		for modspec in self.modules:
 			self.loadmodule(modspec)
 	
 	
