@@ -5,7 +5,7 @@ the terms of the GNU Affero General Public License.
 
 TRANSFORM FILE - File Object, for structured text file io.
 
-Use a TransformFile object to read text file that describes an object
+Use TransformFile objects to read text files which describe objects
 that can be transformed from data to text or from text to data by a 
 data.transform.Transform object.
 """
@@ -16,8 +16,8 @@ from .file import *
 
 class TransformFile (File):
 	"""
-	Use a TransformFile object to read text file that describes an
-	object.
+	Use TransformFile objects to read text files which describe
+	objects (such as json text files).
 	
 	The first argument to TransformFile must be a data.transform object
 	to convert the file's text to a python object. Additional arguments
