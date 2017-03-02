@@ -20,9 +20,69 @@ class Data(Base):
 
 
 
-
-class ByteFn(object):
+#
+# UNDER CONSTRUCTION - EXPERIMENTAL
+#
+class FFactory(object):
 	"""
+	TO DO: Check this to make sure it's faster than just using Factory.
+	       I think it almost has to be, but I can't be sure until it's
+	       tested.
+	
+	THIS WILL ALMOST CERTAINLY MOVE TO SOME OTHER LOCATION...
+	
+	...OR IT MAY DISAPPEAR ENTIRELY.
+	
+	For now, I'm just keeping it here so as to have it backed up.
+	"""
+	def __init__(self, fnspec):
+		self.__spec = fnspec
+	
+	@property
+	def fn(self):
+		try:
+			return self.__fn
+		except KeyError:
+			self.__fn = TFactory(self.__spec).type
+			return self.__fn
+
+
+class Bytes(object):
+	_bzip       = FFactory('bz2.compress')
+	_bunzip     = FFactory('bz2.decompress')
+	_hexlify    = FFactory('binascii.hexlify')
+	_unhexlify  = FFactory('binascii.unhexlify')
+	_rlecode    = FFactory('binascii.rlecode_hqx')
+	_rledecode  = FFactory('binascii.rledecode_hqx')
+	_gzip       = FFactory("zlib.compress")
+	_gunzip     = FFactory("zlib.decompress")
+	_b64encode  = FFactory('base64.b64encode')
+	_b64decode  = FFactory('base64.b64decode')
+	_b64encodes = FFactory('base64.standard_b64encode')
+	_b64decodes = FFactory('base64.standard_b64decode')
+	_b64encodeu = FFactory('base64.urlsafe_b64decode')
+	_b64decodeu = FFactory('base64.urlsafe_b64decode')
+	_b32encode  = FFactory('base64.b32encode')
+	_b32decode  = FFactory('base64.b32decode')
+	_b16encode  = FFactory('base64.b16encode')
+	_b16decode  = FFactory('base64.b16decode')
+	
+	def __init__(self, bbytes=None):
+		self.__bytes = bbytes or b''
+	
+	@property
+	def bytes(self):
+		return self.__bytes
+	
+	@bytes.setter
+	def bytes(self, bb):
+		self.__bytes = bb
+	
+
+
+"""
+class ByteFn(object):
+	
 	Byte manipulation cover functions - EXPERIMENTAL
 	
 	Several python modules that manipulate bytes are covered in this
@@ -32,7 +92,7 @@ class ByteFn(object):
 	
 	This class is experimental. If kept, it may be moved to a different
 	module.
-	"""
+	
 	_bzip       = Factory('bz2.compress')
 	_bunzip     = Factory('bz2.decompress')
 	_hexlify    = Factory('binascii.hexlify')
@@ -51,4 +111,4 @@ class ByteFn(object):
 	_b32decode  = Factory('base64.b32decode')
 	_b16encode  = Factory('base64.b16encode')
 	_b16decode  = Factory('base64.b16decode')
-	
+"""
