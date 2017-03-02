@@ -5,10 +5,10 @@ of the GNU Affero General Public License.
 
 TEST - Test that all modules compile.        *EXPERIMENTAL*
 
-Finds and loads all modules in the project (pyro or pyrox).
-
-import test
-test.report()
+Finds and loads all modules in the project (pyro or pyrox). Performs
+minimal write/read tests on each file wrapper and read tests on each
+wrapper's Reader. Call the pyro.dev.test.report() function from the
+interpreter for the full test with printed report.
 """
 
 import os
