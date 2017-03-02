@@ -787,6 +787,90 @@ class Buffer(Writer):
 
 
 
+class ReadCoder(Reader):
+	"""
+	EXPERIMENTAL!
+	
+	This class was written to allow CSVReader to work at least somewhat
+	usefully across python versions 2/3.
+	
+	ReadCoder objects read byte or unicode text streams flexibly. The
+	CSVReader needs to provide bytes in python 2 and unicode text in
+	python 3, so it just trys both and uses whichever works.
+	
+	The end effect is that row data is given as byte string values in
+	python 2 and unicode values in python 3.
+	
+	For now, that's the best I can achieve. Hopefully the future will
+	bring better quality. For now this class (and, so, the CSVReader)
+	must remain 'experimental'.
+	
+	NOTE:
+	The name of this class may change. If kept, this class will likely
+	move to the fs.__init__ module (or wherever the ever-growing list
+	of stream utility objects ends up being placed).
+	"""
+	
+	# INIT
+	def __init__(self, stream, **k):
+		Reader.__init__(self, stream)
+		
+		# if you need bytes...
+		if 'encode' in k:
+			if 'decode' in k:
+				raise Exception('conflicting-kwargs', xdata(
+						krequire1=['encode','decode']
+					))
+			
+			self.__encoding = k['encode']
+			self.__operator = unicode.encode #p2 needs this to be `unicode`
+		
+		# if you need unicode...
+		elif 'decode' in k:
+			self.__encoding = k['decode']
+			self.__operator = pxbytes.decode #early p2 needs `pxbytes`
+		
+		else:
+			raise Exception('missing-required-kwarg', xdata(
+					krequire1=['encode','decode']
+				))
+		
+		self.readline = self.__next__
+	
+	# LINES
+	@property
+	def lines(self):
+		"""Line generator."""
+		try:
+			for line in self.stream:
+				yield (self.__operator(line, self.__encoding))
+		
+		# if the above fails, it will fail on the first line, so yield
+		# that line, then enter a new loop that doesn't apply encoding
+		# or decoding (that is, self.__operator).
+		except TypeError:
+			yield line
+		
+		for line in self.stream:
+			yield line
+			
+	# READ
+	def read(self, *a):
+		try:
+			x = self.stream.read(*a)
+			return self.__operator(x, self.__encoding)
+		except TypeError:
+			self.read = self.stream.read
+			return x
+
+
+
+
+
+
+
+
+
 class Filter(Reader):
 	"""
 	Filter methods read from a stream and return the result through a
