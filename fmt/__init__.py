@@ -5,10 +5,10 @@ of the GNU Affero General Public License.
 
 FMT - Text formatting objects with conversion settings.
 
-Use format-based objects as functions that are ready to provide the
-customized formatting you need repeatedly. Call the output() method 
-to print given text (after formatting) to the terminal. Use the 
-format() method if you need the formatted text returned as a string.
+Format-based objects store formatting parameters and use them to
+return or output formatted text for data given to the `format()` or
+`output()` methods.
+
 """
 
 from .. import *
@@ -27,12 +27,6 @@ class FormatBase(object):
 	a formatter because it has no format() method, but facilitates the
 	storage of arguments and keyword args for use when subclasses are
 	called to format text.
-	
-	Use FormatBase-based objects as functions that are ready to provide
-	the customized formatting you need repeatedly. Call the output()
-	method to print given text (after formatting) to the terminal. Use
-	the format() method if you need the formatted text returned as a
-	string.
 	"""
 	
 	def __init__(self, *a, **k):
@@ -69,12 +63,12 @@ class NoFormat(FormatBase):
 	Formatter that does not format; Prints or returns "as-is" string.
 	"""
 	
-	def __call__(self, a, **k):
-		"""Formats and returns data."""
+	def __call__(self, data, **k):
+		"""Return `data` cast as a string."""
 		return str(a) if a else ''
 	
-	def output(self, a):
-		"""Format and print data."""
+	def output(self, data):
+		"""Print `data`."""
 		print (a)
 
 
@@ -161,8 +155,6 @@ class JCompact(JSON):
 	def format(self, data):
 		"""Format as compact json; no unnecessary white space."""
 		return ''.join(json.dumps(data, **self.kwargs).splitlines())
-
-
 
 
 
