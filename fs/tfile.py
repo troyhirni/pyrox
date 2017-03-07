@@ -5,19 +5,41 @@ the terms of the GNU Affero General Public License.
 
 TRANSFORM FILE - File Object, for structured text file io.
 
+                 EXPERIMENTAL!
+
 Use TransformFile objects to read text files which describe objects
 that can be transformed from data to text or from text to data by a 
 data.transform.Transform object.
+
+Here are some examples of use:
+
+# EXAMPLE 1 - FILE I/O
+from pyrox.data import transform
+from pyrox.fs import tfile
+t = transform.TransformJson()
+f = tfile.TransformFile(t, 'test.json', encoding='utf8')
+w = f.writer()
+w.write([1,2,3,4,5])
+r = f.reader()
+r.read()
+
+# EXAMPLE 2 - STREAM I/0
+b = tfile.Buffer()
+w = f.writer(stream=b)
+w.write(dict(a=1,b=9))
+r = f.reader(stream=b.reader())
+r.read()
 """
 
 
-from .file import *
+from .bfile import *
 
 
-class TransformFile (File):
+class TransformFile (ByteFile):
 	"""
-	Use TransformFile objects to read text files which describe
-	objects (such as json text files).
+	Use TransformFile objects to read text files which describe objects
+	that can be transformed from data to text or from text to data by a
+	data.transform.Transform object.
 	
 	The first argument to TransformFile must be a data.transform object
 	to convert the file's text to a python object. Additional arguments
@@ -30,10 +52,29 @@ class TransformFile (File):
 		jsonfile = file.TransformFile(jsonTran, 'test/test.json')
 		jsonfile.write(dict(value1="That's valuable!", ix=9))
 	"""
-	def __init__(self, transformer, *a, **k):
-		self.__transform = transformer
-		File.__init__(self, *a, **k)
 	
+	def __init__(self, transformer, *a, **k):
+		"""
+		Pass a `transformer` object from data.transform and any optional
+		or required arguments and/or kwargs required to create the 
+		transform subclass that will transform between text and object
+		form.
+		
+		Note that in order to function in both python 2 and 3, it may
+		be necessary to specify an incoding either to the constructor or
+		to both the reader and writer methods.
+		
+		REMINDER TO MYSELF:
+		I'm Considering adding a default encoding to the TransformFile
+		constructor since it's required for Json transformation to work
+		in both 2 and 3. I'm holding off for now since I'm not yet sure 
+		how this might affect other Transform subclasses.
+		"""
+		self.__transform = transformer
+		ByteFile.__init__(self, *a, **k)
+	
+	
+	# READ
 	def read(self, *a, **k):
 		"""
 		The read() method's results are transformed using the transformer
@@ -41,8 +82,10 @@ class TransformFile (File):
 		dict, the TransformJson transformer will convert it to a dict and
 		return that dict.
 		"""
-		return self.__transform.fromtext(File.read(self, *a, **k))
+		return self.__transform.fromtext(ByteFile.read(self, *a, **k))
 	
+	
+	# WRITE
 	def write(self, data, *a, **k):
 		"""
 		Pass data as expected by this file's transformer. For example, 
@@ -51,89 +94,125 @@ class TransformFile (File):
 		the json.dumps() method and that will be transformed to text then
 		written to this file.
 		"""
-		File.write(self, self.__transform.totext(data), *a, **k)
+		ByteFile.write(self, self.__transform.totext(data), *a, **k)
 	
-	def reader(self, *a, **k):
-		"""
-		Stores the parsed object in a DataReader. 
-		"""
-		return DataReader(self.read(*a, **k))
 	
-	# should PseudoWriter accept one object to be written?
-	# writeline could add a member to a dict or list object! omg,
-	# it could use cursor to manipulate nearly anything! how cool
-	# would that be?
-	def writer(self, *a, **k):
-		raise NotImplementedError()
+	# READER
+	def reader(self, **k):
+		try:
+			return TransformReader(k.pop('stream'), self.__transform, **k)
+		except KeyError:
+			k.setdefault('mode', 'rb')
+			ek = self.extractEncoding(k) if 'b' in k['mode'] else {}
+			return TransformReader(self.open(**k), self.__transform, **ek)
+		
+	
+	# WRITER
+	def writer(self, **k):
+		try:
+			# if stream is given, send kwargs directly to Writer()
+			return TransformWriter(k.pop('stream'), self.__transform, **k)
+		except KeyError:
+			# ...else get stream from self.open()
+			k.setdefault('mode', 'wb')
+			ek = self.extractEncoding(k) if 'b' in k['mode'] else {}
+			return TransformWriter(self.open(**k), self.__transform, **ek)
 
 
 
 
-#
-# DATA STREAM IMMITATORS
-#
 
-class DataReader(object):
+class TransformStream(Stream):
+	pass
+
+
+
+
+
+class TransformReader(TransformStream):
 	"""
-	Implements Reader, but for a data object rather than a stream.
-	
-	Holds a data object to be returned in its entirety on the first
-	read (by any means - iter, read, lines, or readlines). Subsequent 
-	attempts to read will result in an Exception - which currently is
-	EOFError, though that may change in the future;
-	
-	TO-DO: What should that exception be?
+	TransformReader reads and returns an object described by the entire
+	stream's contents regardless of which reading method is called.
+	Subsequent read attempts will give the same result as any stream
+	being read after the end of file: '' for readline(), StopIteration 
+	for next(), etc...
 	"""
-	def __init__(self, data):
-		self.__data = data
+	def __init__(self, stream, transformer, **k):
+		self.__transform = transformer
+		
+		# In some cases, Reader may alter its methods, so we'll separate
+		# it from this object but still use its methods.
+		self.__reader = Reader(stream, **k)
+		
+		# p2/p3
+		self.next = self.__next__
+		self.readline = self.read
+	
 	
 	def __iter__(self):
+		"""Line iterator."""
 		return self.lines
 	
-	# stream methods
-	@property
-	def stream(self):
-		raise NotImplementedError()
+	def __next__(self):
+		"""Read and return the next line."""
+		return next(self.lines)
 	
-	# reading stream methods
+	
 	@property
 	def lines(self):
+		"""
+		Yeilds one result - an object described by the full text of this
+		stream.
+		"""
 		yield self.read()
 	
+	
 	def read(self, *a):
-		if self.__data:
-			try:
-				return self.__data
-			finally:
-				self.__data = None
-		else:
-			raise EOFError() # or StopIteration? or what?
-	
-	def readline(self):
-		return self.read()
-	
-	def close(self):
-		self.__data = None
+		"""
+		Returns an object generated by the `transformer` given to the 
+		constructor using the full text of the stream given to the 
+		constructor.
+		
+		All read-related methods are generated by this method.
+		"""
+		return self.__transform.fromtext(self.__reader.read())
 
 
 
 
 
-class DataWriter(Stream):
+class TransformWriter(TransformStream):
 	"""
-	Implements Writer, but for a data object rather than a stream.
-	
-	Holds the object that will convert the object to its proper format
-	and write it to wherever it should be written.
+	Write to TransformWriter one time, passing an object to convert to
+	a text representation of itself and then written to the stream
+	given to the constructor.
 	"""
-	def __init__(self, obj, *a, **k):
-		self.__obj = data
-		self.__a = a
-		self.__k = k
+	def __init__(self, stream, transformer, **k):
+		"""
+		Pass the `stream` to receive the text and a `transformer` object
+		to translate any given object to text.
+		"""
+		self.__transform = transformer
+		self.__target = Writer(stream, **k)
+		self.writelines = self.write
+	
+	# DEBUGGING
+	#@property
+	#def target(self):
+	#	return self.__target
 	
 	def write(self, data):
-		return self.stream.write(data, *self.__a, **self.__k)
+		"""
+		Write the object to the stream. Subsequent write attempts raise
+		an exception.
+		"""
+		data = self.__transform.totext(data)
+		
+		self.__target.write(data)
+		self.__target.flush()
+		self.write = self.__writeeof
 	
-	def writeline(self, data):
-		return self.stream.writeline(data, *self.__a, **self.__k)
+	def __writeeof(self, *a):
+		raise EOFError("write-fail", xdata(reason='single-write-only'))
+
 

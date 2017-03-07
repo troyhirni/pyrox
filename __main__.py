@@ -1,3 +1,16 @@
+"""
+Copyright 2014-2017 Troy Hirni
+This file is part of the pyrox project, distributed under the terms 
+of the GNU Affero General Public License.
+
+** MAIN **
+
+python -m pyrox --help
+python -m pyrox --ipath # print the `innerpath` to pyrox package
+python -m pyrox --test  # test loading of modules and file wrapper io
+python -m pyrox --clean # remove .pyc files and __pycache__ directories
+"""
+
 
 import sys
 from . import *
@@ -10,20 +23,31 @@ if __name__ == '__main__':
 	
 	# help/how-to reminders
 	if not cmd or (cmd in ['-h', '--help']):
-		print ("USAGE: python -m %s --clean [path]" % app)
+		print (__doc__)
 	
 	# print the arguments received by this call
 	elif cmd == '--args':
 		print (str(sys.argv))
 	
-	# print the arguments received by this call
+	# print the inner-path for python imports within the package
 	elif cmd == '--ipath':
 		print ("%s" % (Base.innerpath(*args)))
+	
+	# test loading of modules and file wrapper io
+	elif cmd == '--test':
+		from pyrox.dev import test
+		test.report()
 	
 	# remove *.pyc files
 	elif cmd == '--clean':
 		d = Base.ncreate('fs.dir.Dir', *args[1:])
-		d.search('.', '*.pyc', fn=d.rm)
+		d.search('pyrox', '__pycache__', fn=d.rm)
+		d.search('pyrox', '*.pyc', fn=d.rm)
+	
+	
+	#
+	# ADDITIONAL, FOR FUN
+	#
 	
 	# prompt demo - ftp
 	elif cmd == '--ftp':

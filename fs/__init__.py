@@ -36,6 +36,10 @@ class Path(object):
 	
 	# CALL - EXPERIMENTAL
 	def __call__(self, path):
+		"""
+		Calling a Path object as a function returns a new Path object that
+		points to its path "merged" with the (required) given `path`.
+		"""
 		return Path(self.merge(path))
 	
 	# REPR

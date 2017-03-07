@@ -41,6 +41,12 @@ class Runner(Hubcap):
 		self.__running = None
 		self.__threaded = None
 	
+	def __del__(self):
+		try:
+			self.exit()
+		except:
+			pass
+	
 	@property
 	def sleep(self):
 		"""

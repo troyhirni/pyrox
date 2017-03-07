@@ -82,6 +82,23 @@ class Chain(object):
 		"""
 		self.v = self.v.split(*a, **k)
 		return self
+	
+	def join(self, c, *a, **k):
+		"""
+		EXPERIMENTAL
+		
+		Join list items by character `c`. If no additional arguments are
+		given, all items in list `self.v` are joined. If additional args
+		are given, they must be integers that give offsets from self.v to 
+		join.
+		
+		NOTE: All list values are cast as unicode before being joined.
+		"""
+		x = self.v
+		u = unicode
+		vv =  [u(x[i], **k) for i in a] if a else [u(v, **k) for v in x]
+		self.v = u(c, **k).join(vv)
+		return self
 
 
 

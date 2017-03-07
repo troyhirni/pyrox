@@ -40,7 +40,10 @@ class Dir(Path):
 	"""
 	
 	def __init__(self, path=None, **k):
-		"""Pass a file system path. Kwargs apply as to Path.expand()."""
+		"""
+		Pass an optional file system path. Default is '.'. Kwargs apply 
+		as to Path.expand().
+		"""
 		p = k.get('dir', path)
 		if not 'affirm' in k:
 			k['affirm'] = 'checkdir'
@@ -56,7 +59,29 @@ class Dir(Path):
 			self.walk = os.path.walk
 	
 	
+	# CALL - EXPERIMENTAL
+	def __call__(self, item):
+		"""
+		Calling a Path object as a function returns a new Path object that
+		points to its path "merged" with the (required) given `item`.
+		
+		For `Dir` objects, the given `item` may also be the integer offset
+		into the directory listing.
+		"""
+		try:
+			# this works if item is an integer index into this directory
+			return Path.__call__(self, self[item])
+		except TypeError:
+			# this works if item is a string path
+			return Path.__call__(self, item)
+	
+	
 	def __getitem__(self, key):
+		"""
+		Dir objects can act as lists of the full path to the items inside
+		the directory to which they point; Dir()[0] returns the full path
+		to the first item in its directory listing.
+		"""
 		ls = self.ls()
 		return self.merge(ls[key])
 	

@@ -48,6 +48,7 @@ Temporary Items
 
 *.db
 *.pyc
+*.log
 __pycache__/
 __pycache__
 wiki/

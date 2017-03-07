@@ -19,7 +19,7 @@ class Task(Runner):
 	"""
 	
 	# INIT
-	def __init__(self, config={}, **k):
+	def __init__(self, config=None, **k):
 		"""
 		When creating a Task-based object, the factory config dict must 
 		specify as its first argument a dict containing any values 
@@ -31,8 +31,8 @@ class Task(Runner):
 		communication.
 		"""
 		conf = config or {}
-		Runner.__init__(self, conf, **k)
 		conf.update(k)
+		Runner.__init__(self, conf)
 		self.qhub = conf['qhub']
 		self.qtask = conf['qtask']
 		self.log("task init ok")
