@@ -5,236 +5,74 @@ the terms of the GNU Affero General Public License.
 
 SOCKI - SOCKET INFO
 
-Convenience utility for finding the best socket creation arguments.
-
+Convenience utility for finding socket creation arguments.
 """
 
 from .. import *
-
 import socket
 
 
 
-#
-# SOCK VAL
-# - Get values from python's socket module.
-#
-def sockval(name):
-	"""
-	Returns the value of anything defined in python's socket module given
-	the `name` for that value. For example, given a `name` of "SHUT_RDWR", 
-	the value of socket.SHUT_RDWR is returned (as an integer).
-	
-	Any kind of value `name` that's defined in the socket module will be 
-	returned, but the intention here is to suport the passing of constant
-	values given as strings in config dict arguments. That is, it's much
-	easier to pass socktype='SOCK_STREAM' rather than looking up the value
-	of socket.SOCK_STREAM and entering that integer instead.
-	
-	If `name` is not defined in the socket module, then its value will be
-	returned as-is. This makes it possible to pass either 'SOCK_STREAM' or
-	socket.SOCK_STREAM as the value of config['socktype'].
-	"""
-	if val and (val in socket.__dict__):
-		val = socket.__dict__[val]
-	return val
-
-
-def sockname(value, prefix=None):
-	"""
-	Searches for names that define the given `value` in python's socket
-	module. Pass `prefix` (a string) to limit the results.
-	"""
-	r = []
-	l = len(prefix)
-	for k in socket.__dict__:
-		if (not l) or (k[:l] == prefix):
-			if socket.__dict__[k] == value:
-				r.append(k)
-	return r
-
-
-
-# TEMPORARY - REMOVE EVENTUALLY
-def printx(prefix=''):
-	"""
-	List everything and it's value from socket.py; This will be removed
-	when no longer needed for reference.
-	"""
-	iPrefixLen = len(prefix)
-	for k in dir(socket):
-		if (iPrefixLen==0) or (k[:iPrefixLen] == prefix):
-			print ("%s : %s" % (k, str(socket.__dict__[k])))
-
-
-
-
-
-#
-# SOCK INFO
-#
-class SockInfo(object):
-	"""
-	Immutable addressing info for creation of socket objects.
-	"""
-	def __init__(self, config={}, **k):
-		"""
-		Pass a config dict (and/or kwargs) containing host, port, family, 
-		socktype, proto, and flags, as needed.
+class AddrInfo(object):
+	def __init__(self, config=None, **k):
+		conf = config or {}
+		conf.update(Base.kcopy(k, 'family type proto flags host port'))
+		if not 'host' in conf:
+			conf['host'] = socket.gethostname()
 		
+		# EXPERIMENTAL!
+		# This allows values to be given by name, rather than value. I'm
+		# not sure how valuable this is right now, but if it seems helpful
+		# it might stay.
+		for x in 'family type proto'.split():
+			if x in conf:
+				conf[x] = self.sockval(conf[x])
 		
-		All values may be passed as either:
-		 * a direct (integer) value as defined in the socket module, OR...
-		 * a string matching the defined name of a constant from the
-		   socket module.
-		
-		REQUIRED KEY:
-		 * port: There's no getting around specification of a 'port' value.
-		         It may be specified by protocol (eg. 'http') or by integer,
-		         but absolutely must be supplied. 
-		
-		DEFAULT KEY VALUES:
-		 * host: defaults to socket.gethostname()
-		
-		OTHER DEFAULTS:
-		The family, socktype, proto, and flags values are optional. If not
-		specified, the first result as returned by socket.getaddrinfo() will
-		provide the defaults.
-		"""
-		config.update(k)
-		self.conf = config
-		
-		# TOP CONFIG VALUES (HOST/PORT)
-		host = config.get('host')
-		host = host if host else socket.gethostname()
-		port = config['port'] # REQUIRED!
-		
-		# LIST ADDRESS-INFO CHOICES
-		self.__addrinfo = socket.getaddrinfo(host, port)
-		if not len(self.__addrinfo):
-			raise Exception('socket-params-invalid', 'no-matching-address')
-		
-		# STORE BEST ADDRESS
-		self.__addr0 = self.__addrinfo[0]
-		self.__addr = self.__addr0[4] # (host,port)
-		self.__host = self.__addr[0]
-		self.__port = self.__addr[1]
-		self.__family = self.__addr0[0]
-		self.__socktype = self.__addr0[1]
-		self.__proto = self.__addr0[2]
-		self.__cname = self.__addr0[3] # canonname
-		
-		# FLAGS
-		flags = []
-		cflags = config.get('flags', [])
-		cf = cflags if isinstance(cflags, list) else cflags.split()
-		for f in cf:
-			flags.append(sockval(f))
-		self.__flags = flags
+		# GET INITIAL ADDRESS INFO
+		self.__addrinfo = socket.getaddrinfo(**conf)
 	
+	def __len__(self):
+		return len(self.__addrinfo)
 	
-	#
-	# VALUES
-	#
-	@property
-	def addr(self):
-		"""Return (host,port) as tupel"""
-		return self.__addr
+	def __getitem__(self, key):
+		x = self.__addrinfo[key]
+		f = x[3] if x[3] else 0 
+		config = dict(
+			family = x[0], type = x[1], proto= x[2], flags = f,
+			host = x[4][0], port = x[4][1]
+		)
+		return AddrInfo(config)
 	
-	@property
-	def port(self):
-		"""Return port as integer"""
-		return self.__port
-	
-	@property
-	def host(self):
-		"""Return host"""
-		return self.__host
-	
-	@property
-	def cname(self):
-		"""Return canonical name"""
-		return self.__cname
-	
-	@property
-	def family(self):
-		"""Return the defined integer family integer value."""
-		return self.__family
-	
-	@property
-	def nfamily(self):
-		"""Return the address-family name as defined in socket module."""
-		try:
-			return self.__nfamily
-		except:
-			try:
-				self.__nfamily = sockname(self.family, "AF_")
-			except:
-				self.__nfamily = None
-			return self.__nfamily
-	
-	@property
-	def socktype(self):
-		"""Return the defined integer socket type integer value."""
-		return self.__socktype
-	
-	@property
-	def nsocktype(self):
-		"""Return the socket type name as defined in socket module."""
-		try:
-			return self.__nsocktype
-		except:
-			try:
-				self.__nsocktype = sockname(self.socktype, "SOCK_")
-			except:
-				self.__nsocktype = None
-			return self.__nsocktype
-	
-	@property
-	def proto(self):
-		"""Return the defined integer protocol value."""
-		return self.__proto
-	
-	@property
-	def nproto(self):
-		"""Return the socket protocol as defined in socket module."""
-		try:
-			return self.__nproto
-		except:
-			try:
-				self.__nproto = sockname(self.proto, "IPPROTO_")
-			except:
-				self.__nproto = None
-			return self.__nproto
-	
-	@property
-	def flags(self):
-		return self.__flags
-	
-	
-	#
-	# INFO
-	#
-	@property
-	def addrinfo(self):
-		"""
-		Returns a list of possible connection parameters matching this
-		object's config. Each item is a set containing:
-			(family, socktype, proto, canonname, sockaddr)
-		
-		Only the first item in this list is used to set this object's 
-		properties. To use a different item from the list, directly specify
-		all socket-related config options when creating the object.
-		"""
+	def get(self, i=0):
 		return self.__addrinfo
 	
 	@property
-	def addr0(self):
-		"""
-		Returns the full address-info tupel used to build this socket info
-		object's properties.
-		"""
-		return self.__addr0
+	def family(self):
+		return self.__addrinfo[0][0]
+	
+	@property
+	def type(self):
+		return self.__addrinfo[0][1]
+	
+	@property
+	def proto(self):
+		return self.__addrinfo[0][2]
+	
+	@property
+	def flags(self):
+		return self.__addrinfo[0][3]
+	
+	@property
+	def addr(self):
+		return self.__addrinfo[0][4]
+	
+	@property
+	def host(self):
+		return self.__addrinfo[0][4][0]
+	
+	@property
+	def port(self):
+		return self.__addrinfo[0][4][1]
 	
 	@property
 	def fqdn(self):
@@ -261,35 +99,66 @@ class SockInfo(object):
 			self.__hostex = socket.gethostbyname_ex(self.host)
 			return self.__hostex
 	
-	#
-	def display(self):
-		"""
-		Print the currently-available choices for creation of a socket
-		(for the given constructor arguments). 
-		"""
-		c = []
-		
-		# append the things that stay the same...
-		c.append(["fqdn", self.fqdn])
-		c.append(["hostname", self.hostname])
-		
-		# add each available socket description here
-		for i,x in enumerate(self.addrinfo):
-			c.extend([
-				['',''],
-				["addr%i"%i, x],
-				["cname", x[3]],
-				["host", x[4][0]],
-				["port", x[4][1]],
-				["family", "%s (%i)" % (sockname(x[0], "AF_"), x[0])],
-				["socktype", "%s (%i)" % (sockname(x[1], "SOCK_"), x[1])],
-				["proto", "%s (%i)" % (sockname(x[2], "IPPROTO_"), x[2])],
-			])
-		
-		# print the output
-		base.create('pyrox.base.fmt.Grid').output(c)
-
-
-
 	
-
+	# DESCRIBE
+	def describe(self, i=0):
+		x = self[i] if i else self
+		return dict(
+				host   = x.host,
+				port   = x.port,
+				family = self.sockname(x.family, "AF_"),
+				proto  = self.sockname(x.type, "IPPROTO_"),
+				type   = self.sockname(x.type, "SOCK_"),
+				flags  = x.flags
+			)
+	
+	# DISPLAY
+	def display(self, i=0):
+		Base.ncreate('fmt.JDisplay').output(self.describe(i))
+	
+	
+	#
+	# SOCK VAL
+	# - Get values from python's socket module.
+	#
+	@classmethod
+	def sockval(cls, name):
+		"""
+		Returns the value of anything defined in python's socket module 
+		given the `name` for that value. For example, given a `name` of 
+		"SHUT_RDWR", the value of socket.SHUT_RDWR is returned (as an 
+		integer).
+		
+		Any kind of value `name` that's defined in the socket module will
+		be returned, but the intention here is to suport the passing of 
+		constant values given as strings in config dict arguments. That 
+		is, it's much easier to pass socktype='SOCK_STREAM' rather than 
+		looking up the value of socket.SOCK_STREAM and entering that 
+		integer instead.
+		
+		If `name` is not defined in the socket module, then its value will
+		be returned as-is. This makes it possible to pass either the value
+		itself or it's name, eg., 'SOCK_STREAM' or socket.SOCK_STREAM.
+		"""
+		if name and (name in socket.__dict__):
+			# either `name` is a name defined in the socket module, or...
+			x = socket.__dict__[name]
+		else:
+			# ... the actual value was given as `name`.
+			x = name
+		return x
+	
+	@classmethod
+	def sockname(cls, value, prefix=None):
+		"""
+		Searches for names that define the given `value` in python's 
+		socket module. Pass `prefix` (a string) to limit the results.
+		"""
+		r = []
+		l = len(prefix) if prefix else 0
+		for k in socket.__dict__:
+			if (not l) or (k[:l] == prefix):
+				if socket.__dict__[k] == value:
+					r.append(k)
+		return r
+	
