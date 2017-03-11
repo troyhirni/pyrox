@@ -14,6 +14,7 @@ seems to work to some extent.
 from .. import *
 
 import json, time, multiprocessing 
+from multiprocessing import Queue
 
 
 # Default sleep time when waiting for new tasks to collect in the
