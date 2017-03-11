@@ -99,8 +99,10 @@ class Database(object):
 			if isinstance(conf['sql'], basestring):
 				conf['sql'] = Base.config(conf['sql'])
 			if not isinstance(conf['sql'], dict):
-				raise TypeError('db-config-sql')
-				
+				raise TypeError('db-config-sql', xdata(
+						reason='invalid-config-type', detail='dict-required'
+					))
+			
 			# init-check
 			conf['autoinit'] = conf.get('autoinit')
 			
@@ -177,16 +179,18 @@ class Database(object):
 		Open database using preconfigured arguments and optional kwargs.
 		"""
 		if self.active:
-			raise Exception('db-active')
+			raise Exception('db-open-fail', xdata(reason='already-open'))
 		elif not self.mod:
-			raise Exception('db-module')
+			raise Exception('db-open-fail', xdata(
+					reason='module-not-specified'
+				))
 		
 		try:
 			self.__con = self.mod.connect(*self.__args, **kwargs)
 			
 		except BaseException as ex:
 			raise type(ex)('db-open-fail', self.xdata(
-				python=str(ex), args=self.__args, kwargs=kwargs,
+				python=str(ex), args=self.__args, kwargs=kwargs
 			))
 		
 		# auto-init
@@ -237,11 +241,11 @@ class Database(object):
 	
 	# ERROR ROLLBACK
 	def __rollback(self):
-		"""
-		Used only in except clauses, in case the database was not open
-		(or some other error not related to the sql itself). This keeps
-		the wrong error from being raised.
-		"""
+		#
+		#Used only in except clauses, in case the database was not open
+		#(or some other error not related to the sql itself). This keeps
+		#the wrong error from being raised.
+		#
 		try:
 			self.rollback()
 		except:
