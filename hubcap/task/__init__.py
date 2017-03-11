@@ -35,12 +35,12 @@ class Task(Runner):
 		Runner.__init__(self, conf)
 		self.qhub = conf['qhub']
 		self.qtask = conf['qtask']
-		self.log("task init ok")
+		#self.log("task init ok")
 	
 	# GET
 	def get(self):
 		"""
-		Returns a message from the hub, or None if none exists.
+		Return a message from the hub, or None if none exists.
 		"""
 		try:
 			return self.qtask.get(HC_Q_TIMEOUT)
@@ -51,7 +51,7 @@ class Task(Runner):
 	# PUT
 	def put(self, m=None, **k):
 		"""
-		Queues an outgoing message to the Hub.
+		Queue an outgoing message to the Hub.
 		"""
 		m = m or {}
 		m.update(k)
@@ -99,21 +99,17 @@ class Task(Runner):
 		hub with key e='unhandled-message'
 		"""
 		if 'c' in m:
-			if m['c'] == 'exit':
-				m['r'] = 'exiting'
-				self.put(m)
-				self.exit()
-			elif m['c'] == 'status':
+			if m['c'] == 'status':
 				m['r'] = self.status()
+				self.put(m)
+				return
 			elif m['c'] == 'debug':
 				raise Exception('debug-error', xdata(
 					reason='triggered-by-user'
 				))
-		else:
-			m['e'] = 'unhandled-message'
-			self.put(m)
 		
-		self.log("processed message", m)
+		# pass message on to the more basic handler
+		Runner.onMessage(self, m)
 
 
 
