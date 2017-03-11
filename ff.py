@@ -12,6 +12,7 @@ similar to data.pdq.Query objects.
 """
 
 
+
 def wrap(o):
 	"""
 	Argument `o` is an object
@@ -86,7 +87,7 @@ class FFWrapper (FF):
 		for n in dir(self.o):
 			if not ("__" in n):
 				ax = getattr(self.o, n)
-				if type(ax).__name__ == 'instancemethod':
+				if type(ax).__name__ in ['method', 'instancemethod']:
 					setattr(self, n, FFSetter(self, ax))
 
 
