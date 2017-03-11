@@ -3,12 +3,26 @@ Copyright 2014-2017 Troy Hirni
 This file is part of the pyro project, distributed under
 the terms of the GNU Affero General Public License.
 
-DATASET - Loosely structured database.
+DATASET - Storage of loosely structured data.
 
 Dataset manages a database that abstracts data storage into records,
 fields, and values so as to reduce the space required to store data
 on disk in cases where many field values are repeated.
 
+The structure can be visualized like this:
+
+  dataset      # each dataset has 0 or more records
+	   |
+  record       # each record has 1 or more fields
+     |
+   field       # each field has a tag and a data value
+     |_ tag    # tag is like a feild name
+     |_ data   # data is like the field's value
+
+A dataset database has a table for each of these ideas (dataset, tag,
+etc...). Any field containing an already-existing data item points to
+that item, rather than creating a copy. This saves a lot of storage
+space if many fields contain the same larger-than-an-int data value.
 """
 
 from .. import *
@@ -26,9 +40,13 @@ except:
 
 
 #
-# DATASET
+# DATASETS
 #
-class Dataset (Base):
+class Datasets (Base):
+	"""
+	The Datasets class represents a database that contains the tables
+	that store data as needed by the Dataset class (defined below).
+	"""
 	
 	def __init__(self, db=None, **k):
 		"""
@@ -44,7 +62,7 @@ class Dataset (Base):
 			# First, assume db is a Database object; make sure it's open.
 			if not db.active:
 				db.open()
-		except Exception:
+		except AttributeError:
 			# If that raises an error, assume db is a config specification.
 			k.setdefault('sql', DATASET_SQL)
 			k['autoinit'] = True
@@ -54,30 +72,33 @@ class Dataset (Base):
 		# private vars
 		self.__db = db
 			
-	
 	def __del__(self):
 		self.__db.close()
 		self.__db = None
-	
 	
 	@property
 	def db(self):
 		return self.__db
 	
-	
 	def dset(self, setname):
-		return DSet(self, setname)
+		"""
+		Returns a Dataset object representing a named dataset from this
+		`Datasets` database.
+		"""
+		# Pass the Database object and the name of the dataset stored
+		# within that database.
+		return Dataset(self.db, setname)
 
 
 
 
 
-class DSet (object):
-
-	def __init__(self, ds, setname):
+class Dataset (object):
+	
+	def __init__(self, db, setname):
 		
-		# set "ds" first so the self.db calls below will work
-		self.__ds = ds #util.proxify(ds)
+		# set "db" first so the self.db calls below will work
+		self.__db = db
 		
 		# store the set name; create the set if it doesn't 
 		# already exist; get and store the set id.
@@ -92,40 +113,40 @@ class DSet (object):
 			r = c.fetchone()
 			self.__setid = r[0]
 			self.db.commit()
-		
-	@property
-	def ds(self):
-		return self.__ds
-		
+	
+	
+	
 	@property
 	def db(self):
-		return self.__ds.db
+		"""
+		The data.database.Database object that contains the tables which
+		store this dataset's data.
+		"""
+		return self.__db
 	
 	@property
 	def setname(self):
+		"""The name of this dataset, as stored in the database."""
 		return self.__setname
 	
 	@property
 	def setid(self):
+		"""The set identifier, an integer."""
 		return self.__setid
 	
 	# COUNT
 	def count (self):
-		"""
-		Record count for this object's dataset.
-		"""
+		"""Record count for this object's dataset."""
 		c = self.db.opq("rec-ct", (self.setid,))
 		return c.fetchone()[0]
 	
 	
 	def search(self, tag, data, order='dt'):
-		"""
-		Returns a cursor where tag matches data.
-		"""
+		"""Return a cursor where tag matches data."""
 		return self.db.opq("search-data", (self.setid, tag, data, order))
 	
 	
-	def add(self, listOfDicts=None, **k):
+	def add(self, iterable=None, **k):
 		"""
 		Create new record
 		Select new record's ID
@@ -140,16 +161,16 @@ class DSet (object):
 		
 		NEW FEATURE:
 		Since transactions are so slow, there's now an optional 
-		`listOfDicts` argument that, when given, loops adding all records
+		`iterable` argument that, when given, loops adding all records
 		before committing.
 		"""
 		# accept a list of dicts or just keyword args
-		dicts = listOfDicts or k
+		dicts = iterable or [k]
 		
 		for d in dicts:
 			with thread.allocate_lock():
 				self.db.opq('rec-add', (self.setid, time.time()))
-				c=self.db.opq('rec-max', (self.setid,))
+				c = self.db.opq('rec-max', (self.setid,))
 				recid=c.fetchone()[0]
 				
 				for kw in d:
@@ -202,71 +223,80 @@ DATASET_SQL = {
 		# SQL TO CREATE DB TABLES/INDICES
 		#
 		"create" : [
-				"""
-				create table if not exists dataset (
-					setid INTEGER, 
-					setname TEXT, 
-					PRIMARY KEY (setid)
-				)
-				""",
-				"""
-				create unique index if not exists ix_dataset 
-					on dataset (setname)
-				""",
-				"""
-				create table if not exists record (
-					recid INTEGER,
-					setid INTEGER,
-					dt REAL,
-					PRIMARY KEY (recid)
-				)
-				""",
-				"""
-				create index if not exists ix_record_dt 
-					on record (dt)
-				""",
-				"""
-				create index if not exists ix_record_set 
-					on record (setid)
-				""",
-				"""
-				create table if not exists field (
-					recid INTEGER,
-					tagid INTEGER,
-					dataid INTEGER,
-					PRIMARY KEY (recid, tagid, dataid)
-				)
-				""",
-				"""
-				create index if not exists ix_field_tag 
-					on field (tagid)
-				""",
-				"""
-				create index if not exists ix_field_data 
-					on field (dataid)
-				""",
-				"""
-				create table if not exists tag (
-					tagid INTEGER, 
-					tag TEXT, 
-					PRIMARY KEY(tagid)
-				)""",
-				"""
-				create index if not exists ix_tag 
-					on tag (tag)
-				""",
-				"""
-				create table if not exists data (
-					dataid INTEGER, 
-					data TEXT, 
-					PRIMARY KEY(dataid)
-				)
-				""",
-				"""
-				create index if not exists ix_data 
-					on data (data)
-				"""
-			],
+			# dataset
+			"""
+			create table if not exists dataset (
+				setid INTEGER, 
+				setname TEXT, 
+				PRIMARY KEY (setid)
+			)
+			""",
+			"""
+			create unique index if not exists ix_dataset 
+				on dataset (setname)
+			""",
+			
+			# record
+			"""
+			create table if not exists record (
+				recid INTEGER,
+				setid INTEGER,
+				dt REAL,
+				PRIMARY KEY (recid)
+			)
+			""",
+			"""
+			create index if not exists ix_record_dt 
+				on record (dt)
+			""",
+			"""
+			create index if not exists ix_record_set 
+				on record (setid)
+			""",
+			
+			# field
+			"""
+			create table if not exists field (
+				recid INTEGER,
+				tagid INTEGER,
+				dataid INTEGER,
+				PRIMARY KEY (recid, tagid, dataid)
+			)
+			""",
+			"""
+			create index if not exists ix_field_tag 
+				on field (tagid)
+			""",
+			"""
+			create index if not exists ix_field_data 
+				on field (dataid)
+			""",
+			
+			# tag
+			"""
+			create table if not exists tag (
+				tagid INTEGER, 
+				tag TEXT, 
+				PRIMARY KEY(tagid)
+			)""",
+			"""
+			create index if not exists ix_tag 
+				on tag (tag)
+			""",
+			
+			# data
+			"""
+			create table if not exists data (
+				dataid INTEGER, 
+				data TEXT, 
+				PRIMARY KEY(dataid)
+			)
+			""",
+			"""
+			create index if not exists ix_data 
+				on data (data)
+			"""
+		],
 		
 		#
 		# SQL FOR DATASET OPERATIONS
