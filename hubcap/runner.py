@@ -93,7 +93,7 @@ class Runner(Hubcap):
 			raise Exception('open-fail',dict(reason='already-open'))
 		self.onOpen()
 		self.__active=True
-		self.log("OPEN")
+		#self.log("OPEN")
 	
 	
 	# RUN
@@ -108,7 +108,7 @@ class Runner(Hubcap):
 		if not self.active:
 			self.open()
 		
-		self.log("RUN")
+		#self.log("RUN")
 		self.__running = True
 		
 		# calling functions as local variables works faster
@@ -130,7 +130,7 @@ class Runner(Hubcap):
 			# time.sleep(self.sleep)
 			ts(ss)
 		
-		self.log("RUN-STOP")
+		#self.log("RUN-STOP")
 		
 		time.sleep(1)
 		return 0
@@ -219,36 +219,8 @@ class Runner(Hubcap):
 				m['r'] = 'exiting'
 				self.put(m)
 				self.exit()
+				return
 	
-	"""
-	# LOG
-	def log(self, *a, **k):
-		
-		Write log messages to HC_DBG_LOG file.
-		
-		try:
-			a = list(a)
-			if k:
-				a.append(k)
-			f = open(HC_DBG_LOG, "a")
-			try:
-				p = multiprocessing.current_process()
-				pid = p.pid
-				T = type(self).__name__
-				d = {
-					'args' : a,
-					'proc' : p._name,
-					'pid' : pid,
-					'type' : T
-				}
-				print (d)
-				f.write("%s: %s\n" % (str(time.time()), json.dumps(d, indent=2)))
-			finally:
-				f.close()
-		except Exception as ex:
-			print ("Logging Error!")
-			print (ex)
-	"""
 	
 	# STATUS
 	def status(self):
