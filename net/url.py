@@ -7,8 +7,10 @@ Parse URLs; Retrieve and work with URL content.
 """
 
 # fmt imports * from .. too, so everything's here.
-from ..fmt import *
-from ..data import text
+# from ..fmt import *  # IS THIS NEEDED?
+# from ..data import text
+from .. import *
+
 
 
 # compensate for renamed symbols in python 3
@@ -72,7 +74,7 @@ def head(url):
 	Returns a UResponse with just the head for the given url.
 	
 	from net import url
-	h = url.head(someUrl.)
+	h = url.head(someUrl)
 	print (h.info())
 	"""
 	request = urlreq.Request(url)
@@ -149,12 +151,12 @@ class UResponse(object):
 		try:
 			return self.__charset
 		except:
-			e = text.Encoded(self.content)
+			e = Base.ncreate('data.text.Encoded', self.content)
 			c = e.testbom()
 			if not c:
 				c = self.param('charset')
 			if not c:
-				bb = text.Encoded(self.content)
+				bb = Base.ncreate('data.text.Encoded', self.content)
 				c = bb.detect()
 			self.__charset = e.pythonize(c)
 			return self.__charset
@@ -211,10 +213,12 @@ class UParse(object):
 	@classmethod
 	def authsplit(cls, s):
 		"""
-		Split on ':' and return a tupel of at least two values, any of
+		Split on ':' and return a tuple of at least two values, any of
 		which may be None.
 		"""
 		x = s.split(':')
 		if x:
 			return (x[0],None) if len(x)==1 else tuple(x)
 		return (None,None)
+
+
