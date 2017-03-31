@@ -253,15 +253,31 @@ class TFactory(object):
 			if isinstance(tt, type):
 				return tt
 		
+		#
+		# EXPERIMENTAL
+		#
 		# load from module
 		MOD = self.__fimport(sPath, sType)
+		T = MOD.__dict__.get(sType)
+		
+		# if it's not an object within a module, it's the module itself
+		if not T:
+			T = self.__fimport(sFull)
+		
+		# BACKUP:
+		"""
+		# load from module
+		MOD = self.__fimport(sPath, sType)
+		
 		T = MOD.__dict__.get(sType)
 		if not T:
 			raise TypeError('factory-type-fail', xdata(
 				type=sType, path=sFull
 			))
+		"""
 		self.__cache[id] = T
 		return T
+	
 	
 	#
 	# F-IMPORT - load a type given string path (package.module.Type)
