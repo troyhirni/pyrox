@@ -183,6 +183,22 @@ class UParse(object):
 		R = {'url':s}
 		x = urlparse.urlparse(s)
 		s,n,p,q,f = x.scheme, x.netloc, x.path, x.query, x.fragment
+		
+		"""
+		# <experimental>
+		if s and not p: 
+			try:
+				p = socket.getservbyname(s)
+			except:
+				pass
+		elif p and not s: 
+			try:
+				s = socket.getservbyport(p)
+			except:
+				pass
+		# </experimental>
+		"""
+		
 		R.update(dict(scheme=s, netloc=n, path=p, query=q, fragment=f))
 		R.update(cls.authority(x.netloc))
 		return R
