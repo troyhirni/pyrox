@@ -12,6 +12,12 @@ from .. import *
 import socket
 
 
+# GLOBALS (DEFAULTS)
+SOCKWRAP_BUFSIZE = 4096
+SOCKWRAP_TIMEOUT = 0.0001
+SOCKWRAP_CTIMEOUT = 20
+
+
 
 # SOCK VAL
 # - Get values from python's socket module.
@@ -55,4 +61,90 @@ def sockname(value, prefix=None):
 			if socket.__dict__[k] == value:
 				r.append(k)
 	return r
+
+
+
+
+
+#
+# EXPERIMENTAL
+#
+class Socket(object):
+	
+	@classmethod
+	def parseurl(cls, url):
+		"""
+		Socket-based classes will accept a url as `config`.
+		"""
+		try:
+			return cls.__parseurl(url)
+		except:
+			cls.__parseurl = TFactory(Base.innerpath('net.url.parse')).type
+			return cls.__parseurl(url)
+	
+	
+	@classmethod
+	def configdefaults(cls, configDict):
+		"""Set config default values."""
+		configDict.setdefault('bufsize', SOCKWRAP_BUFSIZE)
+		configDict.setdefault('timeout', SOCKWRAP_TIMEOUT)
+		configDict.setdefault('ctimeout', SOCKWRAP_CTIMEOUT)
+		configDict.setdefault('backlog', socket.SOMAXCONN) #for servers
+		return configDict
+	
+	
+	@classmethod
+	def parseconfig(cls, config=None, **k):
+		"""Gather configuration params with default settings."""
+		conf = config or {}
+		try:
+			# if config is dict...
+			conf.update(k)
+		except AttributeError:
+			# if config is a url str...
+			conf = cls.parseurl(conf)
+			conf.update(k)
+		
+		# make sure defaults are set
+		return cls.configdefaults(conf)
+	
+	
+	@classmethod
+	def createconnection(cls, config=None, **k):
+		"""Return a socket given a full configuration dict."""
+		# read config
+		conf = cls.parseconfig(config, **k)
+		address = (conf['host'], conf['port'])
+		
+		# create socket
+		ctimeout = conf.get('ctimeout', SOCKWRAP_CTIMEOUT)
+		sock = socket.create_connection(address, ctimeout)
+		
+		# set common options and return
+		sock.settimeout(conf.get('timeout', SOCKWRAP_TIMEOUT))
+		return sock
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
