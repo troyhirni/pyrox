@@ -57,6 +57,13 @@ class Path(object):
 		"""The path as a unicode string (python 2 support)"""
 		return unicode(self.path)
 	
+	# ENTER/EXIT
+	def __enter__(self):
+		return self
+	
+	def __exit__(self, *args):
+		pass
+	
 	
 	# PROPERTIES
 	
@@ -528,6 +535,14 @@ class Stream(EncodingHelper):
 		# Now we can close without hiding meaningful errors that might be
 		# self.__stream being undefined.
 		self.close()
+	
+	
+	# ENTER/EXIT
+	def __enter__(self):
+		return self
+	
+	def __exit__(self, *args):
+		pass
 	
 	
 	@property
