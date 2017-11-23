@@ -9,7 +9,6 @@ FILE - File Object, for reading normal files.
 
 from . import *
 from . import opener
-	
 
 
 #
@@ -35,6 +34,7 @@ class File(FileBase):
 	
 	# OPEN
 	def open(self, mode='r', **k):
+	##def open(self, **k):
 		"""
 		Open file at self.path with an fs.opener Opener object. 
 		
@@ -75,6 +75,8 @@ class File(FileBase):
 		unsupported keyword arguments, but also will NOT provide the
 		features rejected keyword args would have specified.
 		"""
+		##mode = k.get('mode', 'r')
+		
 		# binary
 		if 'b' in mode:
 			return self.opener.open(self.path, mode, **k)

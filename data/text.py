@@ -105,7 +105,7 @@ class Text(object):
 		else:
 			if encoding:
 				# Bytes and encoding were given, so decode to text.
-				self.__enc = encoding or DEF_ENCODE
+				self.__enc = encoding
 				self.__text = x.decode(self.__enc, **k)
 			else:
 				# No encoding was specified, so try to detect.
@@ -115,24 +115,7 @@ class Text(object):
 					raise Exception('text-encoding-needed',  xdata())
 				self.__enc = de
 				self.__text = ee.bytes.decode(self.__enc, **k)
-				
 	
-	#
-	# EXPERIMENTAL!!
-	# - I'm not sure whether these are consistent with the way I want
-	#   the Text class to be used. At the first sign of trouble (or 
-	#   even just confusion) I'll remove the offending methods.
-	#
-	
-	def __call__(self, c=''):
-		"""
-		Utility. Return the given string as bytes encoded in this 
-		object's endoding.
-		
-		EXPERIMENTAL. May be removed! 
-		"""
-		return c.encode(self.__encoding)
-		
 	def __getitem__(self, key):
 		"""EXPERIMENTAL."""
 		return self.__text[key]
@@ -141,6 +124,47 @@ class Text(object):
 		"""EXPERIMENTAL."""
 		return len(self.__text)
 
+
+
+#
+# STRINGER
+#  - Not really sure this belongs here - it might be moved. It's been
+#    useful, though, so I want to include it.
+#
+class Stringer(object):
+	"""
+	Creates a list of simple values to be recast as strings.
+	"""
+	def __init__(self, encoding=None):
+		self.items = []
+		self.encoding = encoding or 'utf8'
+	
+	def __len__(self):
+		return len(self.items)
+	
+	def add(self, *args):
+		"""
+		Pass *args of any type to be appended to the `self.items` list. 
+		This may be called more than once.
+		"""
+		for a in args:
+			self.items.append(a)
+	
+	def strings(self):
+		"""
+		Returns a list of `self.items`, each cast as a string.
+		"""
+		r = []
+		for item in self.items:
+			if isinstance(item, str):
+				r.append(item)
+			else:
+				try:
+					r.append(item.decode(self.encoding))
+				except AttributeError:
+					r.append(str(item))
+		
+		return tuple(r)
 
 
 
@@ -244,7 +268,7 @@ class Encoded(object):
 			return e3
 		
 		# This information could still be useful, so return the 
-		# first-found result even if it's not in ENCODINGS_ALIASES. .
+		# first-found result even if it's not in ENCODINGS_ALIASES.
 		return e1 or e2 or e3
 	
 	

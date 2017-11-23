@@ -204,7 +204,7 @@ class Query(Base):
 			order = []
 			for row in self.rows():
 				order.append([fn(row), row.v])
-			reverse(order).sort() if k.get('desc') else order.sort()
+			reversed(order).sort() if k.get('desc') else order.sort()
 			self.data = map(lambda o: o[1], order)
 		else:
 			if k.get('desc'):
